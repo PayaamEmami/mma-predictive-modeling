@@ -25,15 +25,15 @@ import re
 from collections import defaultdict
 warnings.filterwarnings('ignore')
 timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-output_path = os.path.join('/content/drive/MyDrive/files/omscs/ML-CS7641/A1/output', timestamp)
-data_cache_path = os.path.join('/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data', 'cache')
+output_path = os.path.join('/content/drive/MyDrive/files/models/output', timestamp)
+data_cache_path = os.path.join('/content/drive/MyDrive/files/models/data', 'cache')
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(data_cache_path, exist_ok=True)
 drive.mount('/content/drive')
 
 def load_ufc_data():
     try:
-        ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
+        ufc_data_path = '/content/drive/MyDrive/files/models/data/ufc'
         fight_data_path = os.path.join(ufc_data_path, 'ufc_events.csv')
 
         fight_data = pd.read_csv(fight_data_path, quotechar='"', parse_dates=['EventDate'])
