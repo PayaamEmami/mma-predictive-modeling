@@ -40,7 +40,7 @@ def load_ufc_data():
 
         print(f"Records before dropping data: {len(fight_data)}")
         fight_data = fight_data.drop(columns=['EventName'])
-        fight_data = fight_data.drop(fight_data[fight_data['Winner'] == 'NC'].index)
+        fight_data = fight_data[~fight_data['Winner'].isin(['NC', 'D'])]
         fight_data = fight_data.dropna()
         print(f"Records after dropping data: {len(fight_data)}")
 
