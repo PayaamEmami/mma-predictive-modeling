@@ -379,7 +379,7 @@ def train_fully_connected_neural_network(X_train, y_train, X_test, y_test, hyper
                     for max_iter in hyperparameters_range['max_iter']:
                         start_time = time.time()
 
-                        model = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, alpha=alpha, solver=solver, max_iter=max_iter, random_state=21)
+                        model = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, alpha=alpha, solver=solver, max_iter=max_iter, random_state=21, probability=True)
                         model.fit(X_train, y_train)
                         score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
 
@@ -410,7 +410,7 @@ def train_support_vector_machine(X_train, y_train, X_test, y_test, hyperparamete
                 for gamma in hyperparameters_range['gamma']:
                     start_time = time.time()
 
-                    model = SVC(kernel=kernel, C=C, gamma=gamma)
+                    model = SVC(kernel=kernel, C=C, gamma=gamma, probability=True)
                     model.fit(X_train, y_train)
                     score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
 
@@ -443,7 +443,7 @@ def train_k_nearest_neighbor(X_train, y_train, X_test, y_test, hyperparameters_r
             param_dict = dict(zip(param_names, params))
             start_time = time.time()
 
-            model = KNeighborsClassifier(**param_dict)
+            model = KNeighborsClassifier(**param_dict, probability=True)
             model.fit(X_train, y_train)
             score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
 
@@ -474,7 +474,7 @@ def train_decision_tree(X_train, y_train, X_test, y_test, hyperparameters_range,
                 for min_samples_leaf in hyperparameters_range['min_samples_leaf']:
                     start_time = time.time()
 
-                    model = DecisionTreeClassifier(max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, random_state=21)
+                    model = DecisionTreeClassifier(max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, random_state=21, probability=True)
                     model.fit(X_train, y_train)
                     score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
 
@@ -505,7 +505,7 @@ def train_boosting(X_train, y_train, X_test, y_test, hyperparameters_range, mode
                 start_time = time.time()
 
                 estimator = DecisionTreeClassifier(max_depth=3, min_samples_split=5, min_samples_leaf=2, max_leaf_nodes=10)
-                model = AdaBoostClassifier(estimator=estimator, n_estimators=n_estimators, learning_rate=learning_rate)
+                model = AdaBoostClassifier(estimator=estimator, n_estimators=n_estimators, learning_rate=learning_rate, probability=True)
                 model.fit(X_train, y_train)
                 score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
 
@@ -526,6 +526,7 @@ def train_boosting(X_train, y_train, X_test, y_test, hyperparameters_range, mode
 
 def evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir):
     y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)
 
     f1_average = 'weighted'
     f1 = f1_score(y_test, y_pred, average=f1_average)
@@ -537,11 +538,14 @@ def evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
         f.write(f"Dataset: {dataset_name}\n")
         f.write(f"F1-Score ({f1_average}): {f1}\n")
         f.write(f"Classification Report:\n{report}\n")
+        f.write(f"Probabilities:\n{y_prob}\n")
+
     print(f"Model: {model_name}")
     print(f"Dataset: {dataset_name}")
     print(f"F1-Score ({f1_average}): {f1}")
     print(f"Classification Report:\n{report}")
-    return f1, report
+    print(f"Probabilities:\n{y_prob}")
+    return f1, report, y_prob
 
 def generate_plots(estimator, X, y, param_grid, title_prefix, results_dir, cv):
     try:
@@ -642,88 +646,6 @@ def generate_plots(estimator, X, y, param_grid, title_prefix, results_dir, cv):
         print(f"An error occurred while generating plots: {e}")
 
 if __name__ == "__main__":
-    """
-    Neural Network Hyperparameters
-    'epochs': The number of complete passes through the training dataset.
-    'batch_size': The number of training samples to be processed in one forward/backward pass.
-    'learning_rate': The step size for the optimizer to adjust weights.
-    'hidden_layer_sizes': Tuple of integers, where each integer represents the number of neurons in each hidden layer.
-    'activation': Activation function for the hidden layers. Options include 'identity', 'logistic', 'tanh', 'relu'.
-    'solver': The optimization algorithm to use. Options include 'lbfgs', 'sgd', 'adam'.
-    'alpha': Regularization parameter (L2 penalty) to prevent overfitting.
-    'learning_rate_init': Initial learning rate used for weight updates in SGD or Adam.
-    'max_iter': Maximum number of iterations for the solver to converge.
-    'shuffle': Whether to shuffle samples at each iteration.
-    'momentum': Momentum for gradient descent update. Applicable only when 'solver' is 'sgd'.
-    'nesterovs_momentum': Whether to use Nesterov's momentum. Applicable only when 'solver' is 'sgd'.
-    'early_stopping': Whether to stop training when the validation score is not improving.
-    'beta_1': Exponential decay rate for the first moment estimate in Adam optimizer.
-    'beta_2': Exponential decay rate for the second moment estimate in Adam optimizer.
-    'random_state': Seed for random number generation to ensure reproducibility.
-    'validation_fraction': Fraction of training data to set aside for validation.
-    'tol': Tolerance for the optimization, used for stopping criteria.
-
-    Convolutional Neural Network (CNN) Hyperparameters
-    'epochs': The number of complete passes through the training dataset.
-    'batch_size': The number of training samples to be processed in one forward/backward pass.
-    'learning_rate': The step size for the optimizer to adjust weights.
-    'filters': The number of filters (kernels) in each convolutional layer.
-    'kernel_size': The size of the filter applied to the input data (e.g., 3x3 or 5x5).
-    'stride': The number of pixels to move the filter after each convolution.
-    'padding': Amount of padding to apply around the input data ('same' or 'valid').
-    'activation': The activation function to use in the layers (e.g., 'relu', 'tanh').
-    'pool_size': The size of the pooling window for max pooling operations.
-    'dropout_rate': The fraction of units to drop during training to prevent overfitting.
-    'optimizer': The optimizer to use for training (e.g., 'adam', 'sgd').
-    'decay': Learning rate decay over each update.
-    'momentum': Momentum factor for optimization.
-    'early_stopping': Whether to stop training early if the validation loss plateaus.
-
-    Support Vector Machine (SVM) Hyperparameters
-    'C': Regularization parameter. The strength of the regularization is inversely proportional to C.
-    'kernel': Specifies the kernel type to be used in the algorithm. It can be 'linear', 'poly', 'rbf', 'sigmoid', or a custom kernel function.
-    'degree': Degree of the polynomial kernel function ('poly'). Ignored by other kernels.
-    'gamma': Kernel coefficient for ‘rbf’, ‘poly’, and ‘sigmoid’. Determines the influence of individual training examples.
-    'coef0': Independent term in kernel function. It is only significant in 'poly' and 'sigmoid' kernels.
-    'shrinking': Whether to use the shrinking heuristic.
-    'tol': Tolerance for stopping criteria.
-    'max_iter': Maximum number of iterations to run the optimizer. Set to -1 for no limit.
-
-    k-Nearest Neighbors (k-NN) Hyperparameters
-    'n_neighbors' (k): The number of neighbors to use for k-neighbors queries.
-    'weights': Weight function used in prediction. Possible values are 'uniform', 'distance', or a custom callable.
-    'algorithm': Algorithm used to compute the nearest neighbors. Options include 'auto', 'ball_tree', 'kd_tree', and 'brute'.
-    'leaf_size': Leaf size passed to the underlying tree algorithms. It can affect the speed and memory consumption of the algorithm.
-    'p': Power parameter for the Minkowski metric. When p=1, it's equivalent to the Manhattan distance; when p=2, it's equivalent to Euclidean distance.
-    'metric': The distance metric to use for tree. The default is 'minkowski'.
-    'metric_params': Additional keyword arguments for the metric function.
-    'n_jobs': The number of parallel jobs to run for neighbors search. -1 means using all processors.
-
-    Decision Tree Hyperparameters
-    'criterion': The function to measure the quality of a split. Options are 'gini' for the Gini impurity and 'entropy' for information gain.
-    'splitter': The strategy used to choose the split at each node. Options are 'best' and 'random'.
-    'max_depth': The maximum depth of the tree. Limits how deep the tree can grow.
-    'min_samples_split': The minimum number of samples required to split an internal node.
-    'min_samples_leaf': The minimum number of samples required to be at a leaf node.
-    'min_weight_fraction_leaf': The minimum weighted fraction of the input samples required to be at a leaf node.
-    'max_features': The number of features to consider when looking for the best split. Options are 'auto', 'sqrt', 'log2', or None.
-    'random_state': Controls the randomness of the estimator.
-    'max_leaf_nodes': Grow a tree with max_leaf_nodes in best-first fashion.
-    'min_impurity_decrease': A node will be split if this split induces a decrease in impurity greater than or equal to this value.
-    'class_weight': Weights associated with classes in the form {class_label: weight}. Useful for unbalanced classes.
-
-    Boosting (e.g., AdaBoost, Gradient Boosting) Hyperparameters
-    'n_estimators': The number of boosting rounds or weak learners to use.
-    'learning_rate': Shrinks the contribution of each weak learner. Lower values require more boosting rounds.
-    'max_depth': The maximum depth of the individual base learners.
-    'min_samples_split': The minimum number of samples required to split an internal node in base learners.
-    'min_samples_leaf': The minimum number of samples required to be at a leaf node in base learners.
-    'max_features': The number of features to consider when looking for the best split in base learners.
-    'subsample': The fraction of samples used for fitting the individual base learners.
-    'criterion': The loss function to be minimized in boosting.
-    'loss': Loss function to optimize in gradient boosting models. Common options are 'deviance' (log loss) and 'exponential'.
-    'random_state': Seed for reproducibility.
-    """
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=21)
 
