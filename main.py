@@ -19,6 +19,11 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import classification_report
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import EarlyStopping
 from itertools import product
 import warnings
 import re
@@ -398,6 +403,78 @@ def train_fully_connected_neural_network(X_train, y_train, X_test, y_test, hyper
     save_model(best_model, model_name, dataset_name, results_dir)
     return best_model
 
+def train_deep_neural_network(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
+    best_model = None
+    best_score = 0
+    best_params = {}
+    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
+
+    num_classes = np.unique(y_train).size
+    y_train_categorical = to_categorical(y_train, num_classes)
+    y_test_categorical = to_categorical(y_test, num_classes)
+
+    with open(results_file, 'a+') as f:
+        param_names = list(hyperparameters_range.keys())
+        param_values = list(hyperparameters_range.values())
+
+        for params in product(*param_values):
+            param_dict = dict(zip(param_names, params))
+            start_time = time.time()
+
+            model = Sequential()
+            for layer_size in param_dict['hidden_layer_sizes']:
+                model.add(Dense(layer_size, activation=param_dict['activation']))
+                if 'dropout_rate' in param_dict and param_dict['dropout_rate'] > 0:
+                    model.add(Dropout(param_dict['dropout_rate']))
+            model.add(Dense(num_classes, activation='softmax'))
+
+            optimizer_name = param_dict['optimizer']
+            learning_rate = param_dict['learning_rate']
+            if optimizer_name == 'adam':
+                optimizer = Adam(learning_rate=learning_rate)
+            elif optimizer_name == 'sgd':
+                optimizer = SGD(learning_rate=learning_rate)
+            else:
+                optimizer = optimizer_name
+
+            model.compile(optimizer=optimizer,
+                          loss='categorical_crossentropy',
+                          metrics=['accuracy'])
+
+            callbacks = []
+            if param_dict.get('early_stopping', False):
+                callbacks.append(EarlyStopping(patience=5, restore_best_weights=True))
+
+            history = model.fit(X_train, y_train_categorical,
+                                validation_data=(X_test, y_test_categorical),
+                                epochs=param_dict['epochs'],
+                                batch_size=param_dict['batch_size'],
+                                callbacks=callbacks,
+                                verbose=0)
+
+            y_pred_prob = model.predict(X_test)
+            y_pred = np.argmax(y_pred_prob, axis=1)
+            f1 = f1_score(y_test, y_pred, average='weighted')
+
+            end_time = time.time()
+            training_time = end_time - start_time
+
+            f.write(f"Training time with parameters {param_dict}: {training_time:.2f} seconds. F1-Score: {f1}.\n")
+            print(f"Training time with parameters {param_dict} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {f1}.")
+
+            if f1 > best_score:
+                best_score = f1
+                best_model = model
+                best_params = param_dict
+
+        f.write(f"\nBest DNN params: {best_params} with F1-Score: {best_score}\n")
+
+    model_path = os.path.join(results_dir, f"{model_name}_{dataset_name}.h5")
+    best_model.save(model_path)
+    print(f"Model saved to {model_path}")
+    return best_model
+
+
 def train_support_vector_machine(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
     best_model = None
     best_score = 0
@@ -662,6 +739,21 @@ if __name__ == "__main__":
         'early_stopping': [True, False],
     }
 
+    dnn_hyperparameters_range = {
+        'hidden_layer_sizes': [
+            (64,), (128,), (256,),
+            (64, 64), (128, 64), (256, 128, 64)
+        ],
+        'activation': ['relu', 'tanh'],
+        'optimizer': ['adam', 'sgd'],
+        'learning_rate': [0.001, 0.01],
+        'batch_size': [32, 64],
+        'epochs': [50],
+        'dropout_rate': [0.0, 0.2],
+        'early_stopping': [True],
+    }
+
+
     svm_hyperparameters_range_ufc = {
         'kernel': ['linear', 'rbf', 'sigmoid'],
         'C': [0.01, 0.1, 1, 10, 100, 1000],
@@ -713,10 +805,17 @@ if __name__ == "__main__":
     print("Splitting UFC dataset into training and testing sets...")
     X_train_ufc, X_test_ufc, y_train_ufc, y_test_ufc = train_test_split(X_ufc, y_ufc, test_size=0.2, random_state=21, stratify=y_ufc)
     print("Training on UFC data...")
+    print("Training Fully Connected Neural Network...")
     nn_model_ufc = train_fully_connected_neural_network(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, nn_hyperparameters_range_ufc, 'NeuralNetwork', 'UFC', output_path)
+    print("Training Deep Neural Network...")
+    dnn_model_ufc = train_deep_neural_network(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, dnn_hyperparameters_range, 'DeepNeuralNetwork', 'UFC', output_path)
+    print("Training Support Vector Machine...")
     svm_model_ufc = train_support_vector_machine(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, svm_hyperparameters_range_ufc, 'SVM', 'UFC', output_path)
+    print("Training K-Nearest Neighbor...")
     knn_model_ufc = train_k_nearest_neighbor(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, knn_hyperparameters_range, 'KNN', 'UFC', output_path)
+    print("Training Decision Tree...")
     dt_model_ufc = train_decision_tree(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, dt_hyperparameters_range, 'DecisionTree', 'UFC', output_path)
+    print("Training Adaptive Boosting with Decision Trees...")
     ada_model_ufc = train_boosting(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, boosting_hyperparameters_range_ufc, 'AdaBoost', 'UFC', output_path)
 
     print(f"All tasks completed. Results saved in {output_path}.")
