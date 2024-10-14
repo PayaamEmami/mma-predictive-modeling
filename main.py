@@ -38,7 +38,7 @@ drive.mount('/content/drive')
 
 def load_ufc_data():
     try:
-        ufc_data_path = '/content/drive/MyDrive/files/models/data/ufc'
+        ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
         fight_data_path = os.path.join(ufc_data_path, 'ufc_events.csv')
 
         fight_data = pd.read_csv(fight_data_path, quotechar='"', parse_dates=['EventDate'])
@@ -126,15 +126,18 @@ def load_ufc_data():
             fight_data[landed_col] = [x[0] for x in landed_attempted]
             fight_data[attempted_col] = [x[1] for x in landed_attempted]
 
+        # process height and reach
         fight_data['Fighter1_Height_cm'] = fight_data['Fighter1_Height'].apply(parse_height)
         fight_data['Fighter2_Height_cm'] = fight_data['Fighter2_Height'].apply(parse_height)
 
         fight_data['Fighter1_Reach_cm'] = fight_data['Fighter1_Reach'].apply(parse_reach)
         fight_data['Fighter2_Reach_cm'] = fight_data['Fighter2_Reach'].apply(parse_reach)
 
+        # process control time
         fight_data['Fighter1_Control_Time_sec'] = fight_data['Fighter1_Control_Time'].apply(parse_control_time)
         fight_data['Fighter2_Control_Time_sec'] = fight_data['Fighter2_Control_Time'].apply(parse_control_time)
 
+        # process strikes
         strike_columns = [
             'Fighter1_Significant_Strikes', 'Fighter1_Head_Strikes', 'Fighter1_Body_Strikes',
             'Fighter1_Leg_Strikes', 'Fighter1_Distance_Strikes', 'Fighter1_Clinch_Strikes',
@@ -147,13 +150,16 @@ def load_ufc_data():
         for col in strike_columns:
             process_landed_attempted(col)
 
+        # calculate age
         fight_data['Fighter1_Age'] = (fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter1_DOB'])).dt.days / 365.25
         fight_data['Fighter2_Age'] = (fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter2_DOB'])).dt.days / 365.25
 
+        # calculate total fight time
         fight_data['Fight_Time_sec'] = fight_data.apply(
             lambda row: calculate_fight_time(row['Round'], row['Time']), axis=1
         )
 
+        # initialize fighter statistics
         fighter_stats = defaultdict(lambda: {
             'TotalFightTime': 0,
             'NumFights': 0,
@@ -173,6 +179,7 @@ def load_ufc_data():
             'TotalReversals': 0
         })
 
+        # initialize additional columns
         for fighter_num in ['Fighter1', 'Fighter2']:
             fight_data[f'{fighter_num}_AvgFightTime'] = np.nan
             fight_data[f'{fighter_num}_TimeSinceLastFight'] = np.nan
@@ -192,65 +199,24 @@ def load_ufc_data():
             fight_data[f'{fighter_num}_AvgTakedownsAttempted'] = np.nan
             fight_data[f'{fighter_num}_AvgReversals'] = np.nan
 
+        # sort the fight_data by 'eventdate' to ensure chronological order
+        fight_data = fight_data.sort_values('EventDate').reset_index(drop=True)
+
+        # iterate through each fight to update fighter statistics
         for idx, row in fight_data.iterrows():
             fight_time = row['Fight_Time_sec']
+            event_date = row['EventDate']
 
+            # for each fighter, update fight_data with stats before the current fight
             for fighter_num, opponent_num in [('Fighter1', 'Fighter2'), ('Fighter2', 'Fighter1')]:
                 fighter_id = row[f'{fighter_num}_ID']
                 stats = fighter_stats[fighter_id]
 
-                stats['TotalFightTime'] += fight_time if not np.isnan(fight_time) else 0
-                stats['NumFights'] += 1
-                stats['LastFightDate'] = row['EventDate']
-
-                control_time = row[f'{fighter_num}_Control_Time_sec']
-                stats['TotalControlTime'] += control_time if not np.isnan(control_time) else 0
-
-                sub_attempts = float(row[f'{fighter_num}_Submission_Attempts'])
-                stats['TotalSubmissionAttempts'] += sub_attempts if not np.isnan(sub_attempts) else 0
-
-                leg_strikes = row[f'{fighter_num}_Leg_Strikes_Landed']
-                stats['TotalLegStrikes'] += leg_strikes if not np.isnan(leg_strikes) else 0
-
-                clinch_strikes = row[f'{fighter_num}_Clinch_Strikes_Landed']
-                stats['TotalClinchStrikes'] += clinch_strikes if not np.isnan(clinch_strikes) else 0
-
-                strikes_landed = row[f'{fighter_num}_Significant_Strikes_Landed']
-                strikes_attempted = row[f'{fighter_num}_Significant_Strikes_Attempted']
-                stats['TotalStrikesLanded'] += strikes_landed if not np.isnan(strikes_landed) else 0
-                stats['TotalStrikesAttempted'] += strikes_attempted if not np.isnan(strikes_attempted) else 0
-
-                takedowns_landed = row[f'{fighter_num}_Takedowns_Landed'] if f'{fighter_num}_Takedowns_Landed' in fight_data.columns else row[f'{fighter_num}_Takedowns']
-                stats['TotalTakedownsLanded'] += takedowns_landed if not np.isnan(takedowns_landed) else 0
-                stats['TotalTakedownsAttempted'] += takedowns_landed if not np.isnan(takedowns_landed) else 0
-
-                reversals = float(row[f'{fighter_num}_Reversals'])
-                stats['TotalReversals'] += reversals if not np.isnan(reversals) else 0
-
-            winner = str(row['Winner'])
-            stats1 = fighter_stats[row['Fighter1_ID']]
-            stats2 = fighter_stats[row['Fighter2_ID']]
-            if winner == '1':
-                stats1['Wins'] += 1
-                stats2['Losses'] += 1
-            elif winner == '2':
-                stats1['Losses'] += 1
-                stats2['Wins'] += 1
-            elif winner == 'D':
-                stats1['Draws'] += 1
-                stats2['Draws'] += 1
-            elif winner == 'NC':
-                stats1['NoContests'] += 1
-                stats2['NoContests'] += 1
-
-            for fighter_num, opponent_num in [('Fighter1', 'Fighter2'), ('Fighter2', 'Fighter1')]:
-                fighter_id = row[f'{fighter_num}_ID']
-                stats = fighter_stats[fighter_id]
-
+                # use the stats as of before this fight to fill in fight_data
                 if stats['NumFights'] > 0:
                     fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = stats['TotalFightTime'] / stats['NumFights']
                     if stats['LastFightDate'] is not None:
-                        days_since_last_fight = (row['EventDate'] - stats['LastFightDate']).days
+                        days_since_last_fight = (event_date - stats['LastFightDate']).days
                         fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = days_since_last_fight
                     else:
                         fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = np.nan
@@ -291,17 +257,103 @@ def load_ufc_data():
                     fight_data.at[idx, f'{fighter_num}_AvgReversals'] = (
                         stats['TotalReversals'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
                     )
-                    fight_data.at[idx, f'{fighter_num}_AvgReversals'] = (
-                        stats['TotalReversals'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
-                    )
+                else:
+                    # handle case where fighter has no previous fights
+                    fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_FinishRate'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgControlTime'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgSubmissionAttempts'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgLegStrikes'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgClinchStrikes'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgStrikesLanded'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgStrikesAttempted'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_StrikeAccuracy'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsLanded'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsAttempted'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgReversals'] = np.nan
 
+                # update win/loss/draw counts before the current fight
                 fight_data.at[idx, f'{fighter_num}_Wins'] = stats['Wins']
                 fight_data.at[idx, f'{fighter_num}_Losses'] = stats['Losses']
                 fight_data.at[idx, f'{fighter_num}_Draws'] = stats['Draws']
                 fight_data.at[idx, f'{fighter_num}_NoContests'] = stats['NoContests']
 
+            # after updating fight_data, update stats with the current fight's data
+            for fighter_num in ['Fighter1', 'Fighter2']:
+                fighter_id = row[f'{fighter_num}_ID']
+                stats = fighter_stats[fighter_id]
+
+                stats['TotalFightTime'] += fight_time if not np.isnan(fight_time) else 0
+                stats['NumFights'] += 1
+                stats['LastFightDate'] = event_date
+
+                control_time = row[f'{fighter_num}_Control_Time_sec']
+                stats['TotalControlTime'] += control_time if not np.isnan(control_time) else 0
+
+                sub_attempts = float(row[f'{fighter_num}_Submission_Attempts'])
+                stats['TotalSubmissionAttempts'] += sub_attempts if not np.isnan(sub_attempts) else 0
+
+                leg_strikes = row[f'{fighter_num}_Leg_Strikes_Landed']
+                stats['TotalLegStrikes'] += leg_strikes if not np.isnan(leg_strikes) else 0
+
+                clinch_strikes = row[f'{fighter_num}_Clinch_Strikes_Landed']
+                stats['TotalClinchStrikes'] += clinch_strikes if not np.isnan(clinch_strikes) else 0
+
+                strikes_landed = row[f'{fighter_num}_Significant_Strikes_Landed']
+                strikes_attempted = row[f'{fighter_num}_Significant_Strikes_Attempted']
+                stats['TotalStrikesLanded'] += strikes_landed if not np.isnan(strikes_landed) else 0
+                stats['TotalStrikesAttempted'] += strikes_attempted if not np.isnan(strikes_attempted) else 0
+
+                # handle takedowns
+                if f'{fighter_num}_Takedowns_Landed' in row:
+                    takedowns_landed = row[f'{fighter_num}_Takedowns_Landed']
+                    takedowns_attempted = row[f'{fighter_num}_Takedowns_Attempted']
+                else:
+                    takedowns_landed = row[f'{fighter_num}_Takedowns']
+                    takedowns_attempted = row[f'{fighter_num}_Takedowns']
+
+                stats['TotalTakedownsLanded'] += takedowns_landed if not np.isnan(takedowns_landed) else 0
+                stats['TotalTakedownsAttempted'] += takedowns_attempted if not np.isnan(takedowns_attempted) else 0
+
+                reversals = float(row[f'{fighter_num}_Reversals'])
+                stats['TotalReversals'] += reversals if not np.isnan(reversals) else 0
+
+            # update win/loss/draw statistics after updating stats with the current fight
+            winner = str(row['Winner'])
+            stats1 = fighter_stats[row['Fighter1_ID']]
+            stats2 = fighter_stats[row['Fighter2_ID']]
+            if winner == '1':
+                stats1['Wins'] += 1
+                stats2['Losses'] += 1
+            elif winner == '2':
+                stats1['Losses'] += 1
+                stats2['Wins'] += 1
+            elif winner == 'D':
+                stats1['Draws'] += 1
+                stats2['Draws'] += 1
+            elif winner == 'NC':
+                stats1['NoContests'] += 1
+                stats2['NoContests'] += 1
+
+            # update fighter statistics in the dataframe
+            for fighter_num, opponent_num in [('Fighter1', 'Fighter2'), ('Fighter2', 'Fighter1')]:
+                fighter_id = row[f'{fighter_num}_ID']
+                stats = fighter_stats[fighter_id]
+
+                # update win/loss/draw counts
+                fight_data.at[idx, f'{fighter_num}_Wins'] = stats['Wins']
+                fight_data.at[idx, f'{fighter_num}_Losses'] = stats['Losses']
+                fight_data.at[idx, f'{fighter_num}_Draws'] = stats['Draws']
+                fight_data.at[idx, f'{fighter_num}_NoContests'] = stats['NoContests']
+
+        # final data cleaning
+        print(f"Records before final dropping: {len(fight_data)}")
+        fight_data = fight_data.dropna()
+        print(f"Records after final dropping: {len(fight_data)}")
         fight_data.fillna(0, inplace=True)
 
+        # define feature columns
         numerical_columns = [
             'Fighter1_Height_cm', 'Fighter1_Reach_cm',
             'Fighter1_Age', 'Fighter1_AvgFightTime', 'Fighter1_TimeSinceLastFight', 'Fighter1_FinishRate',
@@ -323,21 +375,23 @@ def load_ufc_data():
 
         relevant_columns = numerical_columns + categorical_columns
 
+        # features and target
         X = fight_data[relevant_columns]
         y = fight_data['Winner']
 
+        # label encoding for target
         le = LabelEncoder()
         y = le.fit_transform(y)
-
         label_mapping = dict(zip(le.classes_, le.transform(le.classes_)))
         print("Label Mapping:", label_mapping)
 
+        # preprocessing pipelines
         numerical_pipeline = Pipeline(steps=[
             ('scaler', StandardScaler())
         ])
 
         categorical_pipeline = Pipeline(steps=[
-            ('onehot', OneHotEncoder(handle_unknown='ignore'))
+            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
         ])
 
         preprocessor = ColumnTransformer(
@@ -347,12 +401,13 @@ def load_ufc_data():
             ]
         )
 
+        # fit and transform the data
         X_processed = preprocessor.fit_transform(X)
 
         print(f"UFC Data: {len(fight_data)} records loaded.")
         print(f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}")
 
-        return X_processed, y, preprocessor, fight_data, relevant_columns
+        return X_processed, y, preprocessor, fight_data, relevant_columns, le
 
     except Exception as e:
         print(f"An error occurred while loading UFC data: {e}")
