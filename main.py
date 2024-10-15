@@ -353,6 +353,10 @@ def load_ufc_data():
         print(f"Records after final dropping: {len(fight_data)}")
         fight_data.fillna(0, inplace=True)
 
+        processed_data_path = os.path.join(data_cache_path, 'processed_ufc_data.csv')
+        fight_data.to_csv(processed_data_path, index=False, quotechar='"')
+        print(f"Processed data saved to {processed_data_path}")
+
         # define feature columns
         numerical_columns = [
             'Fighter1_Height_cm', 'Fighter1_Reach_cm',
