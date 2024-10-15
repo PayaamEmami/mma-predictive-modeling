@@ -36,6 +36,7 @@ os.makedirs(output_path, exist_ok=True)
 os.makedirs(data_cache_path, exist_ok=True)
 drive.mount('/content/drive')
 
+# load and preprocess ufc data
 def load_ufc_data():
     try:
         ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
@@ -126,6 +127,11 @@ def load_ufc_data():
             fight_data[landed_col] = [x[0] for x in landed_attempted]
             fight_data[attempted_col] = [x[1] for x in landed_attempted]
 
+        def is_finish(method_str):
+            if pd.isnull(method_str):
+                return False
+            return 'Decision' not in method_str
+
         # process height and reach
         fight_data['Fighter1_Height_cm'] = fight_data['Fighter1_Height'].apply(parse_height)
         fight_data['Fighter2_Height_cm'] = fight_data['Fighter2_Height'].apply(parse_height)
@@ -167,6 +173,7 @@ def load_ufc_data():
             'Losses': 0,
             'Draws': 0,
             'NoContests': 0,
+            'WinsByFinish': 0,
             'LastFightDate': None,
             'TotalControlTime': 0,
             'TotalSubmissionAttempts': 0,
@@ -221,10 +228,10 @@ def load_ufc_data():
                     else:
                         fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = np.nan
 
-                    fight_data.at[idx, f'{fighter_num}_FinishRate'] = (
-                        (stats['Wins'] + stats['Losses'] - stats['NoContests'] - stats['Draws']) / stats['NumFights']
-                        if stats['NumFights'] > 0 else np.nan
-                    )
+                    if stats['Wins'] > 0:
+                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = stats['WinsByFinish'] / stats['Wins']
+                    else:
+                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = np.nan
 
                     fight_data.at[idx, f'{fighter_num}_AvgControlTime'] = (
                         stats['TotalControlTime'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
@@ -321,14 +328,20 @@ def load_ufc_data():
 
             # update win/loss/draw statistics after updating stats with the current fight
             winner = str(row['Winner'])
+            method = str(row['Method'])
             stats1 = fighter_stats[row['Fighter1_ID']]
             stats2 = fighter_stats[row['Fighter2_ID']]
+            fight_was_finish = is_finish(method)
             if winner == '1':
                 stats1['Wins'] += 1
                 stats2['Losses'] += 1
+                if fight_was_finish:
+                    stats1['WinsByFinish'] += 1
             elif winner == '2':
                 stats1['Losses'] += 1
                 stats2['Wins'] += 1
+                if fight_was_finish:
+                    stats2['WinsByFinish'] += 1
             elif winner == 'D':
                 stats1['Draws'] += 1
                 stats2['Draws'] += 1
@@ -336,52 +349,45 @@ def load_ufc_data():
                 stats1['NoContests'] += 1
                 stats2['NoContests'] += 1
 
-            # update fighter statistics in the dataframe
-            for fighter_num, opponent_num in [('Fighter1', 'Fighter2'), ('Fighter2', 'Fighter1')]:
-                fighter_id = row[f'{fighter_num}_ID']
-                stats = fighter_stats[fighter_id]
-
-                # update win/loss/draw counts
-                fight_data.at[idx, f'{fighter_num}_Wins'] = stats['Wins']
-                fight_data.at[idx, f'{fighter_num}_Losses'] = stats['Losses']
-                fight_data.at[idx, f'{fighter_num}_Draws'] = stats['Draws']
-                fight_data.at[idx, f'{fighter_num}_NoContests'] = stats['NoContests']
-
         # final data cleaning
         print(f"Records before final dropping: {len(fight_data)}")
         fight_data = fight_data.dropna()
         print(f"Records after final dropping: {len(fight_data)}")
         fight_data.fillna(0, inplace=True)
 
-        processed_data_path = os.path.join(data_cache_path, 'processed_ufc_data.csv')
+        processed_data_path = os.path.join(data_cache_path, 'ufc_data.csv')
         fight_data.to_csv(processed_data_path, index=False, quotechar='"')
-        print(f"Processed data saved to {processed_data_path}")
+        print(f"Actual data saved to {processed_data_path}")
 
         # define feature columns
         numerical_columns = [
             'Fighter1_Height_cm', 'Fighter1_Reach_cm',
             'Fighter1_Age', 'Fighter1_AvgFightTime', 'Fighter1_TimeSinceLastFight', 'Fighter1_FinishRate',
-            'Fighter1_Wins', 'Fighter1_Losses', 'Fighter1_Draws', 'Fighter1_NoContests',
+            'Fighter1_Wins', 'Fighter1_Losses',
             'Fighter1_AvgControlTime', 'Fighter1_AvgSubmissionAttempts', 'Fighter1_AvgLegStrikes',
             'Fighter1_AvgClinchStrikes', 'Fighter1_AvgStrikesLanded', 'Fighter1_AvgStrikesAttempted',
             'Fighter1_StrikeAccuracy', 'Fighter1_AvgTakedownsLanded', 'Fighter1_AvgTakedownsAttempted',
             'Fighter1_AvgReversals',
             'Fighter2_Height_cm', 'Fighter2_Reach_cm',
             'Fighter2_Age', 'Fighter2_AvgFightTime', 'Fighter2_TimeSinceLastFight', 'Fighter2_FinishRate',
-            'Fighter2_Wins', 'Fighter2_Losses', 'Fighter2_Draws', 'Fighter2_NoContests',
+            'Fighter2_Wins', 'Fighter2_Losses',
             'Fighter2_AvgControlTime', 'Fighter2_AvgSubmissionAttempts', 'Fighter2_AvgLegStrikes',
             'Fighter2_AvgClinchStrikes', 'Fighter2_AvgStrikesLanded', 'Fighter2_AvgStrikesAttempted',
             'Fighter2_StrikeAccuracy', 'Fighter2_AvgTakedownsLanded', 'Fighter2_AvgTakedownsAttempted',
             'Fighter2_AvgReversals'
         ]
 
-        categorical_columns = ['Fighter1_Stance', 'Fighter2_Stance', 'WeightClass']
+        categorical_columns = ['Fighter1_Stance', 'Fighter2_Stance']
 
         relevant_columns = numerical_columns + categorical_columns
 
         # features and target
         X = fight_data[relevant_columns]
         y = fight_data['Winner']
+
+        processed_data_path = os.path.join(data_cache_path, 'relevant_ufc_data.csv')
+        X.to_csv(processed_data_path, index=False, quotechar='"')
+        print(f"Relevant data saved to {processed_data_path}")
 
         # label encoding for target
         le = LabelEncoder()
@@ -407,6 +413,23 @@ def load_ufc_data():
 
         # fit and transform the data
         X_processed = preprocessor.fit_transform(X)
+
+        # retrieve feature names after transformation
+        processed_feature_names = preprocessor.get_feature_names_out()
+
+        # convert x_processed to a dataframe
+        X_processed_df = pd.DataFrame(X_processed, columns=processed_feature_names)
+
+        # include the target variable
+        y_df = pd.Series(y, name='Winner')
+
+        # combine features and target into a single dataframe
+        final_df = pd.concat([X_processed_df, y_df], axis=1)
+
+        # save the processed data to csv
+        processed_data_path = os.path.join(data_cache_path, 'processed_ufc_data.csv')
+        final_df.to_csv(processed_data_path, index=False, quotechar='"')
+        print(f"Processed data saved to {processed_data_path}")
 
         print(f"UFC Data: {len(fight_data)} records loaded.")
         print(f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}")
