@@ -37,6 +37,7 @@ os.makedirs(data_cache_path, exist_ok=True)
 drive.mount('/content/drive')
 
 # load and preprocess ufc data
+# load and preprocess ufc data
 def load_ufc_data():
     try:
         ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
@@ -47,12 +48,11 @@ def load_ufc_data():
         print(f"Records before dropping data: {len(fight_data)}")
         fight_data = fight_data.drop(columns=['EventName'])
         fight_data = fight_data[~fight_data['Winner'].isin(['NC', 'D'])]
-        fight_data = fight_data.dropna()
         print(f"Records after dropping data: {len(fight_data)}")
 
         def parse_height(height_str):
             if pd.isnull(height_str):
-                return np.nan
+                return 177
             pattern = r"(?:(\d+)ft)?\s*(\d+)in"
             match = re.match(pattern, height_str)
             if match:
@@ -61,22 +61,22 @@ def load_ufc_data():
                 total_inches = feet * 12 + inches
                 return total_inches * 2.54
             else:
-                return np.nan
+                return 177
 
         def parse_reach(reach_str):
             if pd.isnull(reach_str):
-                return np.nan
+                return 183
             pattern = r"(\d+)in"
             match = re.match(pattern, reach_str)
             if match:
                 inches = int(match.group(1))
                 return inches * 2.54
             else:
-                return np.nan
+                return 183
 
         def parse_strike(strike_str):
             if pd.isnull(strike_str):
-                return [np.nan, np.nan]
+                return [0, 0]
             pattern = r"(\d+)\s+of\s+(\d+)"
             match = re.match(pattern, strike_str)
             if match:
@@ -84,11 +84,11 @@ def load_ufc_data():
                 attempted = int(match.group(2))
                 return [landed, attempted]
             else:
-                return [np.nan, np.nan]
+                return [0, 0]
 
         def parse_control_time(time_str):
             if pd.isnull(time_str):
-                return np.nan
+                return 0
             pattern = r"(\d+):(\d+)"
             match = re.match(pattern, time_str)
             if match:
@@ -97,11 +97,11 @@ def load_ufc_data():
                 total_seconds = minutes * 60 + seconds
                 return total_seconds
             else:
-                return np.nan
+                return 0
 
         def parse_time(time_str):
             if pd.isnull(time_str):
-                return np.nan
+                return 0
             pattern = r"(\d+):(\d+)"
             match = re.match(pattern, time_str)
             if match:
@@ -110,11 +110,11 @@ def load_ufc_data():
                 total_seconds = minutes * 60 + seconds
                 return total_seconds
             else:
-                return np.nan
+                return 0
 
         def calculate_fight_time(round_num, time_str):
             if pd.isnull(round_num) or pd.isnull(time_str):
-                return np.nan
+                return 0
             round_num = int(round_num)
             time_in_current_round = parse_time(time_str)
             total_fight_time = (round_num - 1) * 300 + time_in_current_round
@@ -143,6 +143,12 @@ def load_ufc_data():
         fight_data['Fighter1_Control_Time_sec'] = fight_data['Fighter1_Control_Time'].apply(parse_control_time)
         fight_data['Fighter2_Control_Time_sec'] = fight_data['Fighter2_Control_Time'].apply(parse_control_time)
 
+        # calculate age
+        fight_data['Fighter1_Age'] = ((fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter1_DOB'], errors='coerce')).dt.days / 365.25)
+        fight_data['Fighter1_Age'] = fight_data['Fighter1_Age'].fillna(30)
+        fight_data['Fighter2_Age'] = ((fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter2_DOB'], errors='coerce')).dt.days / 365.25)
+        fight_data['Fighter2_Age'] = fight_data['Fighter2_Age'].fillna(30)
+
         # process strikes
         strike_columns = [
             'Fighter1_Significant_Strikes', 'Fighter1_Head_Strikes', 'Fighter1_Body_Strikes',
@@ -155,10 +161,6 @@ def load_ufc_data():
 
         for col in strike_columns:
             process_landed_attempted(col)
-
-        # calculate age
-        fight_data['Fighter1_Age'] = (fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter1_DOB'])).dt.days / 365.25
-        fight_data['Fighter2_Age'] = (fight_data['EventDate'] - pd.to_datetime(fight_data['Fighter2_DOB'])).dt.days / 365.25
 
         # calculate total fight time
         fight_data['Fight_Time_sec'] = fight_data.apply(
@@ -188,23 +190,23 @@ def load_ufc_data():
 
         # initialize additional columns
         for fighter_num in ['Fighter1', 'Fighter2']:
-            fight_data[f'{fighter_num}_AvgFightTime'] = np.nan
-            fight_data[f'{fighter_num}_TimeSinceLastFight'] = np.nan
-            fight_data[f'{fighter_num}_FinishRate'] = np.nan
+            fight_data[f'{fighter_num}_AvgFightTime'] = 0
+            fight_data[f'{fighter_num}_TimeSinceLastFight'] = 0
+            fight_data[f'{fighter_num}_FinishRate'] = 0
             fight_data[f'{fighter_num}_Wins'] = 0
             fight_data[f'{fighter_num}_Losses'] = 0
             fight_data[f'{fighter_num}_Draws'] = 0
             fight_data[f'{fighter_num}_NoContests'] = 0
-            fight_data[f'{fighter_num}_AvgControlTime'] = np.nan
-            fight_data[f'{fighter_num}_AvgSubmissionAttempts'] = np.nan
-            fight_data[f'{fighter_num}_AvgLegStrikes'] = np.nan
-            fight_data[f'{fighter_num}_AvgClinchStrikes'] = np.nan
-            fight_data[f'{fighter_num}_AvgStrikesLanded'] = np.nan
-            fight_data[f'{fighter_num}_AvgStrikesAttempted'] = np.nan
-            fight_data[f'{fighter_num}_StrikeAccuracy'] = np.nan
-            fight_data[f'{fighter_num}_AvgTakedownsLanded'] = np.nan
-            fight_data[f'{fighter_num}_AvgTakedownsAttempted'] = np.nan
-            fight_data[f'{fighter_num}_AvgReversals'] = np.nan
+            fight_data[f'{fighter_num}_AvgControlTime'] = 0
+            fight_data[f'{fighter_num}_AvgSubmissionAttempts'] = 0
+            fight_data[f'{fighter_num}_AvgLegStrikes'] = 0
+            fight_data[f'{fighter_num}_AvgClinchStrikes'] = 0
+            fight_data[f'{fighter_num}_AvgStrikesLanded'] = 0
+            fight_data[f'{fighter_num}_AvgStrikesAttempted'] = 0
+            fight_data[f'{fighter_num}_StrikeAccuracy'] = 0
+            fight_data[f'{fighter_num}_AvgTakedownsLanded'] = 0
+            fight_data[f'{fighter_num}_AvgTakedownsAttempted'] = 0
+            fight_data[f'{fighter_num}_AvgReversals'] = 0
 
         # sort the fight_data by 'eventdate' to ensure chronological order
         fight_data = fight_data.sort_values('EventDate').reset_index(drop=True)
@@ -218,73 +220,74 @@ def load_ufc_data():
             for fighter_num, opponent_num in [('Fighter1', 'Fighter2'), ('Fighter2', 'Fighter1')]:
                 fighter_id = row[f'{fighter_num}_ID']
                 stats = fighter_stats[fighter_id]
+                stats_before = stats.copy()
 
                 # use the stats as of before this fight to fill in fight_data
-                if stats['NumFights'] > 0:
-                    fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = stats['TotalFightTime'] / stats['NumFights']
-                    if stats['LastFightDate'] is not None:
-                        days_since_last_fight = (event_date - stats['LastFightDate']).days
+                if stats_before['NumFights'] > 0:
+                    fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = stats_before['TotalFightTime'] / stats_before['NumFights']
+                    if stats_before['LastFightDate'] is not None:
+                        days_since_last_fight = (event_date - stats_before['LastFightDate']).days
                         fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = days_since_last_fight
                     else:
-                        fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = np.nan
+                        fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = 0
 
-                    if stats['Wins'] > 0:
-                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = stats['WinsByFinish'] / stats['Wins']
+                    if stats_before['Wins'] > 0:
+                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = stats_before['WinsByFinish'] / stats_before['Wins']
                     else:
-                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = np.nan
+                        fight_data.at[idx, f'{fighter_num}_FinishRate'] = 0
 
                     fight_data.at[idx, f'{fighter_num}_AvgControlTime'] = (
-                        stats['TotalControlTime'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalControlTime'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgSubmissionAttempts'] = (
-                        stats['TotalSubmissionAttempts'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalSubmissionAttempts'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgLegStrikes'] = (
-                        stats['TotalLegStrikes'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalLegStrikes'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgClinchStrikes'] = (
-                        stats['TotalClinchStrikes'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalClinchStrikes'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgStrikesLanded'] = (
-                        stats['TotalStrikesLanded'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalStrikesLanded'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgStrikesAttempted'] = (
-                        stats['TotalStrikesAttempted'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalStrikesAttempted'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_StrikeAccuracy'] = (
-                        stats['TotalStrikesLanded'] / stats['TotalStrikesAttempted']
-                        if stats['TotalStrikesAttempted'] > 0 else np.nan
+                        stats_before['TotalStrikesLanded'] / stats_before['TotalStrikesAttempted']
+                        if stats_before['TotalStrikesAttempted'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgTakedownsLanded'] = (
-                        stats['TotalTakedownsLanded'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalTakedownsLanded'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgTakedownsAttempted'] = (
-                        stats['TotalTakedownsAttempted'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalTakedownsAttempted'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                     fight_data.at[idx, f'{fighter_num}_AvgReversals'] = (
-                        stats['TotalReversals'] / stats['NumFights'] if stats['NumFights'] > 0 else np.nan
+                        stats_before['TotalReversals'] / stats_before['NumFights'] if stats_before['NumFights'] > 0 else 0
                     )
                 else:
                     # handle case where fighter has no previous fights
-                    fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_FinishRate'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgControlTime'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgSubmissionAttempts'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgLegStrikes'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgClinchStrikes'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgStrikesLanded'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgStrikesAttempted'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_StrikeAccuracy'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsLanded'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsAttempted'] = np.nan
-                    fight_data.at[idx, f'{fighter_num}_AvgReversals'] = np.nan
+                    fight_data.at[idx, f'{fighter_num}_AvgFightTime'] = 0
+                    fight_data.at[idx, f'{fighter_num}_TimeSinceLastFight'] = 0
+                    fight_data.at[idx, f'{fighter_num}_FinishRate'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgControlTime'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgSubmissionAttempts'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgLegStrikes'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgClinchStrikes'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgStrikesLanded'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgStrikesAttempted'] = 0
+                    fight_data.at[idx, f'{fighter_num}_StrikeAccuracy'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsLanded'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgTakedownsAttempted'] = 0
+                    fight_data.at[idx, f'{fighter_num}_AvgReversals'] = 0
 
                 # update win/loss/draw counts before the current fight
-                fight_data.at[idx, f'{fighter_num}_Wins'] = stats['Wins']
-                fight_data.at[idx, f'{fighter_num}_Losses'] = stats['Losses']
-                fight_data.at[idx, f'{fighter_num}_Draws'] = stats['Draws']
-                fight_data.at[idx, f'{fighter_num}_NoContests'] = stats['NoContests']
+                fight_data.at[idx, f'{fighter_num}_Wins'] = stats_before['Wins']
+                fight_data.at[idx, f'{fighter_num}_Losses'] = stats_before['Losses']
+                fight_data.at[idx, f'{fighter_num}_Draws'] = stats_before['Draws']
+                fight_data.at[idx, f'{fighter_num}_NoContests'] = stats_before['NoContests']
 
             # after updating fight_data, update stats with the current fight's data
             for fighter_num in ['Fighter1', 'Fighter2']:
@@ -348,6 +351,10 @@ def load_ufc_data():
             elif winner == 'NC':
                 stats1['NoContests'] += 1
                 stats2['NoContests'] += 1
+
+        processed_data_path = os.path.join(data_cache_path, 'fight_data_with_stats.csv')
+        fight_data.to_csv(processed_data_path, index=False, quotechar='"')
+        print(f"Fight data with statistics saved to {processed_data_path}")
 
         # final data cleaning
         print(f"Records before final dropping: {len(fight_data)}")
