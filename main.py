@@ -1,34 +1,26 @@
 # main.py
-import os
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-import xml.etree.ElementTree as ET
-import pickle
-import time
+import numpy as np
+import os
+import pandas as pd
+import re
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from collections import defaultdict
 from google.colab import drive
 from datetime import datetime
-from sklearn.metrics import f1_score
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold, train_test_split, learning_curve, validation_curve
-from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import classification_report
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam, SGD
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.callbacks import EarlyStopping
-from itertools import product
-import warnings
-import re
-from collections import defaultdict
-warnings.filterwarnings('ignore')
+
 timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 output_path = os.path.join('/content/drive/MyDrive/files/models/output', timestamp)
 data_cache_path = os.path.join('/content/drive/MyDrive/files/models/data', 'cache')
@@ -458,464 +450,127 @@ def load_ufc_data():
         print(f"An error occurred while loading UFC data: {e}")
         raise
 
-def save_model(model, model_name, dataset_name, results_dir):
-    model_path = os.path.join(results_dir, f"{model_name}_{dataset_name}.pkl")
-    with open(model_path, 'wb') as f:
-        pickle.dump(model, f)
-    print(f"Model saved to {model_path}")
-
-def load_model(model_name, dataset_name, results_dir):
-    model_path = os.path.join(results_dir, f"{model_name}_{dataset_name}.pkl")
-    with open(model_path, 'rb') as f:
-        model = pickle.load(f)
-    print(f"Model loaded from {model_path}")
-    return model
-
-def train_fully_connected_neural_network(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    with open(results_file, 'a+') as f:
-        for hidden_layer_sizes in hyperparameters_range['hidden_layer_sizes']:
-            for alpha in hyperparameters_range['alpha']:
-                for solver in hyperparameters_range['solver']:
-                    for max_iter in hyperparameters_range['max_iter']:
-                        start_time = time.time()
-
-                        model = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, alpha=alpha, solver=solver, max_iter=max_iter, random_state=21, probability=True)
-                        model.fit(X_train, y_train)
-                        score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
-
-                        end_time = time.time()
-                        training_time = end_time - start_time
-
-                        f.write(f"Training time for hidden_layer_sizes={hidden_layer_sizes}, alpha={alpha}, solver={solver}, max_iter={max_iter}: {training_time:.2f} seconds. F1-Score: {score}.\n")
-                        print(f"Training time for hidden_layer_sizes={hidden_layer_sizes}, alpha={alpha}, solver={solver}, max_iter={max_iter} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {score}.")
-
-                        if score > best_score:
-                            best_score = score
-                            best_model = model
-                            best_params = {'hidden_layer_sizes': hidden_layer_sizes, 'alpha': alpha, 'solver': solver, 'max_iter': max_iter}
-
-        f.write(f"\nBest Neural Network params: {best_params} with F1-Score: {best_score}\n")
-    save_model(best_model, model_name, dataset_name, results_dir)
-    return best_model
-
-def train_deep_neural_network(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    num_classes = np.unique(y_train).size
-    y_train_categorical = to_categorical(y_train, num_classes)
-    y_test_categorical = to_categorical(y_test, num_classes)
-
-    with open(results_file, 'a+') as f:
-        param_names = list(hyperparameters_range.keys())
-        param_values = list(hyperparameters_range.values())
-
-        for params in product(*param_values):
-            param_dict = dict(zip(param_names, params))
-            start_time = time.time()
-
-            model = Sequential()
-            for layer_size in param_dict['hidden_layer_sizes']:
-                model.add(Dense(layer_size, activation=param_dict['activation']))
-                if 'dropout_rate' in param_dict and param_dict['dropout_rate'] > 0:
-                    model.add(Dropout(param_dict['dropout_rate']))
-            model.add(Dense(num_classes, activation='softmax'))
-
-            optimizer_name = param_dict['optimizer']
-            learning_rate = param_dict['learning_rate']
-            if optimizer_name == 'adam':
-                optimizer = Adam(learning_rate=learning_rate)
-            elif optimizer_name == 'sgd':
-                optimizer = SGD(learning_rate=learning_rate)
-            else:
-                optimizer = optimizer_name
-
-            model.compile(optimizer=optimizer,
-                          loss='categorical_crossentropy',
-                          metrics=['accuracy'])
-
-            callbacks = []
-            if param_dict.get('early_stopping', False):
-                callbacks.append(EarlyStopping(patience=5, restore_best_weights=True))
-
-            history = model.fit(X_train, y_train_categorical,
-                                validation_data=(X_test, y_test_categorical),
-                                epochs=param_dict['epochs'],
-                                batch_size=param_dict['batch_size'],
-                                callbacks=callbacks,
-                                verbose=0)
-
-            y_pred_prob = model.predict(X_test)
-            y_pred = np.argmax(y_pred_prob, axis=1)
-            f1 = f1_score(y_test, y_pred, average='weighted')
-
-            end_time = time.time()
-            training_time = end_time - start_time
-
-            f.write(f"Training time with parameters {param_dict}: {training_time:.2f} seconds. F1-Score: {f1}.\n")
-            print(f"Training time with parameters {param_dict} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {f1}.")
-
-            if f1 > best_score:
-                best_score = f1
-                best_model = model
-                best_params = param_dict
-
-        f.write(f"\nBest DNN params: {best_params} with F1-Score: {best_score}\n")
-
-    model_path = os.path.join(results_dir, f"{model_name}_{dataset_name}.h5")
-    best_model.save(model_path)
-    print(f"Model saved to {model_path}")
-    return best_model
-
-
-def train_support_vector_machine(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    with open(results_file, 'a+') as f:
-        for kernel in hyperparameters_range['kernel']:
-            for C in hyperparameters_range['C']:
-                for gamma in hyperparameters_range['gamma']:
-                    start_time = time.time()
-
-                    model = SVC(kernel=kernel, C=C, gamma=gamma, probability=True)
-                    model.fit(X_train, y_train)
-                    score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
-
-                    end_time = time.time()
-                    training_time = end_time - start_time
-
-                    f.write(f"Training time for kernel={kernel}, C={C}, gamma={gamma}: {training_time:.2f} seconds. F1-Score: {score}.\n")
-                    print(f"Training time for kernel={kernel}, C={C}, gamma={gamma} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {score}.")
-
-                    if score > best_score:
-                        best_score = score
-                        best_model = model
-                        best_params = {'kernel': kernel, 'C': C, 'gamma': gamma}
-
-        f.write(f"\nBest SVM params: {best_params} with F1-Score: {best_score}\n")
-    save_model(best_model, model_name, dataset_name, results_dir)
-    return best_model
-
-def train_k_nearest_neighbor(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    param_names = hyperparameters_range.keys()
-    param_values = hyperparameters_range.values()
-
-    with open(results_file, 'a+') as f:
-        for params in product(*param_values):
-            param_dict = dict(zip(param_names, params))
-            start_time = time.time()
-
-            model = KNeighborsClassifier(**param_dict, probability=True)
-            model.fit(X_train, y_train)
-            score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
-
-            end_time = time.time()
-            training_time = end_time - start_time
-
-            f.write(f"Training time with parameters {param_dict}: {training_time:.2f} seconds. F1-Score: {score}.\n")
-            print(f"Training time with parameters {param_dict} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {score}.")
-
-            if score > best_score:
-                best_score = score
-                best_model = model
-                best_params = param_dict
-
-        f.write(f"\nBest KNN params: {best_params} with F1-Score: {best_score}\n")
-    save_model(best_model, model_name, dataset_name, results_dir)
-    return best_model
-
-def train_decision_tree(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    with open(results_file, 'a+') as f:
-        for max_depth in hyperparameters_range['max_depth']:
-            for min_samples_split in hyperparameters_range['min_samples_split']:
-                for min_samples_leaf in hyperparameters_range['min_samples_leaf']:
-                    start_time = time.time()
-
-                    model = DecisionTreeClassifier(max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, random_state=21, probability=True)
-                    model.fit(X_train, y_train)
-                    score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
-
-                    end_time = time.time()
-                    training_time = end_time - start_time
-
-                    f.write(f"Training time for max_depth={max_depth}, min_samples_split={min_samples_split}, min_samples_leaf={min_samples_leaf}: {training_time:.2f} seconds. F1-Score: {score}.\n")
-                    print(f"Training time for max_depth={max_depth}, min_samples_split={min_samples_split}, min_samples_leaf={min_samples_leaf} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {score}.")
-
-                    if score > best_score:
-                        best_score = score
-                        best_model = model
-                        best_params = {'max_depth': max_depth, 'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf}
-
-        f.write(f"\nBest Decision Tree params: {best_params} with F1-Score: {best_score}\n")
-    save_model(best_model, model_name, dataset_name, results_dir)
-    return best_model
-
-def train_boosting(X_train, y_train, X_test, y_test, hyperparameters_range, model_name, dataset_name, results_dir):
-    best_model = None
-    best_score = 0
-    best_params = {}
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    with open(results_file, 'a+') as f:
-        for n_estimators in hyperparameters_range['n_estimators']:
-            for learning_rate in hyperparameters_range['learning_rate']:
-                start_time = time.time()
-
-                estimator = DecisionTreeClassifier(max_depth=3, min_samples_split=5, min_samples_leaf=2, max_leaf_nodes=10)
-                model = AdaBoostClassifier(estimator=estimator, n_estimators=n_estimators, learning_rate=learning_rate, probability=True)
-                model.fit(X_train, y_train)
-                score = evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir)
-
-                end_time = time.time()
-                training_time = end_time - start_time
-
-                f.write(f"Training time for n_estimators={n_estimators}, learning_rate={learning_rate}: {training_time:.2f} seconds. F1-Score: {score}.\n")
-                print(f"Training time for n_estimators={n_estimators}, learning_rate={learning_rate} on {dataset_name}: {training_time:.2f} seconds. F1-Score: {score}.")
-
-                if score > best_score:
-                    best_score = score
-                    best_model = model
-                    best_params = {'n_estimators': n_estimators, 'learning_rate': learning_rate}
-
-        f.write(f"\nBest AdaBoost params: {best_params} with F1-Score: {best_score}\n")
-    save_model(best_model, model_name, dataset_name, results_dir)
-    return best_model
-
-def evaluate_model(model, X_test, y_test, model_name, dataset_name, results_dir):
-    y_pred = model.predict(X_test)
-    y_prob = model.predict_proba(X_test)
-
-    f1_average = 'weighted'
-    f1 = f1_score(y_test, y_pred, average=f1_average)
-    report = classification_report(y_test, y_pred)
-    results_file = os.path.join(results_dir, f"{model_name}_{dataset_name}_results.txt")
-
-    with open(results_file, 'a+') as f:
-        f.write(f"Model: {model_name}\n")
-        f.write(f"Dataset: {dataset_name}\n")
-        f.write(f"F1-Score ({f1_average}): {f1}\n")
-        f.write(f"Classification Report:\n{report}\n")
-        f.write(f"Probabilities:\n{y_prob}\n")
-
-    print(f"Model: {model_name}")
-    print(f"Dataset: {dataset_name}")
-    print(f"F1-Score ({f1_average}): {f1}")
-    print(f"Classification Report:\n{report}")
-    print(f"Probabilities:\n{y_prob}")
-    return f1, report, y_prob
-
-def generate_plots(estimator, X, y, param_grid, title_prefix, results_dir, cv):
-    try:
-        param_labels = {
-            'hidden_layer_sizes': 'Hidden Layer Sizes',
-            'alpha': 'Regularization Parameter (Alpha)',
-            'solver': 'Solver',
-            'max_iter': 'Maximum Iterations',
-            'activation': 'Activation Function',
-            'learning_rate_init': 'Initial Learning Rate',
-            'early_stopping': 'Early Stopping',
-            'num_conv_layers': 'Number of Convolutional Layers',
-            'filters': 'Number of Filters',
-            'kernel_size': 'Kernel Size',
-            'optimizer': 'Optimizer',
-            'learning_rate': 'Learning Rate',
-            'batch_size': 'Batch Size',
-            'epochs': 'Number of Epochs',
-            'dropout_rate': 'Dropout Rate',
-            'C': 'Regularization Parameter (C)',
-            'gamma': 'Kernel Coefficient (Gamma)',
-            'kernel': 'Kernel Type',
-            'class_weight': 'Class Weight',
-            'decision_function_shape': 'Decision Function Shape',
-            'n_neighbors': 'Number of Neighbors (k)',
-            'weights': 'Weight Function',
-            'algorithm': 'Algorithm Used for Nearest Neighbors',
-            'p': 'Power Parameter for Minkowski Metric',
-            'metric': 'Distance Metric',
-            'criterion': 'Criterion',
-            'max_depth': 'Maximum Depth',
-            'min_samples_split': 'Minimum Samples to Split',
-            'min_samples_leaf': 'Minimum Samples per Leaf',
-            'max_features': 'Maximum Features',
-            'class_weight': 'Class Weight',
-            'max_leaf_nodes': 'Maximum Leaf Nodes',
-            'min_impurity_decrease': 'Minimum Impurity Decrease',
-            'n_estimators': 'Number of Estimators',
-            'learning_rate': 'Learning Rate',
-            'algorithm': 'Boosting Algorithm',
-            'base_estimator__max_depth': 'Base Estimator Maximum Depth',
-            'base_estimator__min_samples_split': 'Base Estimator Minimum Samples to Split',
-            'base_estimator__min_samples_leaf': 'Base Estimator Minimum Samples per Leaf',
-            'random_state': 'Random State',
-            'subsample': 'Subsample Ratio'
-        }
-        training_times = []
-        start_time = time.time()
-        train_sizes, train_scores, test_scores = learning_curve(
-            estimator, X, y, cv=cv, n_jobs=-1, train_sizes=np.linspace(0.1, 1.0, 5), scoring='f1_weighted'
-        )
-        end_time = time.time()
-        learning_curve_time = end_time - start_time
-        training_times.append(('Learning Curve', learning_curve_time))
-        train_scores_mean = np.mean(train_scores, axis=1)
-        test_scores_mean = np.mean(test_scores, axis=1)
-
-        plt.figure()
-        plt.title(f"{title_prefix} Learning Curve")
-        plt.xlabel("Training examples")
-        plt.ylabel("F1 Score")
-        plt.grid()
-        plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training F1 Score")
-        plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation F1 Score")
-        plt.legend(loc="best")
-        plt.savefig(os.path.join(results_dir, f'{title_prefix.lower().replace(" ", "_")}_learning_curve.png'))
-        plt.close()
-
-        for param_name, param_range in param_grid.items():
-            start_time = time.time()
-            train_scores, test_scores = validation_curve(
-                estimator, X, y, param_name=param_name, param_range=param_range, cv=cv, n_jobs=-1, scoring='f1_weighted'
-            )
-            end_time = time.time()
-            validation_curve_time = end_time - start_time
-            training_times.append((f'Validation Curve for {param_name}', validation_curve_time))
-            train_scores_mean = np.mean(train_scores, axis=1)
-            test_scores_mean = np.mean(test_scores, axis=1)
-
-            plt.figure()
-            plt.title(f"{title_prefix} Validation Curve for {param_labels.get(param_name, param_name)}")
-            plt.xlabel(param_labels.get(param_name, param_name))
-            plt.ylabel("F1 Score")
-            plt.grid()
-            param_range_str = [str(val) for val in param_range] if isinstance(param_range[0], (str, tuple)) else param_range
-            plt.plot(param_range_str, train_scores_mean, 'o-', color='r', label="Training F1 Score")
-            plt.plot(param_range_str, test_scores_mean, 'o-', color='g', label="Cross-validation F1 Score")
-            plt.legend(loc="best")
-            plt.savefig(os.path.join(results_dir, f'{title_prefix.lower().replace(" ", "_")}_validation_curve_{param_name}.png'))
-            plt.close()
-
-        with open(os.path.join(results_dir, f"{title_prefix.replace(' ', '_')}_training_times.txt"), 'w') as log_file:
-            for desc, t in training_times:
-                log_file.write(f"{desc}: {t:.2f} seconds\n")
-                print(f"{desc}: {t:.2f} seconds")
-
-    except Exception as e:
-        print(f"An error occurred while generating plots: {e}")
-
 if __name__ == "__main__":
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=21)
-
-    nn_hyperparameters_range_ufc = {
-        'hidden_layer_sizes': [
-            (25,), (50,), (64,), (128,), (256,), (512,),
-            (100, 50), (150, 100, 50), (200, 150, 100, 50)
-        ],
-        'activation': ['relu', 'tanh', 'logistic'],
-        'solver': ['lbfgs', 'sgd', 'adam'],
-        'alpha': [1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
-        'learning_rate_init': [0.001, 0.01, 0.1],
-        'max_iter': [500, 1000, 2000],
-        'early_stopping': [True, False],
-    }
-
-    dnn_hyperparameters_range = {
-        'hidden_layer_sizes': [
-            (64,), (128,), (256,),
-            (64, 64), (128, 64), (256, 128, 64)
-        ],
-        'activation': ['relu', 'tanh'],
-        'optimizer': ['adam', 'sgd'],
-        'learning_rate': [0.001, 0.01],
-        'batch_size': [32, 64],
-        'epochs': [50],
-        'dropout_rate': [0.0, 0.2],
-        'early_stopping': [True],
-    }
-
-
-    svm_hyperparameters_range_ufc = {
-        'kernel': ['linear', 'rbf', 'sigmoid'],
-        'C': [0.01, 0.1, 1, 10, 100, 1000],
-        'gamma': ['scale', 'auto', 0.001, 0.01, 0.1, 1, 10],
-        'class_weight': ['balanced'],
-        'decision_function_shape': ['ovo', 'ovr'],
-    }
-
-    knn_hyperparameters_range = {
-        'n_neighbors': [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
-        'weights': ['uniform', 'distance'],
-        'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
-        'p': [1, 2],
-        'metric': ['minkowski', 'chebyshev']
-    }
-
-    dt_hyperparameters_range = {
-        'criterion': ['gini', 'entropy'],
-        'max_depth': [2, 4, 6, 8, 10, 15, 20, 25, 30],
-        'max_features': ['auto', 'sqrt', 'log2'],
-        'min_samples_split': [2, 5, 10, 15, 20],
-        'min_samples_leaf': [1, 2, 4, 6, 8],
-        'class_weight': ['balanced'],
-        'max_leaf_nodes': [10, 20, 30, 40, 50],
-        'min_impurity_decrease': [0.0, 0.01, 0.05, 0.1]
-    }
-
-    boosting_hyperparameters_range_ufc = {
-        'n_estimators': [50, 100, 200, 500, 1000],
-        'learning_rate': [0.001, 0.01, 0.1, 0.5, 1.0],
-        'algorithm': ['SAMME', 'SAMME.R'],
-        'base_estimator__max_depth': [1, 2, 3, 4],
-        'base_estimator__min_samples_split': [2, 5, 10],
-        'base_estimator__min_samples_leaf': [1, 2, 4]
-    }
-
     print("Loading UFC data...")
-    X_ufc, y_ufc, preprocessor, fight_data, relevant_columns = load_ufc_data()
+    X_ufc, y_ufc, preprocessor, fight_data, relevant_columns, le = load_ufc_data()
     if X_ufc is None:
         print("Failed to load UFC data.")
         exit(1)
 
-    generate_plots(MLPClassifier(), X_ufc, y_ufc, nn_hyperparameters_range_ufc, "Neural Network (UFC)", output_path, cv)
-    generate_plots(SVC(), X_ufc, y_ufc, svm_hyperparameters_range_ufc, "SVM (UFC)", output_path, cv)
-    generate_plots(KNeighborsClassifier(), X_ufc, y_ufc, knn_hyperparameters_range, "KNN (UFC)", output_path, cv)
-    generate_plots(DecisionTreeClassifier(), X_ufc, y_ufc, dt_hyperparameters_range, "Decision Tree (UFC)", output_path, cv)
-    generate_plots(AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=3, min_samples_split=5, min_samples_leaf=2, max_leaf_nodes=10)), X_ufc, y_ufc, boosting_hyperparameters_range_ufc, "AdaBoost (UFC)", output_path, cv)
+    # split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_ufc, y_ufc, test_size=0.2, random_state=42, stratify=y_ufc
+    )
 
-    print("Splitting UFC dataset into training and testing sets...")
-    X_train_ufc, X_test_ufc, y_train_ufc, y_test_ufc = train_test_split(X_ufc, y_ufc, test_size=0.2, random_state=21, stratify=y_ufc)
-    print("Training on UFC data...")
-    print("Training Fully Connected Neural Network...")
-    nn_model_ufc = train_fully_connected_neural_network(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, nn_hyperparameters_range_ufc, 'NeuralNetwork', 'UFC', output_path)
-    print("Training Deep Neural Network...")
-    dnn_model_ufc = train_deep_neural_network(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, dnn_hyperparameters_range, 'DeepNeuralNetwork', 'UFC', output_path)
-    print("Training Support Vector Machine...")
-    svm_model_ufc = train_support_vector_machine(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, svm_hyperparameters_range_ufc, 'SVM', 'UFC', output_path)
-    print("Training K-Nearest Neighbor...")
-    knn_model_ufc = train_k_nearest_neighbor(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, knn_hyperparameters_range, 'KNN', 'UFC', output_path)
-    print("Training Decision Tree...")
-    dt_model_ufc = train_decision_tree(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, dt_hyperparameters_range, 'DecisionTree', 'UFC', output_path)
-    print("Training Adaptive Boosting with Decision Trees...")
-    ada_model_ufc = train_boosting(X_train_ufc, y_train_ufc, X_test_ufc, y_test_ufc, boosting_hyperparameters_range_ufc, 'AdaBoost', 'UFC', output_path)
+    # initialize a dictionary to store model performances
+    model_performances = {}
 
-    print(f"All tasks completed. Results saved in {output_path}.")
+    # 1. random forest
+    rf = RandomForestClassifier(random_state=42)
+    rf.fit(X_train, y_train)
+    y_pred_rf = rf.predict(X_test)
+    accuracy_rf = accuracy_score(y_test, y_pred_rf)
+    model_performances['Random Forest'] = accuracy_rf
+
+    # 2. gradient boosting
+    gb = GradientBoostingClassifier(random_state=42)
+    gb.fit(X_train, y_train)
+    y_pred_gb = gb.predict(X_test)
+    accuracy_gb = accuracy_score(y_test, y_pred_gb)
+    model_performances['Gradient Boosting'] = accuracy_gb
+
+    # 3. support vector machine
+    svm = SVC(probability=True, random_state=42)
+    svm.fit(X_train, y_train)
+    y_pred_svm = svm.predict(X_test)
+    accuracy_svm = accuracy_score(y_test, y_pred_svm)
+    model_performances['Support Vector Machine'] = accuracy_svm
+
+    # 4. logistic regression
+    lr = LogisticRegression(max_iter=1000, random_state=42)
+    lr.fit(X_train, y_train)
+    y_pred_lr = lr.predict(X_test)
+    accuracy_lr = accuracy_score(y_test, y_pred_lr)
+    model_performances['Logistic Regression'] = accuracy_lr
+
+    # 5. k-nearest neighbors
+    knn = KNeighborsClassifier()
+    knn.fit(X_train, y_train)
+    y_pred_knn = knn.predict(X_test)
+    accuracy_knn = accuracy_score(y_test, y_pred_knn)
+    model_performances['K-Nearest Neighbors'] = accuracy_knn
+
+    # 6. neural network (pytorch)
+    class UFCNet(nn.Module):
+        def __init__(self, input_size):
+            super(UFCNet, self).__init__()
+            self.fc1 = nn.Linear(input_size, 64)
+            self.relu = nn.ReLU()
+            self.fc2 = nn.Linear(64, 2)
+
+        def forward(self, x):
+            out = self.fc1(x)
+            out = self.relu(out)
+            out = self.fc2(out)
+            return out
+
+    # convert data to pytorch tensors
+    X_train_tensor = torch.tensor(X_train.astype(np.float32))
+    y_train_tensor = torch.tensor(y_train.astype(np.longlong))
+    X_test_tensor = torch.tensor(X_test.astype(np.float32))
+    y_test_tensor = torch.tensor(y_test.astype(np.longlong))
+
+    input_size = X_train.shape[1]
+    model = UFCNet(input_size)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 50
+
+    # training loop
+    for epoch in range(num_epochs):
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        loss = criterion(outputs, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+
+    # evaluation
+    with torch.no_grad():
+        outputs = model(X_test_tensor)
+        _, predicted = torch.max(outputs.data, 1)
+        accuracy_nn = (predicted == y_test_tensor).sum().item() / y_test_tensor.size(0)
+        model_performances['Neural Network'] = accuracy_nn
+
+    # 7. naive bayes
+    nb = GaussianNB()
+    nb.fit(X_train, y_train)
+    y_pred_nb = nb.predict(X_test)
+    accuracy_nb = accuracy_score(y_test, y_pred_nb)
+    model_performances['Naive Bayes'] = accuracy_nb
+
+    # output model performances
+    performance_df = pd.DataFrame(list(model_performances.items()), columns=['Model', 'Accuracy'])
+    performance_df.to_csv(os.path.join(output_path, 'model_performances.csv'), index=False)
+    print(performance_df)
+
+    # plotting confusion matrices
+    models = {
+        'Random Forest': (rf, y_pred_rf),
+        'Gradient Boosting': (gb, y_pred_gb),
+        'Support Vector Machine': (svm, y_pred_svm),
+        'Logistic Regression': (lr, y_pred_lr),
+        'K-Nearest Neighbors': (knn, y_pred_knn),
+        'Neural Network': (model, predicted.numpy()),
+        'Naive Bayes': (nb, y_pred_nb)
+    }
+
+    for model_name, (model_obj, y_pred) in models.items():
+        cm = confusion_matrix(y_test, y_pred)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+        disp.plot()
+        plt.title(f'Confusion Matrix for {model_name}')
+        plt.savefig(os.path.join(output_path, f'confusion_matrix_{model_name.replace(" ", "_")}.png'))
+        plt.close()
+
+    print(f"All tasks completed. Results and plots saved in {output_path}.")
