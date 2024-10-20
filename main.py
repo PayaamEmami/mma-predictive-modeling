@@ -20,13 +20,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-
+drive.mount('/content/drive')
 timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 output_path = os.path.join('/content/drive/MyDrive/files/models/output', timestamp)
 data_cache_path = os.path.join('/content/drive/MyDrive/files/models/data', 'cache')
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(data_cache_path, exist_ok=True)
-drive.mount('/content/drive')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
