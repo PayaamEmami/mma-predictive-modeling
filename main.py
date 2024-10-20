@@ -37,7 +37,6 @@ os.makedirs(data_cache_path, exist_ok=True)
 drive.mount('/content/drive')
 
 # load and preprocess ufc data
-# load and preprocess ufc data
 def load_ufc_data():
     try:
         ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
@@ -361,6 +360,18 @@ def load_ufc_data():
         fight_data = fight_data.dropna()
         print(f"Records after final dropping: {len(fight_data)}")
         fight_data.fillna(0, inplace=True)
+
+        # check for class balance
+        winner_counts = fight_data['Winner'].value_counts()
+        print("Class distribution of 'Winner':")
+        print(winner_counts)
+
+        total_fights = len(fight_data)
+        fighter1_win_percentage = (winner_counts.get('1', 0) / total_fights) * 100
+        fighter2_win_percentage = (winner_counts.get('2', 0) / total_fights) * 100
+
+        print(f"Fighter 1 wins: {fighter1_win_percentage:.2f}%")
+        print(f"Fighter 2 wins: {fighter2_win_percentage:.2f}%")
 
         processed_data_path = os.path.join(data_cache_path, 'ufc_data.csv')
         fight_data.to_csv(processed_data_path, index=False, quotechar='"')
