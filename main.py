@@ -27,6 +27,8 @@ data_cache_path = os.path.join('/content/drive/MyDrive/files/models/data', 'cach
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(data_cache_path, exist_ok=True)
 drive.mount('/content/drive')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # load and preprocess ufc data
 def load_ufc_data():
@@ -516,13 +518,13 @@ if __name__ == "__main__":
             return out
 
     # convert data to pytorch tensors
-    X_train_tensor = torch.tensor(X_train.astype(np.float32))
-    y_train_tensor = torch.tensor(y_train.astype(np.longlong))
-    X_test_tensor = torch.tensor(X_test.astype(np.float32))
-    y_test_tensor = torch.tensor(y_test.astype(np.longlong))
+    X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
+    y_train_tensor = torch.tensor(y_train.astype(np.longlong)).to(device)
+    X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
+    y_test_tensor = torch.tensor(y_test.astype(np.longlong)).to(device)
 
     input_size = X_train.shape[1]
-    model = UFCNet(input_size)
+    model = UFCNet(input_size).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     num_epochs = 50
@@ -540,7 +542,7 @@ if __name__ == "__main__":
         outputs = model(X_test_tensor)
         _, predicted = torch.max(outputs.data, 1)
         accuracy_nn = (predicted == y_test_tensor).sum().item() / y_test_tensor.size(0)
-        model_performances['Neural Network'] = accuracy_nn
+        print(f'Neural Network Accuracy: {accuracy_nn * 100:.2f}%')
 
     # 7. naive bayes
     nb = GaussianNB()
@@ -552,6 +554,14 @@ if __name__ == "__main__":
     # output model performances
     performance_df = pd.DataFrame(list(model_performances.items()), columns=['Model', 'Accuracy'])
     performance_df.to_csv(os.path.join(output_path, 'model_performances.csv'), index=False)
+    plt.figure(figsize=(10, 6))
+    plt.barh(performance_df['Model'], performance_df['Accuracy'], color='skyblue')
+    plt.xlabel('Accuracy')
+    plt.title('Comparison of Model Accuracies')
+    plt.xlim([0, 1])  # Assuming accuracies are in the range of 0 to 1
+    plt.grid(True, axis='x', linestyle='--', alpha=0.7)
+    plt.savefig(os.path.join(output_path, 'model_accuracy_comparison.png'))
+    plt.show()
     print(performance_df)
 
     # plotting confusion matrices
