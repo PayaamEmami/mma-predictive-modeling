@@ -570,7 +570,7 @@ if __name__ == "__main__":
         'Support Vector Machine': (svm, y_pred_svm),
         'Logistic Regression': (lr, y_pred_lr),
         'K-Nearest Neighbors': (knn, y_pred_knn),
-        'Neural Network': (model, predicted.numpy()),
+        'Neural Network': (model, predicted.cpu().numpy()),
         'Naive Bayes': (nb, y_pred_nb)
     }
 
