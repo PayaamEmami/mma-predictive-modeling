@@ -22,22 +22,21 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 drive.mount('/content/drive')
 timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-output_path = os.path.join('/content/drive/MyDrive/files/models/output', timestamp)
-data_cache_path = os.path.join('/content/drive/MyDrive/files/models/data', 'cache')
+output_path = os.path.join('/content/drive/MyDrive/files/models/ufc/output', timestamp)
+data_path = os.path.join('/content/drive/MyDrive/files', 'data')
 os.makedirs(output_path, exist_ok=True)
-os.makedirs(data_cache_path, exist_ok=True)
+os.makedirs(data_path, exist_ok=True)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # load and preprocess ufc data
 def load_ufc_data():
     try:
-        ufc_data_path = '/content/drive/MyDrive/files/models/data/ufc'
-        fight_data_path = os.path.join(ufc_data_path, 'ufc_events.csv')
+        fight_data_path = os.path.join(data_path, 'ufc/ufc_events.csv')
 
         fight_data = pd.read_csv(fight_data_path, quotechar='"', parse_dates=['EventDate'])
-
         print(f"Records before dropping data: {len(fight_data)}")
+
         fight_data = fight_data.drop(columns=['EventName'])
         fight_data = fight_data[~fight_data['Winner'].isin(['NC', 'D'])]
         print(f"Records after dropping data: {len(fight_data)}")
@@ -344,10 +343,6 @@ def load_ufc_data():
                 stats1['NoContests'] += 1
                 stats2['NoContests'] += 1
 
-        processed_data_path = os.path.join(data_cache_path, 'fight_data_with_stats.csv')
-        fight_data.to_csv(processed_data_path, index=False, quotechar='"')
-        print(f"Fight data with statistics saved to {processed_data_path}")
-
         # final data cleaning
         print(f"Records before final dropping: {len(fight_data)}")
         fight_data = fight_data.dropna()
@@ -365,10 +360,6 @@ def load_ufc_data():
 
         print(f"Fighter 1 wins: {fighter1_win_percentage:.2f}%")
         print(f"Fighter 2 wins: {fighter2_win_percentage:.2f}%")
-
-        processed_data_path = os.path.join(data_cache_path, 'ufc_data.csv')
-        fight_data.to_csv(processed_data_path, index=False, quotechar='"')
-        print(f"Actual data saved to {processed_data_path}")
 
         # define feature columns
         numerical_columns = [
@@ -395,10 +386,6 @@ def load_ufc_data():
         # features and target
         X = fight_data[relevant_columns]
         y = fight_data['Winner']
-
-        processed_data_path = os.path.join(data_cache_path, 'relevant_ufc_data.csv')
-        X.to_csv(processed_data_path, index=False, quotechar='"')
-        print(f"Relevant data saved to {processed_data_path}")
 
         # label encoding for target
         le = LabelEncoder()
@@ -438,19 +425,18 @@ def load_ufc_data():
         final_df = pd.concat([X_processed_df, y_df], axis=1)
 
         # save the processed data to csv
-        processed_data_path = os.path.join(data_cache_path, 'processed_ufc_data.csv')
+        processed_data_path = os.path.join(data_path, 'processed_ufc_data.csv')
         final_df.to_csv(processed_data_path, index=False, quotechar='"')
         print(f"Processed data saved to {processed_data_path}")
 
         print(f"UFC Data: {len(fight_data)} records loaded.")
         print(f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}")
 
-        return X_processed, y, preprocessor, fight_data, relevant_columns, le
+        return X_processed, y
 
     except Exception as e:
         print(f"An error occurred while loading UFC data: {e}")
         raise
-
 if __name__ == "__main__":
 
     print("Loading UFC data...")
