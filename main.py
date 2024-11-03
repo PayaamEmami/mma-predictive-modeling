@@ -559,7 +559,7 @@ if __name__ == "__main__":
     plt.barh(performance_df['Model'], performance_df['Accuracy'], color='skyblue')
     plt.xlabel('Accuracy')
     plt.title('Comparison of Model Accuracies')
-    plt.xlim([0, 1])  # Assuming accuracies are in the range of 0 to 1
+    plt.xlim([0, 1])
     plt.grid(True, axis='x', linestyle='--', alpha=0.7)
     plt.savefig(os.path.join(output_path, 'model_accuracy_comparison.png'))
     plt.show()
