@@ -32,7 +32,7 @@ print(f"Using device: {device}")
 # load and preprocess ufc data
 def load_ufc_data():
     try:
-        ufc_data_path = '/content/drive/MyDrive/files/omscs/ML-CS7641/A1/data/ufc'
+        ufc_data_path = '/content/drive/MyDrive/files/models/data/ufc'
         fight_data_path = os.path.join(ufc_data_path, 'ufc_events.csv')
 
         fight_data = pd.read_csv(fight_data_path, quotechar='"', parse_dates=['EventDate'])
@@ -542,6 +542,8 @@ if __name__ == "__main__":
         _, predicted = torch.max(outputs.data, 1)
         accuracy_nn = (predicted == y_test_tensor).sum().item() / y_test_tensor.size(0)
         print(f'Neural Network Accuracy: {accuracy_nn * 100:.2f}%')
+
+    model_performances['Neural Network'] = accuracy_nn
 
     # 7. naive bayes
     nb = GaussianNB()
