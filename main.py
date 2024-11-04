@@ -32,6 +32,7 @@ print(f"Using device: {device}")
 # load and preprocess ufc data
 def load_ufc_data():
     try:
+        print("Loading UFC data...")
         fight_data_path = os.path.join(data_path, 'ufc/ufc_events.csv')
 
         fight_data = pd.read_csv(fight_data_path, quotechar='"', parse_dates=['EventDate'])
@@ -425,7 +426,7 @@ def load_ufc_data():
         final_df = pd.concat([X_processed_df, y_df], axis=1)
 
         # save the processed data to csv
-        processed_data_path = os.path.join(data_path, 'processed_ufc_data.csv')
+        processed_data_path = os.path.join(data_path, 'ufc/processed_ufc_data.csv')
         final_df.to_csv(processed_data_path, index=False, quotechar='"')
         print(f"Processed data saved to {processed_data_path}")
 
@@ -437,6 +438,7 @@ def load_ufc_data():
     except Exception as e:
         print(f"An error occurred while loading UFC data: {e}")
         raise
+
 if __name__ == "__main__":
 
     print("Loading UFC data...")
