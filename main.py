@@ -15,7 +15,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
@@ -433,7 +433,7 @@ def load_ufc_data():
         print(f"UFC Data: {len(fight_data)} records loaded.")
         print(f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}")
 
-        return X_processed, y
+        return X_processed, y, le
 
     except Exception as e:
         print(f"An error occurred while loading UFC data: {e}")
@@ -441,8 +441,7 @@ def load_ufc_data():
 
 if __name__ == "__main__":
 
-    print("Loading UFC data...")
-    X_ufc, y_ufc, preprocessor, fight_data, relevant_columns, le = load_ufc_data()
+    X_ufc, y_ufc, le  = load_ufc_data()
     if X_ufc is None:
         print("Failed to load UFC data.")
         exit(1)
@@ -565,6 +564,7 @@ if __name__ == "__main__":
     }
 
     for model_name, (model_obj, y_pred) in models.items():
+        print(f"Classification Report for {model_name}:\n", classification_report(y_test, y_pred, target_names=le.classes_))
         cm = confusion_matrix(y_test, y_pred)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
         disp.plot()
