@@ -493,9 +493,9 @@ if __name__ == "__main__":
     class UFCNet(nn.Module):
         def __init__(self, input_size):
             super(UFCNet, self).__init__()
-            self.fc1 = nn.Linear(input_size, 64)
+            self.fc1 = nn.Linear(input_size, 512)
             self.relu = nn.ReLU()
-            self.fc2 = nn.Linear(64, 2)
+            self.fc2 = nn.Linear(512, 2)
 
         def forward(self, x):
             out = self.fc1(x)
@@ -512,8 +512,8 @@ if __name__ == "__main__":
     input_size = X_train.shape[1]
     model = UFCNet(input_size).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    num_epochs = 50
+    optimizer = optim.SGD(model.parameters(), lr=0.001, weight_decay=0.1)
+    num_epochs = 500
 
     # training loop
     for epoch in range(num_epochs):
