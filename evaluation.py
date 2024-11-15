@@ -1,42 +1,50 @@
 # evaluation.py
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-import torch
-from utils import plot_confusion_matrix, plot_model_accuracies
-import pandas as pd
+
+import matplotlib.pyplot as plt
 import os
+import numpy as np
+import torch
+from sklearn.metrics import (
+    accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
+)
+import pandas as pd
+from config import OUTPUT_PATH
 
-def evaluate_sklearn_model(name, model, X_test, y_test):
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred, output_dict=True)
-    cm = confusion_matrix(y_test, y_pred)
-    return y_pred, accuracy, report, cm
+def evaluate_models(models, X_test, y_test, label_encoder, device):
+    model_performances = {}
 
-def evaluate_pytorch_model(model, X_test, y_test, device):
-    model.eval()
-    with torch.no_grad():
-        X_test_tensor = torch.tensor(X_test.astype(float)).to(device)
-        outputs = model(X_test_tensor)
-        _, predicted = torch.max(outputs.data, 1)
-        accuracy = (predicted.cpu().numpy() == y_test).mean()
-    return predicted.cpu().numpy(), accuracy
+    for name, model in models.items():
+        if name == 'Neural Network':
+            model.eval()
+            with torch.no_grad():
+                X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
+                outputs = model(X_test_tensor)
+                _, y_pred_tensor = torch.max(outputs.data, 1)
+                y_pred = y_pred_tensor.cpu().numpy()
+                accuracy = (y_pred == y_test).sum() / y_test.size
+        else:
+            y_pred = model.predict(X_test)
+            accuracy = accuracy_score(y_test, y_pred)
 
-def save_performance(performance_dict, output_path):
-    performance_df = pd.DataFrame(list(performance_dict.items()), columns=['Model', 'Accuracy'])
-    performance_df.to_csv(os.path.join(output_path, 'model_performances.csv'), index=False)
-    plot_model_accuracies(performance_df, output_path)
-    return performance_df
+        model_performances[name] = accuracy
+        print(f"Classification Report for {name}:\n", classification_report(y_test, y_pred, target_names=label_encoder.classes_))
+        cm = confusion_matrix(y_test, y_pred)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
+        disp.plot()
+        plt.title(f'Confusion Matrix for {name}')
+        plt.savefig(os.path.join(OUTPUT_PATH, f'confusion_matrix_{name.replace(" ", "_")}.png'))
+        plt.close()
 
-def save_classification_reports(reports, label_encoder, output_path):
-    for model_name, report in reports.items():
-        print(f"Classification Report for {model_name}:\n")
-        print(classification_report(report['y_true'], report['y_pred'], target_names=label_encoder.classes_))
-        # optionally, save the report to a file
-        report_path = os.path.join(output_path, f'classification_report_{model_name.replace(" ", "_")}.txt')
-        with open(report_path, 'w') as f:
-            f.write(classification_report(report['y_true'], report['y_pred'], target_names=label_encoder.classes_))
-
-def save_confusion_matrices(confusion_matrices, label_encoder, output_path):
-    for model_name, cm in confusion_matrices.items():
-        plot_confusion_matrix(model_name, confusion_matrices[model_name]['y_true'], confusion_matrices[model_name]['y_pred'], label_encoder, output_path)
-
+    # output model performances
+    performance_df = pd.DataFrame(list(model_performances.items()), columns=['Model', 'Accuracy'])
+    performance_df.to_csv(os.path.join(OUTPUT_PATH, 'model_performances.csv'), index=False)
+    plt.figure(figsize=(10, 6))
+    plt.barh(performance_df['Model'], performance_df['Accuracy'], color='skyblue')
+    plt.xlabel('Accuracy')
+    plt.title('Comparison of Model Accuracies')
+    plt.xlim([0, 1])
+    plt.grid(True, axis='x', linestyle='--', alpha=0.7)
+    plt.savefig(os.path.join(OUTPUT_PATH, 'model_accuracy_comparison.png'))
+    plt.show()
+    print(performance_df)
+    print(f"All tasks completed. Results and plots saved in {OUTPUT_PATH}.")
