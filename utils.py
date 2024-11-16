@@ -1,7 +1,5 @@
 # utils.py
 
-import re
-import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import os
