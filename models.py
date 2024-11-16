@@ -7,9 +7,9 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 import torch.nn as nn
 
-class UFCNet(nn.Module):
+class MMANet(nn.Module):
     def __init__(self, input_size):
-        super(UFCNet, self).__init__()
+        super(MMANet, self).__init__()
         self.fc1 = nn.Linear(input_size, 512)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(512, 2)
@@ -42,6 +42,6 @@ def initialize_models(input_size, device):
     models['Naive Bayes'] = GaussianNB()
 
     # neural network
-    models['Neural Network'] = UFCNet(input_size).to(device)
+    models['Neural Network'] = MMANet(input_size).to(device)
 
     return models
