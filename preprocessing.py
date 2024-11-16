@@ -2,7 +2,6 @@
 
 import re
 import pandas as pd
-import numpy as np
 
 def parse_height(height_str):
     if pd.isnull(height_str):

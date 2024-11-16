@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from config import DATA_PATH
 from preprocessing import (
-    parse_height, parse_reach, parse_strike, parse_control_time, parse_time,
+    parse_height, parse_reach, parse_control_time,
     calculate_fight_time, process_landed_attempted, is_finish
 )
 
@@ -264,7 +264,7 @@ def load_ufc_data():
         ])
 
         categorical_pipeline = Pipeline(steps=[
-            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse=False))
+            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
         ])
 
         preprocessor = ColumnTransformer(
