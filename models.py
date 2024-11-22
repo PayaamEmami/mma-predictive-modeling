@@ -7,6 +7,34 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 import torch.nn as nn
 
+class MMATransformerNet(nn.Module):
+    def __init__(self, input_size):
+        super(MMATransformerNet, self).__init__()
+        self.num_features = input_size
+        self.embedding_dim = 64
+
+        # embedding layer for numerical features
+        self.embedding = nn.Linear(1, self.embedding_dim)
+
+        # positional encoding
+        self.positional_encoding = nn.Parameter(torch.zeros(1, self.num_features, self.embedding_dim))
+
+        # transformer encoder layer
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embedding_dim, nhead=8)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
+
+        # final classification layer
+        self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
+
+    def forward(self, x):
+        x = x.unsqueeze(-1) # (batch_size, num_features, 1)
+        x = self.embedding(x) # (batch_size, num_features, embedding_dim)
+        x = x + self.positional_encoding
+        x = self.transformer_encoder(x)
+        x = x.flatten(1) # (batch_size, num_features * embedding_dim)
+        x = self.fc(x) # (batch_size, 2)
+        return x
+
 class MMANet(nn.Module):
     def __init__(self, input_size):
         super(MMANet, self).__init__()
@@ -43,5 +71,8 @@ def initialize_models(input_size, device):
 
     # neural network
     models['Neural Network'] = MMANet(input_size).to(device)
+
+    # transformer
+    models['Transformer'] = MMATransformerNet(input_size).to(device)
 
     return models

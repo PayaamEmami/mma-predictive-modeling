@@ -85,23 +85,23 @@ def load_ufc_data():
 
         # initialize additional columns
         for fighter_num in ['Fighter1', 'Fighter2']:
-            fight_data[f'{fighter_num}_AvgFightTime'] = 0
-            fight_data[f'{fighter_num}_TimeSinceLastFight'] = 0
-            fight_data[f'{fighter_num}_FinishRate'] = 0
+            fight_data[f'{fighter_num}_AvgFightTime'] = 0.0
+            fight_data[f'{fighter_num}_TimeSinceLastFight'] = 0.0
+            fight_data[f'{fighter_num}_FinishRate'] = 0.0
             fight_data[f'{fighter_num}_Wins'] = 0
             fight_data[f'{fighter_num}_Losses'] = 0
             fight_data[f'{fighter_num}_Draws'] = 0
             fight_data[f'{fighter_num}_NoContests'] = 0
-            fight_data[f'{fighter_num}_AvgControlTime'] = 0
-            fight_data[f'{fighter_num}_AvgSubmissionAttempts'] = 0
-            fight_data[f'{fighter_num}_AvgLegStrikes'] = 0
-            fight_data[f'{fighter_num}_AvgClinchStrikes'] = 0
-            fight_data[f'{fighter_num}_AvgStrikesLanded'] = 0
-            fight_data[f'{fighter_num}_AvgStrikesAttempted'] = 0
-            fight_data[f'{fighter_num}_StrikeAccuracy'] = 0
-            fight_data[f'{fighter_num}_AvgTakedownsLanded'] = 0
-            fight_data[f'{fighter_num}_AvgTakedownsAttempted'] = 0
-            fight_data[f'{fighter_num}_AvgReversals'] = 0
+            fight_data[f'{fighter_num}_AvgControlTime'] = 0.0
+            fight_data[f'{fighter_num}_AvgSubmissionAttempts'] = 0.0
+            fight_data[f'{fighter_num}_AvgLegStrikes'] = 0.0
+            fight_data[f'{fighter_num}_AvgClinchStrikes'] = 0.0
+            fight_data[f'{fighter_num}_AvgStrikesLanded'] = 0.0
+            fight_data[f'{fighter_num}_AvgStrikesAttempted'] = 0.0
+            fight_data[f'{fighter_num}_StrikeAccuracy'] = 0.0
+            fight_data[f'{fighter_num}_AvgTakedownsLanded'] = 0.0
+            fight_data[f'{fighter_num}_AvgTakedownsAttempted'] = 0.0
+            fight_data[f'{fighter_num}_AvgReversals'] = 0.0
 
         # sort the fight_data by 'eventdate' to ensure chronological order
         fight_data = fight_data.sort_values('EventDate').reset_index(drop=True)

@@ -13,6 +13,7 @@ def plot_confusion_matrix(model_name, y_test, y_pred, label_encoder, output_path
     plt.close()
 
 def plot_model_accuracies(performance_df, output_path):
+    performance_df = performance_df.sort_values(by='Accuracy', ascending=False)
     plt.figure(figsize=(10, 6))
     plt.barh(performance_df['Model'], performance_df['Accuracy'], color='skyblue')
     plt.xlabel('Accuracy')

@@ -14,7 +14,7 @@ def evaluate_models(models, X_test, y_test, label_encoder, device):
     model_performances = {}
 
     for name, model in models.items():
-        if name == 'Neural Network':
+        if name in ['Neural Network', 'Transformer']:
             model.eval()
             with torch.no_grad():
                 X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
