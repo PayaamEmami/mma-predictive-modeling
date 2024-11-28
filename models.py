@@ -7,22 +7,19 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 import torch.nn as nn
 
+# transformer
 class MMATransformerNet(nn.Module):
     def __init__(self, input_size):
         super(MMATransformerNet, self).__init__()
         self.num_features = input_size
         self.embedding_dim = 64
-
         # embedding layer for numerical features
         self.embedding = nn.Linear(1, self.embedding_dim)
-
         # positional encoding
         self.positional_encoding = nn.Parameter(torch.zeros(1, self.num_features, self.embedding_dim))
-
         # transformer encoder layer
-        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embedding_dim, nhead=8)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embedding_dim, nhead=8, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
-
         # final classification layer
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
@@ -35,44 +32,40 @@ class MMATransformerNet(nn.Module):
         x = self.fc(x) # (batch_size, 2)
         return x
 
+# feedforward neural network
 class MMANet(nn.Module):
     def __init__(self, input_size):
         super(MMANet, self).__init__()
+        # fully connected layer
         self.fc1 = nn.Linear(input_size, 512)
+        # ReLU activation layer
         self.relu = nn.ReLU()
+        # fully connected layer
         self.fc2 = nn.Linear(512, 2)
 
     def forward(self, x):
-        out = self.fc1(x)
-        out = self.relu(out)
-        out = self.fc2(out)
+        out = self.fc1(x) # (batch_size, 512)
+        out = self.relu(out) # (batch_size, 512)
+        out = self.fc2(out) # (batch_size, 2)
         return out
 
 def initialize_models(input_size, device):
     models = {}
 
-    # random forest
-    models['Random Forest'] = RandomForestClassifier(random_state=42)
+    models['Random Forest'] = RandomForestClassifier(random_state=21)
 
-    # gradient boosting
-    models['Gradient Boosting'] = GradientBoostingClassifier(random_state=42)
+    models['Gradient Boosting'] = GradientBoostingClassifier(random_state=21)
 
-    # support vector machine
-    models['Support Vector Machine'] = SVC(probability=True, random_state=42)
+    models['Support Vector Machine'] = SVC(probability=True, random_state=21)
 
-    # logistic regression
-    models['Logistic Regression'] = LogisticRegression(max_iter=1000, random_state=42)
+    models['Logistic Regression'] = LogisticRegression(max_iter=1000, random_state=21)
 
-    # k-nearest neighbors
     models['K-Nearest Neighbors'] = KNeighborsClassifier()
 
-    # naive bayes
     models['Naive Bayes'] = GaussianNB()
 
-    # neural network
     models['Neural Network'] = MMANet(input_size).to(device)
 
-    # transformer
     models['Transformer'] = MMATransformerNet(input_size).to(device)
 
     return models

@@ -1,0 +1,9 @@
+Model,Accuracy
+Random Forest,0.6124751161247511
+Gradient Boosting,0.6211015262110152
+Support Vector Machine,0.6323822163238222
+Logistic Regression,0.6277372262773723
+K-Nearest Neighbors,0.5335102853351028
+Naive Bayes,0.6058394160583942
+Neural Network,0.5680159256801592
+Transformer,0.6317186463171864
