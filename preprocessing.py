@@ -3,6 +3,7 @@
 import re
 import pandas as pd
 
+
 def parse_height(height_str):
     if pd.isnull(height_str):
         return 177
@@ -16,6 +17,7 @@ def parse_height(height_str):
     else:
         return 177
 
+
 def parse_reach(reach_str):
     if pd.isnull(reach_str):
         return 183
@@ -26,6 +28,7 @@ def parse_reach(reach_str):
         return inches * 2.54
     else:
         return 183
+
 
 def parse_strike(strike_str):
     if pd.isnull(strike_str):
@@ -38,6 +41,7 @@ def parse_strike(strike_str):
         return [landed, attempted]
     else:
         return [0, 0]
+
 
 def parse_control_time(time_str):
     if pd.isnull(time_str):
@@ -52,6 +56,7 @@ def parse_control_time(time_str):
     else:
         return 0
 
+
 def parse_time(time_str):
     if pd.isnull(time_str):
         return 0
@@ -65,6 +70,7 @@ def parse_time(time_str):
     else:
         return 0
 
+
 def calculate_fight_time(round_num, time_str):
     if pd.isnull(round_num) or pd.isnull(time_str):
         return 0
@@ -73,14 +79,16 @@ def calculate_fight_time(round_num, time_str):
     total_fight_time = (round_num - 1) * 300 + time_in_current_round
     return total_fight_time
 
+
 def process_landed_attempted(fight_data, column_name):
     landed_attempted = fight_data[column_name].apply(parse_strike)
-    landed_col = column_name + '_Landed'
-    attempted_col = column_name + '_Attempted'
+    landed_col = column_name + "_Landed"
+    attempted_col = column_name + "_Attempted"
     fight_data[landed_col] = [x[0] for x in landed_attempted]
     fight_data[attempted_col] = [x[1] for x in landed_attempted]
+
 
 def is_finish(method_str):
     if pd.isnull(method_str):
         return False
-    return 'Decision' not in method_str
+    return "Decision" not in method_str

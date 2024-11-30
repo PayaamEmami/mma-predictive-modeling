@@ -8,6 +8,7 @@ from training import train_model
 from evaluation import evaluate_models
 from config import DEVICE
 
+
 def main():
     # load and preprocess data
     X_ufc, y_ufc, label_encoder = load_ufc_data()
@@ -34,6 +35,7 @@ def main():
 
     # evaluate models
     evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, DEVICE)
+
 
 if __name__ == "__main__":
     main()

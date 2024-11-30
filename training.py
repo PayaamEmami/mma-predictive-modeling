@@ -4,8 +4,9 @@ import torch
 import torch.optim as optim
 import numpy as np
 
+
 def train_model(name, model, X_train, y_train, device):
-    if name in ['Neural Network', 'Transformer']:
+    if name in ["Neural Network", "Transformer"]:
         # training logic for pytorch models
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.parameters(), lr=0.001, weight_decay=0.1)
