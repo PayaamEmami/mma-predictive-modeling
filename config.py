@@ -10,10 +10,10 @@ from google.colab import drive
 drive.mount("/content/drive")
 
 # paths
-BASE_PATH = "/content/drive/MyDrive/files"
-DATA_PATH = os.path.join(BASE_PATH, "data")
+BASE_PATH = "/content/drive/MyDrive/dev"
+DATA_PATH = os.path.join(BASE_PATH, "data/ufc")
 OUTPUT_PATH = os.path.join(
-    BASE_PATH, "models/ufc/output", datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    BASE_PATH, "output/mma-predictive-modeling", datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 # ensure directories exist

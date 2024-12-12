@@ -16,7 +16,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
 
     # iterate over each model
     for name, model in models.items():
-        if name in ["Neural Network", "Transformer"]:
+        if name in ["FCNN", "RNN", "LSTM", "Transformer"]:
             # set model to evaluation mode
             model.eval()
             with torch.no_grad():

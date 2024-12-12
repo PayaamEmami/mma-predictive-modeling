@@ -23,7 +23,7 @@ from preprocessing import (
 def load_ufc_data():
     try:
         print("Loading UFC data...")
-        fight_data_path = os.path.join(DATA_PATH, "ufc/ufc_events.csv")
+        fight_data_path = os.path.join(DATA_PATH, "ufc_events.csv")
 
         fight_data = pd.read_csv(
             fight_data_path, quotechar='"', parse_dates=["EventDate"]
@@ -401,7 +401,7 @@ def load_ufc_data():
         final_df = pd.concat([X_processed_df, y_df], axis=1)
 
         # save the processed data to csv
-        processed_data_path = os.path.join(DATA_PATH, "ufc/processed_ufc_data.csv")
+        processed_data_path = os.path.join(DATA_PATH, "processed_ufc_data.csv")
         final_df.to_csv(processed_data_path, index=False, quotechar='"')
         print(f"Processed data saved to {processed_data_path}")
 
