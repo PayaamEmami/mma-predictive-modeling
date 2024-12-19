@@ -47,11 +47,11 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         # plot learning curve
         plot_learning_curve(model, X_train, y_train, name, OUTPUT_PATH, device)
 
-    # convert model performances to DataFrame
+    # convert model performances to dataframe
     performance_df = pd.DataFrame(
         list(model_performances.items()), columns=["Model", "Accuracy"]
     )
-    # save model performances to CSV
+    # save model performances to csv
     performance_df.to_csv(
         os.path.join(OUTPUT_PATH, "model_performances.csv"), index=False
     )

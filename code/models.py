@@ -8,14 +8,15 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from config import HYPERPARAMETERS
 
 
 # fully connected neural network
 class FCNN(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, hidden_size):
         super(FCNN, self).__init__()
         # fully connected layer
-        self.fc1 = nn.Linear(input_size, 512)
+        self.fc1 = nn.Linear(input_size, hidden_size)
         # relu activation layer
         self.relu = nn.ReLU()
         # fully connected layer
@@ -30,12 +31,11 @@ class FCNN(nn.Module):
 
 # recurrent neural network
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=1):
+    def __init__(self, input_size, hidden_size, num_layers):
         super(RNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        # rnn expects input: (batch, seq_len, input_dim)
         self.rnn = nn.RNN(
             input_size=1,
             hidden_size=hidden_size,
@@ -55,7 +55,7 @@ class RNN(nn.Module):
 
 # long short-term memory neural network
 class LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=1):
+    def __init__(self, input_size, hidden_size, num_layers):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -111,24 +111,43 @@ class Transformer(nn.Module):
 def initialize_models(input_size, device):
     models = {}
 
-    models["Random Forest"] = RandomForestClassifier(random_state=21)
+    models["Random Forest"] = RandomForestClassifier(**HYPERPARAMETERS["Random Forest"])
 
-    models["Gradient Boosting"] = GradientBoostingClassifier(random_state=21)
+    models["Gradient Boosting"] = GradientBoostingClassifier(
+        **HYPERPARAMETERS["Gradient Boosting"]
+    )
 
-    models["SVM"] = SVC(probability=True, random_state=21)
+    models["SVM"] = SVC(**HYPERPARAMETERS["SVM"])
 
-    models["Logistic Regression"] = LogisticRegression(max_iter=1000, random_state=21)
+    models["Logistic Regression"] = LogisticRegression(
+        **HYPERPARAMETERS["Logistic Regression"]
+    )
 
-    models["KNN"] = KNeighborsClassifier()
+    models["KNN"] = KNeighborsClassifier(**HYPERPARAMETERS["KNN"])
 
-    models["Naive Bayes"] = GaussianNB()
+    models["Naive Bayes"] = GaussianNB(**HYPERPARAMETERS["Naive Bayes"])
 
-    models["FCNN"] = FCNN(input_size).to(device)
+    models["FCNN"] = FCNN(
+        input_size, hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+    ).to(device)
 
-    models["RNN"] = RNN(input_size).to(device)
+    models["RNN"] = RNN(
+        input_size,
+        hidden_size=HYPERPARAMETERS["RNN"]["hidden_size"],
+        num_layers=HYPERPARAMETERS["RNN"],
+    ).to(device)
 
-    models["LSTM"] = LSTM(input_size).to(device)
+    models["LSTM"] = LSTM(
+        input_size,
+        hidden_size=HYPERPARAMETERS["LSTM"]["hidden_size"],
+        num_layers=HYPERPARAMETERS["LSTM"]["num_layers"],
+    ).to(device)
 
-    models["Transformer"] = Transformer(input_size).to(device)
+    models["Transformer"] = Transformer(
+        input_size,
+        embedding_dim=HYPERPARAMETERS["Transformer"]["embedding_dim"],
+        num_layers=HYPERPARAMETERS["Transformer"]["num_layers"],
+        nhead=HYPERPARAMETERS["Transformer"]["nhead"],
+    ).to(device)
 
     return models

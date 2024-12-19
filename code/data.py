@@ -213,7 +213,7 @@ def load_ufc_data():
                     )
                 else:
                     # handle case where fighter has no previous fights
-                    pass  # default values are already zero
+                    pass # default values are already zero
 
                 # update win/loss/draw counts before the current fight
                 fight_data.at[idx, f"{fighter_num}_Wins"] = stats_before["Wins"]
