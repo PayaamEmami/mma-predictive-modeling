@@ -8,7 +8,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from configs.config import HYPERPARAMETERS
+from config import HYPERPARAMETERS
 
 
 # fully connected neural network

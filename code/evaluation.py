@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score, classification_report
 
-from configs.config import OUTPUT_PATH
+from config import OUTPUT_PATH
 from utils import plot_confusion_matrix, plot_model_accuracies, plot_learning_curve
 
 

@@ -6,7 +6,7 @@ from data import load_ufc_data
 from models import initialize_models
 from training import train_model
 from evaluation import evaluate_models
-from configs.config import DEVICE
+from config import DEVICE
 
 
 def main():

@@ -3,7 +3,7 @@
 import torch
 import torch.optim as optim
 import numpy as np
-from configs.config import HYPERPARAMETERS
+from config import HYPERPARAMETERS
 
 
 def train_model(name, model, X_train, y_train, device):

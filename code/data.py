@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-from configs.config import DATA_PATH
+from config import DATA_PATH
 from preprocessing import (
     parse_height,
     parse_reach,
