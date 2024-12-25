@@ -4,11 +4,6 @@ import os
 from datetime import datetime
 import torch
 
-# mount google drive
-from google.colab import drive
-
-drive.mount("/content/drive")
-
 # paths
 BASE_PATH = "/content/drive/MyDrive/dev"
 DATA_PATH = os.path.join(BASE_PATH, "data/ufc")

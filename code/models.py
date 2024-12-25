@@ -134,7 +134,7 @@ def initialize_models(input_size, device):
     models["RNN"] = RNN(
         input_size,
         hidden_size=HYPERPARAMETERS["RNN"]["hidden_size"],
-        num_layers=HYPERPARAMETERS["RNN"],
+        num_layers=HYPERPARAMETERS["RNN"]["num_layers"],
     ).to(device)
 
     models["LSTM"] = LSTM(
