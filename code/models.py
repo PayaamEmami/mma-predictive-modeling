@@ -20,7 +20,7 @@ class FCNN(nn.Module):
         # relu activation layer
         self.relu = nn.ReLU()
         # fully connected layer
-        self.fc2 = nn.Linear(512, 2)
+        self.fc2 = nn.Linear(hidden_size, 2)
 
     def forward(self, x):
         out = self.fc1(x) # (batch_size, 512)
@@ -37,7 +37,7 @@ class RNN(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.rnn = nn.RNN(
-            input_size=1,
+            input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
@@ -46,7 +46,7 @@ class RNN(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, input_size)
-        x = x.unsqueeze(-1) # (batch_size, input_size, 1)
+        x = x.unsqueeze(1) # (batch_size, input_size, 1)
         out, _ = self.rnn(x) # out: (batch_size, input_size, hidden_size)
         out = out[:, -1, :] # (batch_size, hidden_size)
         out = self.fc(out) # (batch_size, 2)
@@ -61,7 +61,7 @@ class LSTM(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(
-            input_size=1,
+            input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
@@ -70,7 +70,7 @@ class LSTM(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, input_size)
-        x = x.unsqueeze(-1) # (batch_size, input_size, 1)
+        x = x.unsqueeze(1) # (batch_size, input_size, 1)
         out, (hn, cn) = self.lstm(x) # out: (batch_size, input_size, hidden_size)
         # take the last timestep
         out = out[:, -1, :] # (batch_size, hidden_size)
@@ -80,10 +80,10 @@ class LSTM(nn.Module):
 
 # transformer neural network
 class Transformer(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, embedding_dim, num_layers, nhead):
         super(Transformer, self).__init__()
         self.num_features = input_size
-        self.embedding_dim = 64
+        self.embedding_dim = embedding_dim
         # embedding layer
         self.embedding = nn.Linear(1, self.embedding_dim)
         # positional encoding
@@ -92,9 +92,9 @@ class Transformer(nn.Module):
         )
         # transformer encoder layer
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.embedding_dim, nhead=8, batch_first=True
+            d_model=self.embedding_dim, nhead=nhead, batch_first=True
         )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         # final classification layer
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
