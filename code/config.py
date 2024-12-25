@@ -48,7 +48,7 @@ HYPERPARAMETERS = {
     },
     "Gradient Boosting": {
         # loss and learning parameters
-        "loss": "deviance", # loss function to optimize
+        "loss": "log_loss", # loss function to optimize
         "learning_rate": 0.1, # step size for each update
         "n_estimators": 100, # number of boosting stages
         "subsample": 1.0, # fraction of samples for fitting base learners
