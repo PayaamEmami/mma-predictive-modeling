@@ -94,7 +94,9 @@ class Transformer(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.embedding_dim, nhead=nhead, batch_first=True
         )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer, num_layers=num_layers
+        )
         # final classification layer
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
