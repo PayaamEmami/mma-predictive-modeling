@@ -109,7 +109,6 @@ HYPERPARAMETERS = {
         "random_state": 21, # random seed for reproducibility
         "solver": "lbfgs", # optimization solver
         "max_iter": 1000, # maximum iterations
-        "multi_class": "auto", # type of multi-class approach
         "verbose": 0, # verbosity level
         "warm_start": False, # reuse previous solution
         "n_jobs": None, # number of jobs to run in parallel
