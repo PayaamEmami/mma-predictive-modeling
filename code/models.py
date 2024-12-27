@@ -46,7 +46,7 @@ class RNN(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, input_size)
-        x = x.unsqueeze(1) # (batch_size, input_size, 1)
+        x = x.unsqueeze(1) # (batch_size, sequence_length, input_size)
         out, _ = self.rnn(x) # out: (batch_size, input_size, hidden_size)
         out = out[:, -1, :] # (batch_size, hidden_size)
         out = self.fc(out) # (batch_size, 2)
@@ -70,9 +70,8 @@ class LSTM(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, input_size)
-        x = x.unsqueeze(1) # (batch_size, input_size, 1)
+        x = x.unsqueeze(1) # (batch_size, sequence_length, input_size)
         out, (hn, cn) = self.lstm(x) # out: (batch_size, input_size, hidden_size)
-        # take the last timestep
         out = out[:, -1, :] # (batch_size, hidden_size)
         out = self.fc(out) # (batch_size, 2)
         return out

@@ -138,7 +138,7 @@ HYPERPARAMETERS = {
         "learning_rate": 0.001, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
         "num_epochs": 500, # number of training epochs
-        "batch_size": None, # batch size for training
+        "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
@@ -161,7 +161,7 @@ HYPERPARAMETERS = {
         "learning_rate": 0.001, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
         "num_epochs": 500, # number of training epochs
-        "batch_size": None, # batch size for training
+        "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
@@ -184,7 +184,7 @@ HYPERPARAMETERS = {
         "learning_rate": 0.001, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
         "num_epochs": 500, # number of training epochs
-        "batch_size": None, # batch size for training
+        "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
@@ -208,7 +208,7 @@ HYPERPARAMETERS = {
         "learning_rate": 0.001, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
         "num_epochs": 500, # number of training epochs
-        "batch_size": None, # batch size for training
+        "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum

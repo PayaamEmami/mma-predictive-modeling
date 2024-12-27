@@ -2,6 +2,7 @@
 
 import torch
 import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 from config import HYPERPARAMETERS
 
@@ -11,7 +12,6 @@ def train_model(name, model, X_train, y_train, device):
         # training logic for pytorch models
         params = HYPERPARAMETERS[name]
         criterion = torch.nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=0.001, weight_decay=0.1)
 
         if params["optimizer"].lower() == "sgd":
             momentum = params["momentum"]
@@ -77,13 +77,22 @@ def train_model(name, model, X_train, y_train, device):
         X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
         y_train_tensor = torch.tensor(y_train.astype(np.longlong)).to(device)
 
+        dataset = TensorDataset(X_train_tensor, y_train_tensor)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
         for epoch in range(num_epochs):
             model.train()
-            optimizer.zero_grad()
-            outputs = model(X_train_tensor)
-            loss = criterion(outputs, y_train_tensor)
-            loss.backward()
-            optimizer.step()
+            epoch_loss = 0.0
+
+            for batch_X, batch_y in dataloader:
+                optimizer.zero_grad()
+                outputs = model(batch_X)
+                loss = criterion(outputs, batch_y)
+                loss.backward()
+                optimizer.step()
+
+                epoch_loss += loss.item()
+
     else:
         # training logic for scikit-learn models
         model.fit(X_train, y_train)
