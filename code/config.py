@@ -26,9 +26,9 @@ HYPERPARAMETERS = {
         # tree-related parameters
         "n_estimators": 100, # number of trees in the forest
         "criterion": "gini", # function to measure split quality
-        "max_depth": None, # maximum depth of the tree
-        "min_samples_split": 2, # minimum samples required to split
-        "min_samples_leaf": 1, # minimum samples required in a leaf
+        "max_depth": 10, # maximum depth of the tree
+        "min_samples_split": 5, # minimum samples required to split
+        "min_samples_leaf": 2, # minimum samples required in a leaf
         "min_weight_fraction_leaf": 0.0, # minimum weighted fraction of leaf
         "max_features": "sqrt", # number of features to consider for split
         "max_leaf_nodes": None, # maximum number of leaf nodes
