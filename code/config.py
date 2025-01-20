@@ -88,7 +88,7 @@ HYPERPARAMETERS = {
         "cache_size": 500, # size of kernel cache (mb)
         "class_weight": "balanced", # weights associated with classes
         "verbose": False, # verbosity level
-        "max_iter": 1000, # maximum number of iterations
+        "max_iter": -1, # maximum number of iterations
         # decision function
         "decision_function_shape": "ovr", # one-vs-rest decision function
         "break_ties": False, # whether to break ties
@@ -108,7 +108,7 @@ HYPERPARAMETERS = {
         # computational settings
         "random_state": 21, # random seed for reproducibility
         "solver": "lbfgs", # optimization solver
-        "max_iter": 2000, # maximum iterations
+        "max_iter": 3000, # maximum iterations
         "verbose": 0, # verbosity level
         "warm_start": False, # reuse previous solution
         "n_jobs": -1, # number of jobs to run in parallel
@@ -177,14 +177,14 @@ HYPERPARAMETERS = {
     },
     "LSTM": {
         # model architecture
-        "hidden_size": 128, # number of units in hidden layer
-        "num_layers": 2, # number of recurrent layers
+        "hidden_size": 64, # number of units in hidden layer
+        "num_layers": 1, # number of recurrent layers
         # training hyperparams
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.0005, # step size for optimizer
+        "learning_rate": 0.005, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
-        "batch_size": 32, # batch size for training
+        "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
