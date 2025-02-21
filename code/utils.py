@@ -8,6 +8,9 @@ from sklearn.model_selection import learning_curve
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
+train_color = "#1f77b4"
+cross_validation_color = "#ff7f0e"
+
 
 def plot_confusion_matrix(model_name, y_test, y_pred, label_encoder, output_path):
     cm = confusion_matrix(y_test, y_pred)
@@ -104,27 +107,31 @@ def plot_learning_curve(
         train_sizes_abs = [int(len(X) * size) for size in train_sizes]
         plt.figure()
         plt.plot(
-            train_sizes_abs, train_scores_mean, "o-", color="r", label="Training score"
+            train_sizes_abs,
+            train_scores_mean,
+            "-",
+            color=train_color,
+            label="Training score",
         )
         plt.plot(
             train_sizes_abs,
             test_scores_mean,
-            "o-",
-            color="g",
+            "-",
+            color=cross_validation_color,
             label="Cross-validation score",
         )
         plt.fill_between(
             train_sizes_abs,
             np.array(train_scores_mean) - np.array(train_scores_std),
             np.array(train_scores_mean) + np.array(train_scores_std),
-            color="r",
+            color=train_color,
             alpha=0.1,
         )
         plt.fill_between(
             train_sizes_abs,
             np.array(test_scores_mean) - np.array(test_scores_std),
             np.array(test_scores_mean) + np.array(test_scores_std),
-            color="g",
+            color=cross_validation_color,
             alpha=0.1,
         )
     else:
@@ -138,27 +145,31 @@ def plot_learning_curve(
 
         plt.figure()
         plt.plot(
-            train_sizes, train_scores_mean, "o-", color="r", label="Training score"
+            train_sizes,
+            train_scores_mean,
+            "-",
+            color=train_color,
+            label="Training score",
         )
         plt.plot(
             train_sizes,
             test_scores_mean,
-            "o-",
-            color="g",
+            "-",
+            color=cross_validation_color,
             label="Cross-validation score",
         )
         plt.fill_between(
             train_sizes,
             train_scores_mean - train_scores_std,
             train_scores_mean + train_scores_std,
-            color="r",
+            color=train_color,
             alpha=0.1,
         )
         plt.fill_between(
             train_sizes,
             test_scores_mean - test_scores_std,
             test_scores_mean + test_scores_std,
-            color="g",
+            color=cross_validation_color,
             alpha=0.1,
         )
 
