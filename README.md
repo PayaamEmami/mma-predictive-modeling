@@ -1,8 +1,43 @@
 # MMA Predictive Modeling
 
-## Description
+A machine learning project for predicting fight outcomes in Mixed Martial Arts (MMA) events. This project leverages classical machine learning algorithms, neural networks, and ensemble methods to analyze fighter statistics and historical fight data to generate insights and visualizations.
 
-This project aims to predict the outcomes of MMA (Mixed Martial Arts) fights using machine learning models.
+## Current Status
+✅ Ongoing – The project is functional and actively maintained. It is periodically updated with the latest fight data after events.
+
+## Features
+
+### Machine Learning Models
+- **Classical ML:** K-Nearest Neighbors (KNN), Naive Bayes, Logistic Regression, Support Vector Machines (SVM), Decision Trees
+- **Neural Networks:** Fully Connected Neural Network (FCNN), Recurrent Neural Networks (RNN), Long Short-Term Memory (LSTM), Transformers
+- **Ensemble Methods:** Gradient Boosting, Random Forest
+
+### Data Processing & Preprocessing
+- Extracts fighter statistics, fight history, and event-based features
+- Feature engineering for significant fight attributes such as striking accuracy, takedown success, and fight duration
+- Handles missing data and normalizes input features
+
+### Training & Evaluation
+- Implements multiple machine learning models for comparison
+- Trains models using UFC fight data
+- Evaluates models with accuracy metrics and classification reports
+- Generates plots and confusion matrices for analysis
+
+### Performance & Scalability
+- Supports PyTorch for deep learning models
+- Utilizes parallel processing for faster training
+- GPU acceleration enabled when available
+
+## Development Notes
+- Written in Python using Scikit-learn and PyTorch
+- Data stored in structured CSV format for easy updates
+- Outputs include predictive plots and model performance summaries
+
+## Updating the Dataset
+New fight event data is added periodically to keep the model updated. The pipeline processes new event data, retrains models, and generates updated performance evaluations.
+
+## Contributing
+🔒 Currently a solo project – external contributions are not planned at this time.
 
 ## Results
 
