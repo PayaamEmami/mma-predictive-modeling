@@ -160,7 +160,7 @@ HYPERPARAMETERS = {
         "optimizer": "SGD", # optimization algorithm
         "learning_rate": 0.001, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
-        "num_epochs": 500, # number of training epochs
+        "num_epochs": 300, # number of training epochs
         "batch_size": 16, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor

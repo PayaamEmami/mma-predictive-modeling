@@ -1,10 +1,11 @@
 # training.py
 
+import os
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
-from config import HYPERPARAMETERS
+from config import HYPERPARAMETERS, DATA_PATH
 
 
 def train_model(name, model, X_train, y_train, device):
@@ -92,6 +93,9 @@ def train_model(name, model, X_train, y_train, device):
                 optimizer.step()
 
                 epoch_loss += loss.item()
+
+        torch.save(model.state_dict(), os.path.join(DATA_PATH, f"{name}.pth"))
+        print(f"Model {name} saved successfully.")
 
     else:
         # training logic for scikit-learn models
