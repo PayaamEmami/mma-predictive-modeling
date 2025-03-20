@@ -261,7 +261,6 @@ def load_ufc_data():
                     strikes_attempted if not np.isnan(strikes_attempted) else 0
                 )
 
-                # handle takedowns
                 takedowns_landed = row.get(f"{fighter_num}_Takedowns_Landed", 0)
                 takedowns_attempted = row.get(f"{fighter_num}_Takedowns_Attempted", 0)
                 stats["TotalTakedownsLanded"] += (
@@ -366,8 +365,6 @@ def load_ufc_data():
         # label encoding for target
         le = LabelEncoder()
         y = le.fit_transform(y)
-        label_mapping = dict(zip(le.classes_, le.transform(le.classes_)))
-        print("Label Mapping:", label_mapping)
 
         # preprocessing pipelines
         numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])

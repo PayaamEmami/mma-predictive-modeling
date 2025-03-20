@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import learning_curve
 import torch
-from config import DATA_PATH
+from torch.utils.data import DataLoader, TensorDataset
 
 train_color = "#1f77b4"
 cross_validation_color = "#ff7f0e"
@@ -55,15 +55,6 @@ def plot_learning_curve(
     n_trials=5,
 ):
     if isinstance(model, torch.nn.Module):
-        model_path = os.path.join(DATA_PATH, f"{model_name}.pth")
-        if os.path.exists(model_path):
-            print(f"Loading pretrained model {model_name} for learning curve analysis.")
-            model.load_state_dict(torch.load(model_path))
-            model.to(device)
-            model.eval()
-        else:
-            print(f"Warning: Pretrained model {model_name} not found. Training again.")
-
         train_scores = {size: [] for size in train_sizes}
         test_scores = {size: [] for size in train_sizes}
 
@@ -73,6 +64,26 @@ def plot_learning_curve(
                 indices = np.random.permutation(len(X))
                 X_subset = X[indices[:subset_size]]
                 y_subset = y[indices[:subset_size]]
+
+                dataset = TensorDataset(
+                    torch.tensor(X_subset.astype(np.float32)).to(device),
+                    torch.tensor(y_subset.astype(np.longlong)).to(device),
+                )
+                dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+                optimizer = torch.optim.SGD(
+                    model.parameters(), lr=0.001, weight_decay=0.1
+                )
+                criterion = torch.nn.CrossEntropyLoss()
+
+                model.train()
+                for epoch in range(10):
+                    for inputs, labels in dataloader:
+                        optimizer.zero_grad()
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+                        loss.backward()
+                        optimizer.step()
 
                 model.eval()
                 with torch.no_grad():
