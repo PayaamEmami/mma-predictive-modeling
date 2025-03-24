@@ -41,7 +41,7 @@ def main():
         device=DEVICE,
         n_splits=5,
         test_size=0.2,
-        min_train_size=1000  # Ensure enough training samples for all models
+        min_train_size=1000
     )
     
     # Prepare data for final evaluation
