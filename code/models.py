@@ -1,5 +1,3 @@
-# models.py
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,26 +9,34 @@ from sklearn.naive_bayes import GaussianNB
 from config import HYPERPARAMETERS
 
 
-# fully connected neural network
 class FCNN(nn.Module):
+    """
+    Fully Connected Neural Network for fight outcome prediction.
+    
+    Architecture:
+        - Input layer -> Hidden layer (ReLU) -> Output layer
+    """
     def __init__(self, input_size, hidden_size):
         super(FCNN, self).__init__()
-        # fully connected layer
         self.fc1 = nn.Linear(input_size, hidden_size)
-        # relu activation layer
         self.relu = nn.ReLU()
-        # fully connected layer
         self.fc2 = nn.Linear(hidden_size, 2)
 
     def forward(self, x):
-        out = self.fc1(x) # (batch_size, 512)
-        out = self.relu(out) # (batch_size, 512)
-        out = self.fc2(out) # (batch_size, 2)
+        # Input shape: (batch_size, input_size)
+        out = self.fc1(x)  # Shape: (batch_size, hidden_size)
+        out = self.relu(out)  # Shape: (batch_size, hidden_size)
+        out = self.fc2(out)  # Shape: (batch_size, 2)
         return out
 
 
-# recurrent neural network
 class RNN(nn.Module):
+    """
+    Recurrent Neural Network for fight outcome prediction.
+    
+    Architecture:
+        - Input layer -> RNN layer -> Fully connected layer
+    """
     def __init__(self, input_size, hidden_size, num_layers):
         super(RNN, self).__init__()
         self.input_size = input_size
@@ -45,16 +51,21 @@ class RNN(nn.Module):
         self.fc = nn.Linear(hidden_size, 2)
 
     def forward(self, x):
-        # x shape: (batch_size, input_size)
-        x = x.unsqueeze(1) # (batch_size, sequence_length, input_size)
-        out, _ = self.rnn(x) # out: (batch_size, input_size, hidden_size)
-        out = out[:, -1, :] # (batch_size, hidden_size)
-        out = self.fc(out) # (batch_size, 2)
+        # Input shape: (batch_size, input_size)
+        x = x.unsqueeze(1)  # Shape: (batch_size, 1, input_size)
+        out, _ = self.rnn(x)  # Shape: (batch_size, 1, hidden_size)
+        out = out[:, -1, :]  # Shape: (batch_size, hidden_size)
+        out = self.fc(out)  # Shape: (batch_size, 2)
         return out
 
 
-# long short-term memory neural network
 class LSTM(nn.Module):
+    """
+    Long Short-Term Memory Network for fight outcome prediction.
+    
+    Architecture:
+        - Input layer -> LSTM layer -> Fully connected layer
+    """
     def __init__(self, input_size, hidden_size, num_layers):
         super(LSTM, self).__init__()
         self.input_size = input_size
@@ -69,67 +80,82 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(hidden_size, 2)
 
     def forward(self, x):
-        # x shape: (batch_size, input_size)
-        x = x.unsqueeze(1) # (batch_size, sequence_length, input_size)
-        out, (hn, cn) = self.lstm(x) # out: (batch_size, input_size, hidden_size)
-        out = out[:, -1, :] # (batch_size, hidden_size)
-        out = self.fc(out) # (batch_size, 2)
+        # Input shape: (batch_size, input_size)
+        x = x.unsqueeze(1)  # Shape: (batch_size, 1, input_size)
+        out, (hn, cn) = self.lstm(x)  # Shape: (batch_size, 1, hidden_size)
+        out = out[:, -1, :]  # Shape: (batch_size, hidden_size)
+        out = self.fc(out)  # Shape: (batch_size, 2)
         return out
 
 
-# transformer neural network
 class Transformer(nn.Module):
+    """
+    Transformer Network for fight outcome prediction.
+    
+    Architecture:
+        - Input embedding -> Positional encoding -> Transformer encoder -> Classification layer
+    """
     def __init__(self, input_size, embedding_dim, num_layers, nhead):
         super(Transformer, self).__init__()
         self.num_features = input_size
         self.embedding_dim = embedding_dim
-        # embedding layer
+        
+        # Network components
         self.embedding = nn.Linear(1, self.embedding_dim)
-        # positional encoding
         self.positional_encoding = nn.Parameter(
             torch.zeros(1, self.num_features, self.embedding_dim)
         )
-        # transformer encoder layer
+        
+        # Transformer encoder setup
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.embedding_dim, nhead=nhead, batch_first=True
+            d_model=self.embedding_dim,
+            nhead=nhead,
+            batch_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer, num_layers=num_layers
+            encoder_layer,
+            num_layers=num_layers
         )
-        # final classification layer
+        
+        # Classification head
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
     def forward(self, x):
-        x = x.unsqueeze(-1) # (batch_size, num_features, 1)
-        x = self.embedding(x) # (batch_size, num_features, embedding_dim)
+        # Input shape: (batch_size, num_features)
+        x = x.unsqueeze(-1)  # Shape: (batch_size, num_features, 1)
+        x = self.embedding(x)  # Shape: (batch_size, num_features, embedding_dim)
         x = x + self.positional_encoding
-        x = self.transformer_encoder(x)
-        x = x.flatten(1) # (batch_size, num_features * embedding_dim)
-        x = self.fc(x) # (batch_size, 2)
+        x = self.transformer_encoder(x)  # Shape: (batch_size, num_features, embedding_dim)
+        x = x.flatten(1)  # Shape: (batch_size, num_features * embedding_dim)
+        x = self.fc(x)  # Shape: (batch_size, 2)
         return x
 
 
 def initialize_models(input_size, device):
+    """
+    Initialize all models with their respective hyperparameters.
+    
+    Args:
+        input_size: Number of input features
+        device: PyTorch device to use
+        
+    Returns:
+        Dictionary of initialized models
+    """
     models = {}
 
+    # Initialize scikit-learn models
     models["Random Forest"] = RandomForestClassifier(**HYPERPARAMETERS["Random Forest"])
-
-    models["Gradient Boosting"] = GradientBoostingClassifier(
-        **HYPERPARAMETERS["Gradient Boosting"]
-    )
-
+    models["Gradient Boosting"] = GradientBoostingClassifier(**HYPERPARAMETERS["Gradient Boosting"])
     models["SVM"] = SVC(**HYPERPARAMETERS["SVM"])
-
-    models["Logistic Regression"] = LogisticRegression(
-        **HYPERPARAMETERS["Logistic Regression"]
-    )
-
+    models["Logistic Regression"] = LogisticRegression(**HYPERPARAMETERS["Logistic Regression"])
     models["KNN"] = KNeighborsClassifier(**HYPERPARAMETERS["KNN"])
-
     models["Naive Bayes"] = GaussianNB(**HYPERPARAMETERS["Naive Bayes"])
 
+    # Initialize PyTorch models
     models["FCNN"] = FCNN(
-        input_size, hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+        input_size,
+        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
     ).to(device)
 
     models["RNN"] = RNN(

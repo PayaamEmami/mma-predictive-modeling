@@ -1,5 +1,3 @@
-# training.py
-
 import os
 import torch
 import torch.optim as optim
@@ -14,7 +12,7 @@ def create_time_series_splits(
     data: pd.DataFrame,
     n_splits: int = 5,
     test_size: float = 0.2,
-    min_train_size: int = 1000  # Minimum number of training samples
+    min_train_size: int = 1000
 ) -> List[Tuple[pd.DataFrame, pd.DataFrame]]:
     """
     Create time series splits for cross-validation.
@@ -31,30 +29,27 @@ def create_time_series_splits(
     total_size = len(data)
     test_size_samples = int(total_size * test_size)
     
-    # Calculate the step size to ensure we have enough training samples
-    # We need to reserve min_train_size for the first split
+    # Calculate step size to ensure sufficient training samples
     available_size = total_size - test_size_samples - min_train_size
     step_size = available_size // (n_splits - 1)
     
     splits = []
     for i in range(n_splits):
         if i == 0:
-            # First split: use min_train_size for training
+            # First split uses min_train_size for training
             train_start = 0
             train_end = min_train_size
             test_start = train_end
             test_end = test_start + test_size_samples
         else:
-            # Subsequent splits: move both training and test windows forward
+            # Move training and test windows forward for subsequent splits
             train_start = min_train_size + (i - 1) * step_size
             train_end = train_start + min_train_size
             test_start = train_end
             test_end = test_start + test_size_samples
         
-        # Create the splits
         train_data = data.iloc[train_start:train_end].copy()
         test_data = data.iloc[test_start:test_end].copy()
-        
         splits.append((train_data, test_data))
     
     return splits
@@ -67,7 +62,7 @@ def prepare_data_for_model(
     device: torch.device
 ) -> Tuple[DataLoader, DataLoader]:
     """
-    Prepare data for PyTorch models.
+    Prepare data for PyTorch models by converting to tensors and creating DataLoaders.
     
     Args:
         train_data: Training DataFrame
@@ -79,11 +74,13 @@ def prepare_data_for_model(
     Returns:
         Tuple of (train_loader, test_loader)
     """
+    # Convert data to appropriate types
     X_train = train_data[feature_columns].values.astype(np.float32)
     y_train = train_data[target_column].values.astype(np.longlong)
     X_test = test_data[feature_columns].values.astype(np.float32)
     y_test = test_data[target_column].values.astype(np.longlong)
     
+    # Create PyTorch datasets and dataloaders
     train_dataset = TensorDataset(
         torch.tensor(X_train).to(device),
         torch.tensor(y_train).to(device)
@@ -130,6 +127,7 @@ def evaluate_model_on_split(
         
         return correct / total
     else:
+        # Convert PyTorch tensors to numpy arrays for scikit-learn models
         X_test = []
         y_test = []
         for inputs, labels in test_loader:
@@ -197,18 +195,18 @@ def time_series_cross_validate(
         for name, model in models.items():
             is_pytorch = name in ["FCNN", "RNN", "LSTM", "Transformer"]
             
-            # Prepare data
+            # Prepare data and train model
             train_loader, test_loader = prepare_data_for_model(
                 train_data, test_data, feature_columns, target_column, device
             )
             
-            # Train model
             if is_pytorch:
                 model.train()
                 criterion = torch.nn.CrossEntropyLoss()
                 optimizer = torch.optim.Adam(model.parameters())
                 
-                for epoch in range(10):  # Adjust epochs as needed
+                num_epochs = HYPERPARAMETERS[name]["num_epochs"]
+                for epoch in range(num_epochs):
                     for inputs, labels in train_loader:
                         optimizer.zero_grad()
                         outputs = model(inputs)
@@ -220,81 +218,73 @@ def time_series_cross_validate(
                 y_train = train_data[target_column].values
                 model.fit(X_train, y_train)
             
-            # Evaluate model
+            # Evaluate and store results
             accuracy = evaluate_model_on_split(model, test_loader, device, is_pytorch)
             results[name].append(accuracy)
             print(f"{name} accuracy: {accuracy:.4f}")
     
-    # Print cross-validation results
     print_cross_validation_results(results)
-    
-    # Return the last split's data for final evaluation
     return results, splits[-1][0], splits[-1][1]
 
 def train_model(name, model, X_train, y_train, device):
+    """
+    Train a model and save its state.
+    
+    Args:
+        name: Name of the model
+        model: Model instance to train
+        X_train: Training features
+        y_train: Training labels
+        device: PyTorch device to use
+    """
     if name in ["FCNN", "RNN", "LSTM", "Transformer"]:
-        # training logic for pytorch models
         params = HYPERPARAMETERS[name]
         criterion = torch.nn.CrossEntropyLoss()
 
+        # Configure optimizer based on model parameters
         if params["optimizer"].lower() == "sgd":
-            momentum = params["momentum"]
             optimizer = optim.SGD(
                 model.parameters(),
                 lr=params["learning_rate"],
                 weight_decay=params["weight_decay"],
-                momentum=momentum,
+                momentum=params["momentum"],
             )
-
         elif params["optimizer"].lower() == "adam":
-            betas = params["betas"]
-            eps = params["eps"]
             optimizer = optim.Adam(
                 model.parameters(),
                 lr=params["learning_rate"],
                 weight_decay=params["weight_decay"],
-                betas=betas,
-                eps=eps,
+                betas=params["betas"],
+                eps=params["eps"],
             )
-
         elif params["optimizer"].lower() == "adamw":
-            betas = params["betas"]
-            eps = params["eps"]
-            amsgrad = params["amsgrad"]
             optimizer = optim.AdamW(
                 model.parameters(),
                 lr=params["learning_rate"],
                 weight_decay=params["weight_decay"],
-                betas=betas,
-                eps=eps,
-                amsgrad=amsgrad,
+                betas=params["betas"],
+                eps=params["eps"],
+                amsgrad=params["amsgrad"],
             )
-
         elif params["optimizer"].lower() == "rmsprop":
-            alpha = params["alpha"]
-            eps = params["eps"]
-            momentum = params["momentum"]
-            centered = params["centered"]
             optimizer = optim.RMSprop(
                 model.parameters(),
                 lr=params["learning_rate"],
                 weight_decay=params["weight_decay"],
-                alpha=alpha,
-                eps=eps,
-                momentum=momentum,
-                centered=centered,
+                alpha=params["alpha"],
+                eps=params["eps"],
+                momentum=params["momentum"],
+                centered=params["centered"],
             )
-
         else:
-            print(
-                f"Warning: Unknown optimizer '{params['optimizer']}'. Falling back to SGD."
-            )
+            print(f"Warning: Unknown optimizer '{params['optimizer']}'. Falling back to SGD.")
             optimizer = optim.SGD(
                 model.parameters(),
                 lr=params["learning_rate"],
                 weight_decay=params["weight_decay"],
             )
 
+        # Prepare data and train model
         num_epochs = params["num_epochs"]
         batch_size = params["batch_size"]
 
@@ -314,12 +304,10 @@ def train_model(name, model, X_train, y_train, device):
                 loss = criterion(outputs, batch_y)
                 loss.backward()
                 optimizer.step()
-
                 epoch_loss += loss.item()
 
+        # Save model state
         torch.save(model.state_dict(), os.path.join(DATA_PATH, f"{name}.pth"))
         print(f"Model {name} saved successfully.")
-
     else:
-        # training logic for scikit-learn models
         model.fit(X_train, y_train)
