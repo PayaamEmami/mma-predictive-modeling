@@ -6,10 +6,10 @@ import torch
 
 # paths
 BASE_PATH = "/content/drive/MyDrive/dev"
-DATA_PATH = os.path.join(BASE_PATH, "data/ufc")
+DATA_PATH = os.path.join(BASE_PATH, "mma-predictive-modeling/data")
 OUTPUT_PATH = os.path.join(
     BASE_PATH,
-    "output/mma-predictive-modeling",
+    "mma-predictive-modeling/output",
     datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
 )
 
