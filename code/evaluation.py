@@ -5,7 +5,7 @@ import torch
 from sklearn.metrics import classification_report
 
 from config import OUTPUT_PATH
-from utils import plot_model_accuracies, plot_learning_curve
+from utils import plot_model_accuracies
 
 
 def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
@@ -26,13 +26,8 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     """
     model_performances = {}
 
-    for name, model in models.items():
+    for name, (model, train_scores, test_scores) in models.items():
         print(f"\nEvaluating {name}...")
-        
-        # Generate learning curves
-        train_scores, test_scores = plot_learning_curve(
-            model, X_train, y_train, name, OUTPUT_PATH, device
-        )
         
         # Calculate performance metrics from learning curves
         final_train_accuracy = train_scores[-1].mean()
