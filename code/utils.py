@@ -1,5 +1,7 @@
 import os
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import numpy as np
 from sklearn.model_selection import learning_curve, KFold
 import torch
@@ -7,8 +9,8 @@ from config import HYPERPARAMETERS
 from training import train_model
 from models import FCNN, RNN, LSTM, Transformer
 
-train_color = "#1f77b4"
-cross_validation_color = "#ff7f0e"
+train_color = "C0"
+cross_validation_color = "C1"
 
 
 def plot_model_accuracies(performance_df, output_path):
@@ -22,14 +24,28 @@ def plot_model_accuracies(performance_df, output_path):
     Returns:
         None. Saves the plot to output_path.
     """
-    performance_df = performance_df.sort_values(by="Accuracy", ascending=False)
+    # Sort by accuracy for cleaner display
+    performance_df = performance_df.sort_values(by="Accuracy", ascending=True)
+
+    # Normalize accuracy for color mapping
+    norm = mcolors.Normalize(vmin=performance_df["Accuracy"].min(),
+                             vmax=performance_df["Accuracy"].max())
+    
+    # Use a pastel-friendly version of RdYlGn
+    cmap = cm.get_cmap("RdYlGn")
+    colors = [cmap(norm(score)) for score in performance_df["Accuracy"]]
+
     plt.figure(figsize=(10, 6))
-    plt.barh(performance_df["Model"], performance_df["Accuracy"], color="skyblue")
-    plt.xlabel("Accuracy")
-    plt.title("Comparison of Model Accuracies")
+    plt.barh(performance_df["Model"], performance_df["Accuracy"], color=colors)
+    plt.xlabel("Mean Cross-Validation Accuracy")
+    plt.title("Model Performance Comparison\n(Mean Cross-Validation Accuracy)")
     plt.xlim([0, 1])
-    plt.grid(True, axis="x", linestyle="--", alpha=0.7)
-    plt.yticks(rotation=45)
+    plt.grid(True, axis="x", linestyle="--", alpha=0.5)
+    
+    # Format x-axis ticks to show only 1 decimal place
+    plt.gca().xaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+    
+    plt.tight_layout()
     plt.savefig(os.path.join(output_path, "model_accuracy_comparison.png"))
     plt.close()
 
@@ -44,6 +60,8 @@ def plot_learning_curve(
     cv=5,
     n_jobs=-1,
     train_sizes=np.linspace(0.1, 1.0, 10),
+    random_state=42,
+    verbose=False
 ):
     """
     Generate and plot learning curves for a model.
@@ -58,13 +76,15 @@ def plot_learning_curve(
         cv: Number of cross-validation folds
         n_jobs: Number of jobs to run in parallel
         train_sizes: Array of training set sizes to evaluate
+        random_state: Random seed for reproducibility
+        verbose: Whether to print training progress
         
     Returns:
         train_scores: Array of training scores for each training size and fold
         test_scores: Array of validation scores for each training size and fold
     """
     if isinstance(model, torch.nn.Module):
-        kf = KFold(n_splits=cv, shuffle=True, random_state=42)
+        kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
         
         train_scores = np.zeros((len(train_sizes), cv))
         test_scores = np.zeros((len(train_sizes), cv))
@@ -106,7 +126,7 @@ def plot_learning_curve(
                     ).to(device)
 
                 # Train the model
-                fresh_model = train_model(model_name, fresh_model, X_train, y_train, device)
+                fresh_model = train_model(model_name, fresh_model, X_train, y_train, device, verbose=verbose)
                 
                 # Evaluate on training and validation sets
                 fresh_model.eval()
@@ -131,6 +151,7 @@ def plot_learning_curve(
             n_jobs=n_jobs,
             train_sizes=train_sizes,
             scoring="accuracy",
+            random_state=random_state
         )
     
     # Plot learning curve
@@ -140,14 +161,14 @@ def plot_learning_curve(
         train_scores.mean(axis=1),
         "o-",
         color=train_color,
-        label="Training score",
+        label="Training Accuracy",
     )
     plt.plot(
         train_sizes,
         test_scores.mean(axis=1),
         "o-",
         color=cross_validation_color,
-        label="Cross-validation score",
+        label="Cross-Validation Accuracy",
     )
     plt.fill_between(
         train_sizes,
@@ -163,9 +184,13 @@ def plot_learning_curve(
         alpha=0.1,
         color=cross_validation_color,
     )
-    plt.title(f"Learning Curve for {model_name}")
+    plt.title(f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)")
     plt.xlabel("Training Set Size")
-    plt.ylabel("Score")
+    plt.ylabel("Accuracy")
+    
+    # Format y-axis ticks to show only 1 decimal place
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+    
     plt.legend(loc="best")
     plt.grid(True)
     plt.savefig(os.path.join(output_path, f"learning_curve_{model_name.replace(' ', '_')}.png"))

@@ -31,7 +31,14 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         
         # Generate learning curves
         train_scores, test_scores = plot_learning_curve(
-            model, X_train, y_train, name, RESULTS_PATH, device
+            model, 
+            X_train, 
+            y_train, 
+            name, 
+            RESULTS_PATH, 
+            device, 
+            train_sizes=np.linspace(0.2, 1.0, 10),
+            verbose=False
         )
         
         # Calculate performance metrics from learning curves

@@ -5,7 +5,7 @@ import numpy as np
 from config import HYPERPARAMETERS
 
 
-def train_model(name, model, X_train, y_train, device):
+def train_model(name, model, X_train, y_train, device, verbose=True):
     """
     Train a model.
     
@@ -15,11 +15,13 @@ def train_model(name, model, X_train, y_train, device):
         X_train: Training features
         y_train: Training labels
         device: PyTorch device to use
+        verbose: Whether to print training progress
         
     Returns:
         The trained model
     """
-    print(f"\nTraining {name}...")
+    if verbose:
+        print(f"\nTraining {name}...")
     
     params = HYPERPARAMETERS[name]
     
