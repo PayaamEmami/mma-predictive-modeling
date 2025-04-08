@@ -49,7 +49,7 @@ def plot_learning_curve(
     Generate and plot learning curves for a model.
     
     Args:
-        model: The model to evaluate
+        model: The trained model to evaluate
         X: Training features
         y: Training labels
         model_name: Name of the model for plot title
@@ -79,27 +79,18 @@ def plot_learning_curve(
                 X_val = X[val_idx]
                 y_val = y[val_idx]
                 
-                # Train model using our training function
-                trained_model = train_model(
-                    model_name,
-                    model,
-                    X_train,
-                    y_train,
-                    device
-                )
-                
                 # Evaluate on training and validation sets
-                trained_model.eval()
+                model.eval()
                 with torch.no_grad():
                     # Training score
                     X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
-                    outputs = trained_model(X_train_tensor)
+                    outputs = model(X_train_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     train_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_train).to(device)).sum().item() / len(y_train)
                     
                     # Validation score
                     X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
-                    outputs = trained_model(X_val_tensor)
+                    outputs = model(X_val_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     test_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_val).to(device)).sum().item() / len(y_val)
     else:

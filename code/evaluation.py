@@ -49,6 +49,14 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
             'Learning Rate': (final_val_accuracy - final_train_accuracy) / final_train_accuracy
         }
 
+        # Print learning curve metrics
+        print(
+            f"Learning Curve Metrics for {name}:\n"
+            f"  Final Training Accuracy: {final_train_accuracy:.4f} (+/- {train_std:.4f})\n"
+            f"  Final Validation Accuracy: {final_val_accuracy:.4f} (+/- {val_std:.4f})\n"
+            f"  Learning Rate: {model_performances[name]['Learning Rate']:.4f}"
+        )
+
         # Get predictions for classification report
         if name in ["FCNN", "RNN", "LSTM", "Transformer"]:
             model.eval()
@@ -64,12 +72,6 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         print(
             f"Classification Report for {name}:\n",
             classification_report(y_test, y_pred, target_names=label_encoder.classes_),
-        )
-        print(
-            f"Learning Curve Metrics for {name}:\n"
-            f"  Final Training Accuracy: {final_train_accuracy:.4f} (+/- {train_std:.4f})\n"
-            f"  Final Validation Accuracy: {final_val_accuracy:.4f} (+/- {val_std:.4f})\n"
-            f"  Learning Rate: {model_performances[name]['Learning Rate']:.4f}"
         )
 
     # Save and display results
