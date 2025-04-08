@@ -10,10 +10,10 @@ from utils import plot_model_accuracies, plot_learning_curve
 
 def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
     """
-    Evaluate multiple models and generate performance metrics and visualizations.
+    Evaluate trained models and generate performance metrics and visualizations.
     
     Args:
-        models: Dictionary of model names and their instances
+        models: Dictionary of model names and their trained instances
         X_train: Training features
         X_test: Test features
         y_train: Training labels
@@ -27,7 +27,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     model_performances = {}
 
     for name, model in models.items():
-        # Generate learning curves and get all scores
+        # Generate learning curves
         train_scores, test_scores = plot_learning_curve(
             model, X_train, y_train, name, OUTPUT_PATH, device
         )

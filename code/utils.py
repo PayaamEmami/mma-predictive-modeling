@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.model_selection import learning_curve, KFold
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 from config import HYPERPARAMETERS
+from training import train_model
 
 train_color = "#1f77b4"
 cross_validation_color = "#ff7f0e"
@@ -79,98 +79,29 @@ def plot_learning_curve(
                 X_val = X[val_idx]
                 y_val = y[val_idx]
                 
-                # Create datasets and dataloaders
-                train_dataset = TensorDataset(
-                    torch.tensor(X_train.astype(np.float32)).to(device),
-                    torch.tensor(y_train.astype(np.longlong)).to(device)
+                # Train model using our training function
+                trained_model = train_model(
+                    model_name,
+                    model,
+                    X_train,
+                    y_train,
+                    device
                 )
-                val_dataset = TensorDataset(
-                    torch.tensor(X_val.astype(np.float32)).to(device),
-                    torch.tensor(y_val.astype(np.longlong)).to(device)
-                )
-                
-                train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-                val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-                
-                # Configure optimizer and criterion
-                optimizer = torch.optim.SGD(
-                    model.parameters(), lr=0.001, weight_decay=0.1
-                )
-                criterion = torch.nn.CrossEntropyLoss()
-                
-                # Train model
-                num_epochs = HYPERPARAMETERS[model_name]["num_epochs"]
-                for epoch in range(num_epochs):
-                    model.train()
-                    for inputs, labels in train_loader:
-                        optimizer.zero_grad()
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
-                        loss.backward()
-                        optimizer.step()
                 
                 # Evaluate on training and validation sets
-                model.eval()
+                trained_model.eval()
                 with torch.no_grad():
                     # Training score
-                    train_correct = 0
-                    train_total = 0
-                    for inputs, labels in train_loader:
-                        outputs = model(inputs)
-                        _, predicted = torch.max(outputs.data, 1)
-                        train_total += labels.size(0)
-                        train_correct += (predicted == labels).sum().item()
-                    train_scores[size_idx, fold_idx] = train_correct / train_total
+                    X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
+                    outputs = trained_model(X_train_tensor)
+                    _, predicted = torch.max(outputs.data, 1)
+                    train_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_train).to(device)).sum().item() / len(y_train)
                     
                     # Validation score
-                    val_correct = 0
-                    val_total = 0
-                    for inputs, labels in val_loader:
-                        outputs = model(inputs)
-                        _, predicted = torch.max(outputs.data, 1)
-                        val_total += labels.size(0)
-                        val_correct += (predicted == labels).sum().item()
-                    test_scores[size_idx, fold_idx] = val_correct / val_total
-                    
-        # Plot learning curve
-        plt.figure(figsize=(10, 6))
-        plt.plot(
-            train_sizes,
-            train_scores.mean(axis=1),
-            "o-",
-            color=train_color,
-            label="Training score",
-        )
-        plt.plot(
-            train_sizes,
-            test_scores.mean(axis=1),
-            "o-",
-            color=cross_validation_color,
-            label="Cross-validation score",
-        )
-        plt.fill_between(
-            train_sizes,
-            train_scores.mean(axis=1) - train_scores.std(axis=1),
-            train_scores.mean(axis=1) + train_scores.std(axis=1),
-            alpha=0.1,
-            color=train_color,
-        )
-        plt.fill_between(
-            train_sizes,
-            test_scores.mean(axis=1) - test_scores.std(axis=1),
-            test_scores.mean(axis=1) + test_scores.std(axis=1),
-            alpha=0.1,
-            color=cross_validation_color,
-        )
-        plt.title(f"Learning Curve for {model_name}")
-        plt.xlabel("Training Set Size")
-        plt.ylabel("Score")
-        plt.legend(loc="best")
-        plt.grid(True)
-        plt.savefig(os.path.join(output_path, f"{model_name}_learning_curve.png"))
-        plt.close()
-        
-        return train_scores, test_scores
+                    X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
+                    outputs = trained_model(X_val_tensor)
+                    _, predicted = torch.max(outputs.data, 1)
+                    test_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_val).to(device)).sum().item() / len(y_val)
     else:
         train_sizes, train_scores, test_scores = learning_curve(
             model,
@@ -181,43 +112,43 @@ def plot_learning_curve(
             train_sizes=train_sizes,
             scoring="accuracy",
         )
-        
-        # Plot learning curve
-        plt.figure(figsize=(10, 6))
-        plt.plot(
-            train_sizes,
-            train_scores.mean(axis=1),
-            "o-",
-            color=train_color,
-            label="Training score",
-        )
-        plt.plot(
-            train_sizes,
-            test_scores.mean(axis=1),
-            "o-",
-            color=cross_validation_color,
-            label="Cross-validation score",
-        )
-        plt.fill_between(
-            train_sizes,
-            train_scores.mean(axis=1) - train_scores.std(axis=1),
-            train_scores.mean(axis=1) + train_scores.std(axis=1),
-            alpha=0.1,
-            color=train_color,
-        )
-        plt.fill_between(
-            train_sizes,
-            test_scores.mean(axis=1) - test_scores.std(axis=1),
-            test_scores.mean(axis=1) + test_scores.std(axis=1),
-            alpha=0.1,
-            color=cross_validation_color,
-        )
-        plt.title(f"Learning Curve for {model_name}")
-        plt.xlabel("Training Set Size")
-        plt.ylabel("Score")
-        plt.legend(loc="best")
-        plt.grid(True)
-        plt.savefig(os.path.join(output_path, f"{model_name}_learning_curve.png"))
-        plt.close()
-        
-        return train_scores, test_scores
+    
+    # Plot learning curve
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        train_sizes,
+        train_scores.mean(axis=1),
+        "o-",
+        color=train_color,
+        label="Training score",
+    )
+    plt.plot(
+        train_sizes,
+        test_scores.mean(axis=1),
+        "o-",
+        color=cross_validation_color,
+        label="Cross-validation score",
+    )
+    plt.fill_between(
+        train_sizes,
+        train_scores.mean(axis=1) - train_scores.std(axis=1),
+        train_scores.mean(axis=1) + train_scores.std(axis=1),
+        alpha=0.1,
+        color=train_color,
+    )
+    plt.fill_between(
+        train_sizes,
+        test_scores.mean(axis=1) - test_scores.std(axis=1),
+        test_scores.mean(axis=1) + test_scores.std(axis=1),
+        alpha=0.1,
+        color=cross_validation_color,
+    )
+    plt.title(f"Learning Curve for {model_name}")
+    plt.xlabel("Training Set Size")
+    plt.ylabel("Score")
+    plt.legend(loc="best")
+    plt.grid(True)
+    plt.savefig(os.path.join(output_path, f"{model_name}_learning_curve.png"))
+    plt.close()
+    
+    return train_scores, test_scores
