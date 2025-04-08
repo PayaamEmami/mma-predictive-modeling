@@ -139,7 +139,7 @@ def plot_learning_curve(
     plt.ylabel("Score")
     plt.legend(loc="best")
     plt.grid(True)
-    plt.savefig(os.path.join(output_path, f"{model_name}_learning_curve.png"))
+    plt.savefig(os.path.join(output_path, f"learning_curve_{model_name.replace(' ', '_')}.png"))
     plt.close()
     
     return train_scores, test_scores
