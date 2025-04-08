@@ -5,6 +5,7 @@ from sklearn.model_selection import learning_curve, KFold
 import torch
 from config import HYPERPARAMETERS
 from training import train_model
+from models import FCNN, RNN, LSTM, Transformer
 
 train_color = "#1f77b4"
 cross_validation_color = "#ff7f0e"
@@ -78,18 +79,47 @@ def plot_learning_curve(
                 X_val = X[val_idx]
                 y_val = y[val_idx]
                 
+                # Create a fresh copy of the model for this fold
+                if isinstance(model, LSTM):
+                    fresh_model = LSTM(
+                        model.input_size,
+                        hidden_size=HYPERPARAMETERS["LSTM"]["hidden_size"],
+                        num_layers=HYPERPARAMETERS["LSTM"]["num_layers"]
+                    ).to(device)
+                elif isinstance(model, RNN):
+                    fresh_model = RNN(
+                        model.input_size,
+                        hidden_size=HYPERPARAMETERS["RNN"]["hidden_size"],
+                        num_layers=HYPERPARAMETERS["RNN"]["num_layers"]
+                    ).to(device)
+                elif isinstance(model, Transformer):
+                    fresh_model = Transformer(
+                        model.num_features,
+                        embedding_dim=HYPERPARAMETERS["Transformer"]["embedding_dim"],
+                        num_layers=HYPERPARAMETERS["Transformer"]["num_layers"],
+                        nhead=HYPERPARAMETERS["Transformer"]["nhead"]
+                    ).to(device)
+                elif isinstance(model, FCNN):
+                    fresh_model = FCNN(
+                        next(model.parameters()).shape[1],
+                        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+                    ).to(device)
+
+                # Train the model
+                fresh_model = train_model(model_name, fresh_model, X_train, y_train, device)
+                
                 # Evaluate on training and validation sets
-                model.eval()
+                fresh_model.eval()
                 with torch.no_grad():
                     # Training score
                     X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
-                    outputs = model(X_train_tensor)
+                    outputs = fresh_model(X_train_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     train_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_train).to(device)).sum().item() / len(y_train)
                     
                     # Validation score
                     X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
-                    outputs = model(X_val_tensor)
+                    outputs = fresh_model(X_val_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     test_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_val).to(device)).sum().item() / len(y_val)
     else:
