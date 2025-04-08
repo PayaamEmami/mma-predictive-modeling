@@ -9,9 +9,6 @@ from config import HYPERPARAMETERS
 from training import train_model
 from models import FCNN, RNN, LSTM, Transformer
 
-train_color = "C0"
-cross_validation_color = "C1"
-
 
 def plot_model_accuracies(performance_df, output_path):
     """
@@ -59,7 +56,7 @@ def plot_learning_curve(
     device,
     cv=5,
     n_jobs=-1,
-    train_sizes=np.linspace(0.1, 1.0, 10),
+    train_sizes=np.linspace(0.1, 1.0, 5),
     random_state=42,
     verbose=False
 ):
@@ -142,6 +139,9 @@ def plot_learning_curve(
                     outputs = fresh_model(X_val_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     test_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_val).to(device)).sum().item() / len(y_val)
+
+        # Convert fractional train_sizes to actual sample counts for plotting
+        train_sizes = (train_sizes * len(X)).astype(int)
     else:
         train_sizes, train_scores, test_scores = learning_curve(
             model,
@@ -156,18 +156,19 @@ def plot_learning_curve(
     
     # Plot learning curve
     plt.figure(figsize=(10, 6))
+    
     plt.plot(
         train_sizes,
         train_scores.mean(axis=1),
         "o-",
-        color=train_color,
+        color="C0",
         label="Training Accuracy",
     )
     plt.plot(
         train_sizes,
         test_scores.mean(axis=1),
         "o-",
-        color=cross_validation_color,
+        color="C1",
         label="Cross-Validation Accuracy",
     )
     plt.fill_between(
@@ -175,17 +176,17 @@ def plot_learning_curve(
         train_scores.mean(axis=1) - train_scores.std(axis=1),
         train_scores.mean(axis=1) + train_scores.std(axis=1),
         alpha=0.1,
-        color=train_color,
+        color="C0",
     )
     plt.fill_between(
         train_sizes,
         test_scores.mean(axis=1) - test_scores.std(axis=1),
         test_scores.mean(axis=1) + test_scores.std(axis=1),
         alpha=0.1,
-        color=cross_validation_color,
+        color="C1",
     )
     plt.title(f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)")
-    plt.xlabel("Training Set Size")
+    plt.xlabel("Number of Training Samples")
     plt.ylabel("Accuracy")
     
     # Format y-axis ticks to show only 1 decimal place

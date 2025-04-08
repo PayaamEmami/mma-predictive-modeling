@@ -37,7 +37,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
             name, 
             RESULTS_PATH, 
             device, 
-            train_sizes=np.linspace(0.2, 1.0, 10),
+            train_sizes=np.linspace(0.2, 1.0, 5),
             verbose=False
         )
         
