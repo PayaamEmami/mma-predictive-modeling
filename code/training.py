@@ -3,13 +3,12 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
-from config import HYPERPARAMETERS, DATA_PATH, OUTPUT_PATH
-from utils import plot_learning_curve
+from config import HYPERPARAMETERS
 
 
 def train_model(name, model, X_train, y_train, device):
     """
-    Train a model and generate learning curves.
+    Train a model.
     
     Args:
         name: Name of the model
@@ -19,20 +18,15 @@ def train_model(name, model, X_train, y_train, device):
         device: PyTorch device to use
         
     Returns:
-        The trained model and learning curve metrics (train_scores, test_scores)
+        The trained model
     """
     print(f"\nTraining {name}...")
     
     params = HYPERPARAMETERS[name]
-    train_scores = None
-    test_scores = None
     
     if not isinstance(model, torch.nn.Module):
         # Handle sklearn models
         model.fit(X_train, y_train)
-        train_scores, test_scores = plot_learning_curve(
-            model, X_train, y_train, name, OUTPUT_PATH, device
-        )
     else:
         # PyTorch model training
         criterion = torch.nn.CrossEntropyLoss()
@@ -97,10 +91,5 @@ def train_model(name, model, X_train, y_train, device):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
-
-        # Generate learning curves for PyTorch models
-        train_scores, test_scores = plot_learning_curve(
-            model, X_train, y_train, name, OUTPUT_PATH, device
-        )
     
-    return model, train_scores, test_scores
+    return model

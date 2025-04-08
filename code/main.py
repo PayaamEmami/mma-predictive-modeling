@@ -1,5 +1,3 @@
-import torch
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from data import load_ufc_data
 from models import initialize_models
@@ -33,13 +31,13 @@ def main():
     input_size = X_train.shape[1]
     models = initialize_models(input_size, DEVICE)
     
-    # Train models and get learning curves
+    # Train models
     trained_models = {}
     for name, model in models.items():
-        trained_model, train_scores, test_scores = train_model(
+        trained_model = train_model(
             name, model, X_train, y_train, DEVICE
         )
-        trained_models[name] = (trained_model, train_scores, test_scores)
+        trained_models[name] = trained_model
 
     # Generate evaluation metrics and visualizations
     print("\nGenerating evaluation plots and metrics...")
