@@ -30,7 +30,6 @@ def plot_model_accuracies(performance_df, output_path):
     plt.grid(True, axis="x", linestyle="--", alpha=0.7)
     plt.yticks(rotation=45)
     plt.savefig(os.path.join(output_path, "model_accuracy_comparison.png"))
-    plt.show()
     plt.close()
 
 

@@ -1,21 +1,14 @@
 import os
-from datetime import datetime
-import os
-from datetime import datetime
 import torch
 
 # paths
-BASE_PATH = "/content/drive/MyDrive/dev"
-DATA_PATH = os.path.join(BASE_PATH, "mma-predictive-modeling/data")
-OUTPUT_PATH = os.path.join(
-    BASE_PATH,
-    "mma-predictive-modeling/output",
-    datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-)
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_PATH, "data")
+RESULTS_PATH = os.path.join(BASE_PATH, "results")
 
 # ensure directories exist
-os.makedirs(OUTPUT_PATH, exist_ok=True)
 os.makedirs(DATA_PATH, exist_ok=True)
+os.makedirs(RESULTS_PATH, exist_ok=True)
 
 # device configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

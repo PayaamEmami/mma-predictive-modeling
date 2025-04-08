@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import classification_report
 
-from config import OUTPUT_PATH
+from config import RESULTS_PATH
 from utils import plot_model_accuracies, plot_learning_curve
 
 
@@ -22,7 +22,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         device: PyTorch device to use
         
     Returns:
-        None. Saves results and plots to OUTPUT_PATH.
+        None. Saves results and plots to RESULTS_PATH.
     """
     model_performances = {}
 
@@ -31,7 +31,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         
         # Generate learning curves
         train_scores, test_scores = plot_learning_curve(
-            model, X_train, y_train, name, OUTPUT_PATH, device
+            model, X_train, y_train, name, RESULTS_PATH, device
         )
         
         # Calculate performance metrics from learning curves
@@ -81,20 +81,20 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         columns=["Model", "Accuracy"]
     )
     performance_df.to_csv(
-        os.path.join(OUTPUT_PATH, "model_performances.csv"),
+        os.path.join(RESULTS_PATH, "model_performances.csv"),
         index=False
     )
     
     # Save detailed metrics
     detailed_metrics_df = pd.DataFrame(model_performances).T
     detailed_metrics_df.to_csv(
-        os.path.join(OUTPUT_PATH, "detailed_model_metrics.csv")
+        os.path.join(RESULTS_PATH, "detailed_model_metrics.csv")
     )
     
-    plot_model_accuracies(performance_df, OUTPUT_PATH)
+    plot_model_accuracies(performance_df, RESULTS_PATH)
     print("\nModel Performance Summary:")
     print(performance_df)
     print("\nDetailed Metrics:")
     print(detailed_metrics_df)
 
-    print(f"\nAll tasks completed. Results and plots saved in {OUTPUT_PATH}.")
+    print(f"\nAll tasks completed. Results and plots saved in {RESULTS_PATH}.")

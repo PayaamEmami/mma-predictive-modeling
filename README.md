@@ -20,13 +20,8 @@ A machine learning project for predicting fight outcomes in Mixed Martial Arts (
 ### Training & Evaluation
 - Implements multiple machine learning models for comparison
 - Trains models using UFC fight data
+- Generates learning curve plots
 - Evaluates models with accuracy metrics and classification reports
-- Generates plots and confusion matrices for analysis
-
-### Performance & Scalability
-- Supports PyTorch for deep learning models
-- Utilizes parallel processing for faster training
-- GPU acceleration enabled when available
 
 ## Development Notes
 - Written in Python using Scikit-learn and PyTorch
