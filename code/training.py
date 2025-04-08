@@ -20,8 +20,6 @@ def train_model(name, model, X_train, y_train, device):
     Returns:
         The trained PyTorch model
     """
-    print(f"\nTraining {name}...")
-    
     params = HYPERPARAMETERS[name]
     criterion = torch.nn.CrossEntropyLoss()
 
