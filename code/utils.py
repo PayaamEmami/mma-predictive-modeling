@@ -36,7 +36,7 @@ def plot_model_accuracies(performance_df, output_path):
     plt.figure(figsize=(10, 6))
     plt.barh(performance_df["Model"], performance_df["Accuracy"], color=colors)
     plt.xlabel("Mean Cross-Validation Accuracy")
-    plt.title("Model Performance Comparison\n(Mean Cross-Validation Accuracy)")
+    plt.title("Model Performance Comparison")
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
     
