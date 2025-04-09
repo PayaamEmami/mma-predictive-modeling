@@ -39,9 +39,6 @@ def plot_model_accuracies(performance_df, output_path):
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
     
-    # Format x-axis ticks to show only 1 decimal place
-    plt.gca().xaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
-    
     plt.tight_layout()
     plt.savefig(os.path.join(output_path, "model_accuracy_comparison.png"))
     plt.close()
@@ -188,9 +185,6 @@ def plot_learning_curve(
     plt.title(f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)")
     plt.xlabel("Number of Training Samples")
     plt.ylabel("Accuracy")
-    
-    # Format y-axis ticks to show only 1 decimal place
-    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
     
     plt.legend(loc="best")
     plt.grid(True)
