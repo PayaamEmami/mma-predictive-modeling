@@ -2,7 +2,6 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
 from sklearn.model_selection import learning_curve, KFold
@@ -31,7 +30,7 @@ def plot_model_accuracies(performance_df, output_path):
                              vmax=performance_df["Accuracy"].max())
     
     # Use a pastel-friendly version of RdYlGn
-    cmap = cm.get_cmap("RdYlGn")
+    cmap = plt.get_cmap("RdYlGn")
     colors = [cmap(norm(score)) for score in performance_df["Accuracy"]]
 
     plt.figure(figsize=(10, 6))
