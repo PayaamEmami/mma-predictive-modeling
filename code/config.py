@@ -128,7 +128,7 @@ HYPERPARAMETERS = {
         "hidden_size": 256, # number of units in hidden layer
         # training hyperparams common to all
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.0005, # step size for optimizer
+        "learning_rate": 0.1, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
         "batch_size": 32, # batch size for training
@@ -147,14 +147,14 @@ HYPERPARAMETERS = {
     },
     "RNN": {
         # model architecture
-        "hidden_size": 64, # number of units in hidden layer
+        "hidden_size": 256, # number of units in hidden layer
         "num_layers": 1, # number of recurrent layers
         # training hyperparams
         "optimizer": "SGD", # optimization algorithm
-        "learning_rate": 0.001, # step size for optimizer
+        "learning_rate": 0.1, # step size for optimizer
         "weight_decay": 0.1, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
-        "batch_size": 16, # batch size for training
+        "batch_size": 32, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
@@ -174,10 +174,10 @@ HYPERPARAMETERS = {
         "num_layers": 1, # number of recurrent layers
         # training hyperparams
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.005, # step size for optimizer
+        "learning_rate": 0.1, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
-        "batch_size": 16, # batch size for training
+        "batch_size": 32, # batch size for training
         # sgd parameters
         "momentum": 0.0, # momentum factor
         "dampening": 0.0, # dampening for momentum
@@ -198,7 +198,7 @@ HYPERPARAMETERS = {
         "nhead": 8, # number of attention heads
         # training hyperparams
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.0005, # step size for optimizer
+        "learning_rate": 0.1, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
         "batch_size": 32, # batch size for training
