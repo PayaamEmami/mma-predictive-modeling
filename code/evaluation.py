@@ -11,7 +11,7 @@ from utils import plot_model_accuracies, plot_learning_curve
 def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
     """
     Evaluate trained models and generate performance metrics and visualizations.
-    
+
     Args:
         models: Dictionary of model names and their trained instances
         X_train: Training features
@@ -20,33 +20,35 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         y_test: Test labels
         label_encoder: Label encoder for class names
         device: PyTorch device to use
-        
+
     Returns:
         None. Saves results and plots to RESULTS_PATH.
     """
     model_performances = {}
 
+    print("\nGenerating evaluation plots and metrics...")
+
     for name, model in models.items():
         print(f"\nEvaluating {name}...")
-        
+
         # Generate learning curves
         train_scores, test_scores = plot_learning_curve(
-            model, 
-            X_train, 
-            y_train, 
-            name, 
-            RESULTS_PATH, 
-            device, 
+            model,
+            X_train,
+            y_train,
+            name,
+            RESULTS_PATH,
+            device,
             train_sizes=np.linspace(0.2, 1.0, 5),
             verbose=False
         )
-        
+
         # Calculate performance metrics from learning curves
         final_train_accuracy = train_scores[-1].mean()
         final_val_accuracy = test_scores[-1].mean()
         train_std = train_scores[-1].std()
         val_std = test_scores[-1].std()
-        
+
         # Store comprehensive performance metrics
         model_performances[name] = {
             'Final Train Accuracy': final_train_accuracy,
@@ -83,7 +85,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
 
     # Save and display results
     performance_df = pd.DataFrame(
-        [(name, metrics['Final Validation Accuracy']) 
+        [(name, metrics['Final Validation Accuracy'])
          for name, metrics in model_performances.items()],
         columns=["Model", "Accuracy"]
     )
@@ -91,13 +93,13 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         os.path.join(RESULTS_PATH, "model_performances.csv"),
         index=False
     )
-    
+
     # Save detailed metrics
     detailed_metrics_df = pd.DataFrame(model_performances).T
     detailed_metrics_df.to_csv(
         os.path.join(RESULTS_PATH, "detailed_model_metrics.csv")
     )
-    
+
     plot_model_accuracies(performance_df, RESULTS_PATH)
     print("\nModel Performance Summary:")
     print(performance_df)

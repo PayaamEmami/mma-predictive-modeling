@@ -9,7 +9,7 @@ from config import DEVICE
 def main():
     """
     Main execution function for the UFC fight prediction pipeline.
-    
+
     This function:
     1. Loads and preprocesses the UFC fight data
     2. Splits data into train and test sets
@@ -30,7 +30,7 @@ def main():
     # Initialize models
     input_size = X_train.shape[1]
     models = initialize_models(input_size, DEVICE)
-    
+
     # Train models
     trained_models = {}
     for name, model in models.items():
@@ -40,7 +40,6 @@ def main():
         trained_models[name] = trained_model
 
     # Generate evaluation metrics and visualizations
-    print("\nGenerating evaluation plots and metrics...")
     evaluate_models(trained_models, X_train, X_test, y_train, y_test, label_encoder, DEVICE)
 
 
