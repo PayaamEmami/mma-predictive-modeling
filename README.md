@@ -44,6 +44,4 @@ New fight event data is added periodically to keep the model updated. The pipeli
 ![Learning Curve for K-Nearest Neighbors](results/learning_curve_KNN.png)
 ![Learning Curve for Naive Bayes](results/learning_curve_Naive_Bayes.png)
 ![Learning Curve for Fully Connected Neural Network](results/learning_curve_FCNN.png)
-![Learning Curve for Recurrent Neural Network](results/learning_curve_RNN.png)
-![Learning Curve for Long Short-Term Memory Neural Network](results/learning_curve_LSTM.png)
 ![Learning Curve for Transformer](results/learning_curve_Transformer.png)

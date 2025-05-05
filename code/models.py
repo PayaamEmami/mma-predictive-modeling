@@ -12,7 +12,7 @@ from config import HYPERPARAMETERS
 class FCNN(nn.Module):
     """
     Fully Connected Neural Network for fight outcome prediction.
-    
+
     Architecture:
         - Input layer -> Hidden layer (ReLU) -> Output layer
     """
@@ -30,68 +30,10 @@ class FCNN(nn.Module):
         return out
 
 
-class RNN(nn.Module):
-    """
-    Recurrent Neural Network for fight outcome prediction.
-    
-    Architecture:
-        - Input layer -> RNN layer -> Fully connected layer
-    """
-    def __init__(self, input_size, hidden_size, num_layers):
-        super(RNN, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.rnn = nn.RNN(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-        )
-        self.fc = nn.Linear(hidden_size, 2)
-
-    def forward(self, x):
-        # Input shape: (batch_size, input_size)
-        x = x.unsqueeze(1)  # Shape: (batch_size, 1, input_size)
-        out, _ = self.rnn(x)  # Shape: (batch_size, 1, hidden_size)
-        out = out[:, -1, :]  # Shape: (batch_size, hidden_size)
-        out = self.fc(out)  # Shape: (batch_size, 2)
-        return out
-
-
-class LSTM(nn.Module):
-    """
-    Long Short-Term Memory Network for fight outcome prediction.
-    
-    Architecture:
-        - Input layer -> LSTM layer -> Fully connected layer
-    """
-    def __init__(self, input_size, hidden_size, num_layers):
-        super(LSTM, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-        )
-        self.fc = nn.Linear(hidden_size, 2)
-
-    def forward(self, x):
-        # Input shape: (batch_size, input_size)
-        x = x.unsqueeze(1)  # Shape: (batch_size, 1, input_size)
-        out, (hn, cn) = self.lstm(x)  # Shape: (batch_size, 1, hidden_size)
-        out = out[:, -1, :]  # Shape: (batch_size, hidden_size)
-        out = self.fc(out)  # Shape: (batch_size, 2)
-        return out
-
-
 class Transformer(nn.Module):
     """
     Transformer Network for fight outcome prediction.
-    
+
     Architecture:
         - Input embedding -> Positional encoding -> Transformer encoder -> Classification layer
     """
@@ -99,13 +41,13 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
         self.num_features = input_size
         self.embedding_dim = embedding_dim
-        
+
         # Network components
         self.embedding = nn.Linear(1, self.embedding_dim)
         self.positional_encoding = nn.Parameter(
             torch.zeros(1, self.num_features, self.embedding_dim)
         )
-        
+
         # Transformer encoder setup
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.embedding_dim,
@@ -116,7 +58,7 @@ class Transformer(nn.Module):
             encoder_layer,
             num_layers=num_layers
         )
-        
+
         # Classification head
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
@@ -134,11 +76,11 @@ class Transformer(nn.Module):
 def initialize_models(input_size, device):
     """
     Initialize all models with their respective hyperparameters.
-    
+
     Args:
         input_size: Number of input features
         device: PyTorch device to use
-        
+
     Returns:
         Dictionary of initialized models
     """
@@ -156,18 +98,6 @@ def initialize_models(input_size, device):
     models["FCNN"] = FCNN(
         input_size,
         hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
-    ).to(device)
-
-    models["RNN"] = RNN(
-        input_size,
-        hidden_size=HYPERPARAMETERS["RNN"]["hidden_size"],
-        num_layers=HYPERPARAMETERS["RNN"]["num_layers"],
-    ).to(device)
-
-    models["LSTM"] = LSTM(
-        input_size,
-        hidden_size=HYPERPARAMETERS["LSTM"]["hidden_size"],
-        num_layers=HYPERPARAMETERS["LSTM"]["num_layers"],
     ).to(device)
 
     models["Transformer"] = Transformer(

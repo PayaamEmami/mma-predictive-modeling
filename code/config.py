@@ -145,52 +145,6 @@ HYPERPARAMETERS = {
         "alpha": 0.99, # smoothing constant for rmsprop
         "centered": False, # whether to center rmsprop
     },
-    "RNN": {
-        # model architecture
-        "hidden_size": 256, # number of units in hidden layer
-        "num_layers": 1, # number of recurrent layers
-        # training hyperparams
-        "optimizer": "SGD", # optimization algorithm
-        "learning_rate": 0.1, # step size for optimizer
-        "weight_decay": 0.1, # weight decay for regularization
-        "num_epochs": 300, # number of training epochs
-        "batch_size": 32, # batch size for training
-        # sgd parameters
-        "momentum": 0.0, # momentum factor
-        "dampening": 0.0, # dampening for momentum
-        "nesterov": False, # whether to enable nesterov momentum
-        "maximize": False, # maximize instead of minimize
-        # adam/adamw parameters
-        "betas": (0.9, 0.999), # coefficients for adam optimizer
-        "eps": 1e-8, # term for numerical stability
-        "amsgrad": False, # whether to use amsgrad variant
-        # rmsprop parameters
-        "alpha": 0.99, # smoothing constant for rmsprop
-        "centered": False, # whether to center rmsprop
-    },
-    "LSTM": {
-        # model architecture
-        "hidden_size": 64, # number of units in hidden layer
-        "num_layers": 1, # number of recurrent layers
-        # training hyperparams
-        "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.1, # step size for optimizer
-        "weight_decay": 0.01, # weight decay for regularization
-        "num_epochs": 300, # number of training epochs
-        "batch_size": 32, # batch size for training
-        # sgd parameters
-        "momentum": 0.0, # momentum factor
-        "dampening": 0.0, # dampening for momentum
-        "nesterov": False, # whether to enable nesterov momentum
-        "maximize": False, # maximize instead of minimize
-        # adam/adamw parameters
-        "betas": (0.9, 0.999), # coefficients for adam optimizer
-        "eps": 1e-8, # term for numerical stability
-        "amsgrad": False, # whether to use amsgrad variant
-        # rmsprop parameters
-        "alpha": 0.99, # smoothing constant for rmsprop
-        "centered": False, # whether to center rmsprop
-    },
     "Transformer": {
         # model architecture
         "embedding_dim": 128, # size of embedding vectors

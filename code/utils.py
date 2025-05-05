@@ -8,17 +8,17 @@ from sklearn.model_selection import learning_curve, KFold
 import torch
 from config import HYPERPARAMETERS
 from training import train_model
-from models import FCNN, RNN, LSTM, Transformer
+from models import FCNN, Transformer
 
 
 def plot_model_accuracies(performance_df, output_path):
     """
     Generate and save a bar plot comparing model accuracies.
-    
+
     Args:
         performance_df: DataFrame containing model names and their accuracies
         output_path: Path to save the plot
-        
+
     Returns:
         None. Saves the plot to output_path.
     """
@@ -28,7 +28,7 @@ def plot_model_accuracies(performance_df, output_path):
     # Normalize accuracy for color mapping
     norm = mcolors.Normalize(vmin=performance_df["Accuracy"].min(),
                              vmax=performance_df["Accuracy"].max())
-    
+
     # Use a pastel-friendly version of RdYlGn
     cmap = plt.get_cmap("RdYlGn")
     colors = [cmap(norm(score)) for score in performance_df["Accuracy"]]
@@ -39,7 +39,7 @@ def plot_model_accuracies(performance_df, output_path):
     plt.title("Model Performance Comparison")
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
-    
+
     plt.tight_layout()
     plt.savefig(os.path.join(output_path, "model_accuracy_comparison.png"))
     plt.close()
@@ -60,7 +60,7 @@ def plot_learning_curve(
 ):
     """
     Generate and plot learning curves for a model.
-    
+
     Args:
         model: The trained model to evaluate
         X: Training features
@@ -73,41 +73,29 @@ def plot_learning_curve(
         train_sizes: Array of training set sizes to evaluate
         random_state: Random seed for reproducibility
         verbose: Whether to print training progress
-        
+
     Returns:
         train_scores: Array of training scores for each training size and fold
         test_scores: Array of validation scores for each training size and fold
     """
     if isinstance(model, torch.nn.Module):
         kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
-        
+
         train_scores = np.zeros((len(train_sizes), cv))
         test_scores = np.zeros((len(train_sizes), cv))
-        
+
         for size_idx, size in enumerate(train_sizes):
             subset_size = int(len(X) * size)
-            
+
             for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X)):
                 # Get subset of training data
                 X_train = X[train_idx[:subset_size]]
                 y_train = y[train_idx[:subset_size]]
                 X_val = X[val_idx]
                 y_val = y[val_idx]
-                
+
                 # Create a fresh copy of the model for this fold
-                if isinstance(model, LSTM):
-                    fresh_model = LSTM(
-                        model.input_size,
-                        hidden_size=HYPERPARAMETERS["LSTM"]["hidden_size"],
-                        num_layers=HYPERPARAMETERS["LSTM"]["num_layers"]
-                    ).to(device)
-                elif isinstance(model, RNN):
-                    fresh_model = RNN(
-                        model.input_size,
-                        hidden_size=HYPERPARAMETERS["RNN"]["hidden_size"],
-                        num_layers=HYPERPARAMETERS["RNN"]["num_layers"]
-                    ).to(device)
-                elif isinstance(model, Transformer):
+                if isinstance(model, Transformer):
                     fresh_model = Transformer(
                         model.num_features,
                         embedding_dim=HYPERPARAMETERS["Transformer"]["embedding_dim"],
@@ -122,7 +110,7 @@ def plot_learning_curve(
 
                 # Train the model
                 fresh_model = train_model(model_name, fresh_model, X_train, y_train, device, verbose=verbose)
-                
+
                 # Evaluate on training and validation sets
                 fresh_model.eval()
                 with torch.no_grad():
@@ -131,7 +119,7 @@ def plot_learning_curve(
                     outputs = fresh_model(X_train_tensor)
                     _, predicted = torch.max(outputs.data, 1)
                     train_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_train).to(device)).sum().item() / len(y_train)
-                    
+
                     # Validation score
                     X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
                     outputs = fresh_model(X_val_tensor)
@@ -151,10 +139,10 @@ def plot_learning_curve(
             scoring="accuracy",
             random_state=random_state
         )
-    
+
     # Plot learning curve
     plt.figure(figsize=(10, 6))
-    
+
     plt.plot(
         train_sizes,
         train_scores.mean(axis=1),
@@ -186,10 +174,10 @@ def plot_learning_curve(
     plt.title(f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)")
     plt.xlabel("Number of Training Samples")
     plt.ylabel("Accuracy")
-    
+
     plt.legend(loc="best")
     plt.grid(True)
     plt.savefig(os.path.join(output_path, f"learning_curve_{model_name.replace(' ', '_')}.png"))
     plt.close()
-    
+
     return train_scores, test_scores
