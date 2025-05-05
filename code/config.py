@@ -128,7 +128,7 @@ HYPERPARAMETERS = {
         "hidden_size": 256, # number of units in hidden layer
         # training hyperparams common to all
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.1, # step size for optimizer
+        "learning_rate": 0.0005, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
         "batch_size": 32, # batch size for training
@@ -152,7 +152,7 @@ HYPERPARAMETERS = {
         "nhead": 8, # number of attention heads
         # training hyperparams
         "optimizer": "Adam", # optimization algorithm
-        "learning_rate": 0.1, # step size for optimizer
+        "learning_rate": 0.0005, # step size for optimizer
         "weight_decay": 0.01, # weight decay for regularization
         "num_epochs": 300, # number of training epochs
         "batch_size": 32, # batch size for training
