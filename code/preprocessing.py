@@ -5,6 +5,7 @@ import pandas as pd
 def parse_height(height_str):
     if pd.isnull(height_str):
         return 177
+    height_str = height_str.strip()
     pattern = r"(?:(\d+)ft)?\s*(\d+)in"
     match = re.match(pattern, height_str)
     if match:
@@ -19,6 +20,7 @@ def parse_height(height_str):
 def parse_reach(reach_str):
     if pd.isnull(reach_str):
         return 183
+    reach_str = reach_str.strip()
     pattern = r"(\d+)in"
     match = re.match(pattern, reach_str)
     if match:
@@ -31,6 +33,7 @@ def parse_reach(reach_str):
 def parse_strike(strike_str):
     if pd.isnull(strike_str):
         return [0, 0]
+    strike_str = strike_str.strip()
     pattern = r"(\d+)\s+of\s+(\d+)"
     match = re.match(pattern, strike_str)
     if match:
@@ -44,6 +47,7 @@ def parse_strike(strike_str):
 def parse_control_time(time_str):
     if pd.isnull(time_str):
         return 0
+    time_str = time_str.strip()
     pattern = r"(\d+):(\d+)"
     match = re.match(pattern, time_str)
     if match:
@@ -58,6 +62,7 @@ def parse_control_time(time_str):
 def parse_time(time_str):
     if pd.isnull(time_str):
         return 0
+    time_str = time_str.strip()
     pattern = r"(\d+):(\d+)"
     match = re.match(pattern, time_str)
     if match:
