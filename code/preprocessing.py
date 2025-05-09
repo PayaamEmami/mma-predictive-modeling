@@ -95,3 +95,172 @@ def is_finish(method_str):
     if pd.isnull(method_str):
         return False
     return "Decision" not in method_str
+
+
+def compute_historical_stats(fight_data):
+    """Compute per-fighter historical performance statistics in fight_data."""
+    import numpy as np
+    from collections import defaultdict
+
+    # Initialize fighter statistics tracking
+    fighter_stats = defaultdict(
+        lambda: {
+            "TotalFightTime": 0,
+            "NumFights": 0,
+            "Wins": 0,
+            "Losses": 0,
+            "Draws": 0,
+            "NoContests": 0,
+            "WinsByFinish": 0,
+            "LastFightDate": None,
+            "TotalControlTime": 0,
+            "TotalSubmissionAttempts": 0,
+            "TotalLegStrikes": 0,
+            "TotalClinchStrikes": 0,
+            "TotalStrikesLanded": 0,
+            "TotalStrikesAttempted": 0,
+            "TotalTakedownsLanded": 0,
+            "TotalTakedownsAttempted": 0,
+            "TotalReversals": 0,
+        }
+    )
+
+    # Initialize historical performance columns
+    for fighter_num in ["Fighter1", "Fighter2"]:
+        fight_data[f"{fighter_num}_AvgFightTime"] = 0.0
+        fight_data[f"{fighter_num}_TimeSinceLastFight"] = 0.0
+        fight_data[f"{fighter_num}_FinishRate"] = 0.0
+        fight_data[f"{fighter_num}_Wins"] = 0
+        fight_data[f"{fighter_num}_Losses"] = 0
+        fight_data[f"{fighter_num}_Draws"] = 0
+        fight_data[f"{fighter_num}_NoContests"] = 0
+        fight_data[f"{fighter_num}_AvgControlTime"] = 0.0
+        fight_data[f"{fighter_num}_AvgSubmissionAttempts"] = 0.0
+        fight_data[f"{fighter_num}_AvgLegStrikes"] = 0.0
+        fight_data[f"{fighter_num}_AvgClinchStrikes"] = 0.0
+        fight_data[f"{fighter_num}_AvgStrikesLanded"] = 0.0
+        fight_data[f"{fighter_num}_AvgStrikesAttempted"] = 0.0
+        fight_data[f"{fighter_num}_StrikeAccuracy"] = 0.0
+        fight_data[f"{fighter_num}_AvgTakedownsLanded"] = 0.0
+        fight_data[f"{fighter_num}_AvgTakedownsAttempted"] = 0.0
+        fight_data[f"{fighter_num}_AvgReversals"] = 0.0
+
+    # Sort fights chronologically
+    fight_data = fight_data.sort_values("EventDate").reset_index(drop=True)
+
+    # Walk through each fight and update stats
+    for idx, row in fight_data.iterrows():
+        fight_time = row["Fight_Time_sec"]
+        event_date = row["EventDate"]
+
+        # Pre-fight stats assignment
+        for fighter_num in ["Fighter1", "Fighter2"]:
+            fighter_id = row[f"{fighter_num}_ID"]
+            stats = fighter_stats[fighter_id]
+            stats_before = stats.copy()
+
+            if stats_before["NumFights"] > 0:
+                # Average fight time
+                fight_data.at[idx, f"{fighter_num}_AvgFightTime"] = (
+                    stats_before["TotalFightTime"] / stats_before["NumFights"]
+                )
+                # Time since last fight
+                if stats_before["LastFightDate"] is not None:
+                    days = (event_date - stats_before["LastFightDate"]).days
+                    fight_data.at[idx, f"{fighter_num}_TimeSinceLastFight"] = days
+                # Finish rate
+                if stats_before["Wins"] > 0:
+                    fight_data.at[idx, f"{fighter_num}_FinishRate"] = (
+                        stats_before["WinsByFinish"] / stats_before["Wins"]
+                    )
+                # Average performance metrics
+                fight_data.at[idx, f"{fighter_num}_AvgControlTime"] = (
+                    stats_before["TotalControlTime"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgSubmissionAttempts"] = (
+                    stats_before["TotalSubmissionAttempts"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgLegStrikes"] = (
+                    stats_before["TotalLegStrikes"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgClinchStrikes"] = (
+                    stats_before["TotalClinchStrikes"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgStrikesLanded"] = (
+                    stats_before["TotalStrikesLanded"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgStrikesAttempted"] = (
+                    stats_before["TotalStrikesAttempted"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_StrikeAccuracy"] = (
+                    stats_before["TotalStrikesLanded"]
+                    / stats_before["TotalStrikesAttempted"]
+                    if stats_before["TotalStrikesAttempted"] > 0
+                    else 0
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgTakedownsLanded"] = (
+                    stats_before["TotalTakedownsLanded"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgTakedownsAttempted"] = (
+                    stats_before["TotalTakedownsAttempted"] / stats_before["NumFights"]
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgReversals"] = (
+                    stats_before["TotalReversals"] / stats_before["NumFights"]
+                )
+            # Assign win/loss/draw counts before fight
+            fight_data.at[idx, f"{fighter_num}_Wins"] = stats_before["Wins"]
+            fight_data.at[idx, f"{fighter_num}_Losses"] = stats_before["Losses"]
+            fight_data.at[idx, f"{fighter_num}_Draws"] = stats_before["Draws"]
+            fight_data.at[idx, f"{fighter_num}_NoContests"] = stats_before["NoContests"]
+
+        # Update cumulative stats after fight
+        for fighter_num in ["Fighter1", "Fighter2"]:
+            fighter_id = row[f"{fighter_num}_ID"]
+            stats = fighter_stats[fighter_id]
+            stats["TotalFightTime"] += fight_time if not np.isnan(fight_time) else 0
+            stats["NumFights"] += 1
+            stats["LastFightDate"] = event_date
+            stats["TotalControlTime"] += (
+                row[f"{fighter_num}_Control_Time_sec"]
+                if not np.isnan(row[f"{fighter_num}_Control_Time_sec"])
+                else 0
+            )
+            sub = float(row[f"{fighter_num}_Submission_Attempts"])
+            stats["TotalSubmissionAttempts"] += sub if not np.isnan(sub) else 0
+            leg = row[f"{fighter_num}_Leg_Strikes_Landed"]
+            stats["TotalLegStrikes"] += leg if not np.isnan(leg) else 0
+            clinch = row[f"{fighter_num}_Clinch_Strikes_Landed"]
+            stats["TotalClinchStrikes"] += clinch if not np.isnan(clinch) else 0
+            sl = row[f"{fighter_num}_Significant_Strikes_Landed"]
+            sa = row[f"{fighter_num}_Significant_Strikes_Attempted"]
+            stats["TotalStrikesLanded"] += sl if not np.isnan(sl) else 0
+            stats["TotalStrikesAttempted"] += sa if not np.isnan(sa) else 0
+            td_l = row.get(f"{fighter_num}_Takedowns_Landed", 0)
+            td_a = row.get(f"{fighter_num}_Takedowns_Attempted", 0)
+            stats["TotalTakedownsLanded"] += td_l if not np.isnan(td_l) else 0
+            stats["TotalTakedownsAttempted"] += td_a if not np.isnan(td_a) else 0
+            rev = float(row[f"{fighter_num}_Reversals"])
+            stats["TotalReversals"] += rev if not np.isnan(rev) else 0
+
+        # Update outcome stats
+        win = str(row["Winner"])
+        method = str(row["Method"])
+        s1 = fighter_stats[row["Fighter1_ID"]]
+        s2 = fighter_stats[row["Fighter2_ID"]]
+        if win == "1":
+            s1["Wins"] += 1
+            s2["Losses"] += 1
+            if is_finish(method):
+                s1["WinsByFinish"] += 1
+        elif win == "2":
+            s1["Losses"] += 1
+            s2["Wins"] += 1
+            if is_finish(method):
+                s2["WinsByFinish"] += 1
+        elif win == "D":
+            s1["Draws"] += 1
+            s2["Draws"] += 1
+        elif win == "NC":
+            s1["NoContests"] += 1
+            s2["NoContests"] += 1
+    return fight_data
