@@ -26,6 +26,9 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     """
     model_performances = {}
 
+    # Prepare a string to collect all printed metrics and reports
+    report_lines = []
+
     print("\nGenerating evaluation plots and metrics...")
 
     for name, model in models.items():
@@ -40,7 +43,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
             RESULTS_PATH,
             device,
             train_sizes=np.linspace(0.2, 1.0, 5),
-            verbose=False
+            verbose=False,
         )
 
         # Calculate performance metrics from learning curves
@@ -51,20 +54,22 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
 
         # Store comprehensive performance metrics
         model_performances[name] = {
-            'Final Train Accuracy': final_train_accuracy,
-            'Final Validation Accuracy': final_val_accuracy,
-            'Train Std': train_std,
-            'Validation Std': val_std,
-            'Learning Rate': (final_val_accuracy - final_train_accuracy) / final_train_accuracy
+            "Final Train Accuracy": final_train_accuracy,
+            "Final Validation Accuracy": final_val_accuracy,
+            "Train Std": train_std,
+            "Validation Std": val_std,
+            "Learning Rate": (final_val_accuracy - final_train_accuracy)
+            / final_train_accuracy,
         }
 
-        # Print learning curve metrics
-        print(
+        # Prepare learning curve metrics string
+        learning_curve_str = (
             f"Learning Curve Metrics for {name}:\n"
             f"  Final Training Accuracy: {final_train_accuracy:.4f} (+/- {train_std:.4f})\n"
             f"  Final Validation Accuracy: {final_val_accuracy:.4f} (+/- {val_std:.4f})\n"
             f"  Learning Rate: {model_performances[name]['Learning Rate']:.4f}"
         )
+        print(learning_curve_str)
 
         # Get predictions for classification report
         if name in ["FCNN", "RNN", "LSTM", "Transformer"]:
@@ -77,33 +82,35 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         else:
             y_pred = model.predict(X_test)
 
-        # Print classification report
-        print(
-            f"Classification Report for {name}:\n",
-            classification_report(y_test, y_pred, target_names=label_encoder.classes_),
+        # Prepare classification report string
+        class_report_str = (
+            f"Classification Report for {name}:\n"
+            + classification_report(y_test, y_pred, target_names=label_encoder.classes_)
         )
+        print(class_report_str)
+
+        # Add learning curve metrics and classification report to report_lines
+        report_lines.append(learning_curve_str + "\n" + class_report_str + "\n")
 
     # Save and display results
     performance_df = pd.DataFrame(
-        [(name, metrics['Final Validation Accuracy'])
-         for name, metrics in model_performances.items()],
-        columns=["Model", "Accuracy"]
+        [
+            (name, metrics["Final Validation Accuracy"])
+            for name, metrics in model_performances.items()
+        ],
+        columns=["Model", "Accuracy"],
     )
     performance_df.to_csv(
-        os.path.join(RESULTS_PATH, "model_performances.csv"),
-        index=False
+        os.path.join(RESULTS_PATH, "model_performances.csv"), index=False
     )
 
-    # Save detailed metrics
-    detailed_metrics_df = pd.DataFrame(model_performances).T
-    detailed_metrics_df.to_csv(
-        os.path.join(RESULTS_PATH, "detailed_model_metrics.csv")
-    )
+    # Save the report to a txt file
+    report_path = os.path.join(RESULTS_PATH, "model_metrics_report.txt")
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(report_lines))
 
     plot_model_accuracies(performance_df, RESULTS_PATH)
     print("\nModel Performance Summary:")
     print(performance_df)
-    print("\nDetailed Metrics:")
-    print(detailed_metrics_df)
 
     print(f"\nAll tasks completed. Results and plots saved in {RESULTS_PATH}.")

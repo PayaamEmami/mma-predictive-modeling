@@ -199,8 +199,10 @@ def load_ufc_data():
 
         # Apply preprocessing
         X_processed = preprocessor.fit_transform(X)
-        processed_feature_names = preprocessor.get_feature_names_out()
-        X_processed_df = pd.DataFrame(X_processed, columns=processed_feature_names)
+
+        # Convert to dataframe with feature names
+        feature_names = preprocessor.get_feature_names_out()
+        X_processed_df = pd.DataFrame(X_processed, columns=feature_names)
 
         # Combine features and target
         y_df = pd.Series(y, name="Winner")
