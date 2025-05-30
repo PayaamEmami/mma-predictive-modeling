@@ -45,7 +45,6 @@ def load_ufc_data():
 
         fight_data = fight_data.drop(columns=["EventName"])
         fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
-        print(f"Records after dropping data: {len(fight_data)}")
 
         # Process physical attributes
         fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(
@@ -113,10 +112,8 @@ def load_ufc_data():
         fight_data = compute_historical_stats(fight_data)
 
         # Final data cleaning
-        print(f"Records before final dropping: {len(fight_data)}")
         fight_data = fight_data.dropna()
-        print(f"Records after final dropping: {len(fight_data)}")
-        fight_data.fillna(0, inplace=True)
+        print(f"Records after dropping data: {len(fight_data)}")
 
         # Analyze class distribution
         winner_counts = fight_data["Winner"].value_counts()

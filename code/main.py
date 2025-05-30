@@ -34,13 +34,13 @@ def main():
     # Train models
     trained_models = {}
     for name, model in models.items():
-        trained_model = train_model(
-            name, model, X_train, y_train, DEVICE
-        )
+        trained_model = train_model(name, model, X_train, y_train, DEVICE)
         trained_models[name] = trained_model
 
     # Generate evaluation metrics and visualizations
-    evaluate_models(trained_models, X_train, X_test, y_train, y_test, label_encoder, DEVICE)
+    evaluate_models(
+        trained_models, X_train, X_test, y_train, y_test, label_encoder, DEVICE
+    )
 
 
 if __name__ == "__main__":

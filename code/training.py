@@ -8,7 +8,7 @@ from config import HYPERPARAMETERS
 def train_model(name, model, X_train, y_train, device, verbose=True):
     """
     Train a model.
-    
+
     Args:
         name: Name of the model
         model: Model instance to train (PyTorch or sklearn)
@@ -16,15 +16,15 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
         y_train: Training labels
         device: PyTorch device to use
         verbose: Whether to print training progress
-        
+
     Returns:
         The trained model
     """
     if verbose:
         print(f"\nTraining {name}...")
-    
+
     params = HYPERPARAMETERS[name]
-    
+
     if not isinstance(model, torch.nn.Module):
         # Handle sklearn models
         model.fit(X_train, y_train)
@@ -68,7 +68,9 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
                 centered=params["centered"],
             )
         else:
-            print(f"Warning: Unknown optimizer '{params['optimizer']}'. Falling back to SGD.")
+            print(
+                f"Warning: Unknown optimizer '{params['optimizer']}'. Falling back to SGD."
+            )
             optimizer = optim.SGD(
                 model.parameters(),
                 lr=params["learning_rate"],
@@ -92,5 +94,5 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
-    
+
     return model

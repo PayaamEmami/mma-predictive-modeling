@@ -16,6 +16,7 @@ class FCNN(nn.Module):
     Architecture:
         - Input layer -> Hidden layer (ReLU) -> Output layer
     """
+
     def __init__(self, input_size, hidden_size):
         super(FCNN, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
@@ -37,6 +38,7 @@ class Transformer(nn.Module):
     Architecture:
         - Input embedding -> Positional encoding -> Transformer encoder -> Classification layer
     """
+
     def __init__(self, input_size, embedding_dim, num_layers, nhead):
         super(Transformer, self).__init__()
         self.num_features = input_size
@@ -50,13 +52,10 @@ class Transformer(nn.Module):
 
         # Transformer encoder setup
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.embedding_dim,
-            nhead=nhead,
-            batch_first=True
+            d_model=self.embedding_dim, nhead=nhead, batch_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer,
-            num_layers=num_layers
+            encoder_layer, num_layers=num_layers
         )
 
         # Classification head
@@ -67,7 +66,9 @@ class Transformer(nn.Module):
         x = x.unsqueeze(-1)  # Shape: (batch_size, num_features, 1)
         x = self.embedding(x)  # Shape: (batch_size, num_features, embedding_dim)
         x = x + self.positional_encoding
-        x = self.transformer_encoder(x)  # Shape: (batch_size, num_features, embedding_dim)
+        x = self.transformer_encoder(
+            x
+        )  # Shape: (batch_size, num_features, embedding_dim)
         x = x.flatten(1)  # Shape: (batch_size, num_features * embedding_dim)
         x = self.fc(x)  # Shape: (batch_size, 2)
         return x
@@ -88,16 +89,19 @@ def initialize_models(input_size, device):
 
     # Initialize scikit-learn models
     models["Random Forest"] = RandomForestClassifier(**HYPERPARAMETERS["Random Forest"])
-    models["Gradient Boosting"] = GradientBoostingClassifier(**HYPERPARAMETERS["Gradient Boosting"])
+    models["Gradient Boosting"] = GradientBoostingClassifier(
+        **HYPERPARAMETERS["Gradient Boosting"]
+    )
     models["SVM"] = SVC(**HYPERPARAMETERS["SVM"])
-    models["Logistic Regression"] = LogisticRegression(**HYPERPARAMETERS["Logistic Regression"])
+    models["Logistic Regression"] = LogisticRegression(
+        **HYPERPARAMETERS["Logistic Regression"]
+    )
     models["KNN"] = KNeighborsClassifier(**HYPERPARAMETERS["KNN"])
     models["Naive Bayes"] = GaussianNB(**HYPERPARAMETERS["Naive Bayes"])
 
     # Initialize PyTorch models
     models["FCNN"] = FCNN(
-        input_size,
-        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+        input_size, hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
     ).to(device)
 
     models["Transformer"] = Transformer(

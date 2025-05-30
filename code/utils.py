@@ -1,6 +1,7 @@
 import os
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
@@ -26,8 +27,9 @@ def plot_model_accuracies(performance_df, output_path):
     performance_df = performance_df.sort_values(by="Accuracy", ascending=True)
 
     # Normalize accuracy for color mapping
-    norm = mcolors.Normalize(vmin=performance_df["Accuracy"].min(),
-                             vmax=performance_df["Accuracy"].max())
+    norm = mcolors.Normalize(
+        vmin=performance_df["Accuracy"].min(), vmax=performance_df["Accuracy"].max()
+    )
 
     # Use a pastel-friendly version of RdYlGn
     cmap = plt.get_cmap("RdYlGn")
@@ -56,7 +58,7 @@ def plot_learning_curve(
     n_jobs=-1,
     train_sizes=np.linspace(0.1, 1.0, 5),
     random_state=42,
-    verbose=False
+    verbose=False,
 ):
     """
     Generate and plot learning curves for a model.
@@ -100,16 +102,18 @@ def plot_learning_curve(
                         model.num_features,
                         embedding_dim=HYPERPARAMETERS["Transformer"]["embedding_dim"],
                         num_layers=HYPERPARAMETERS["Transformer"]["num_layers"],
-                        nhead=HYPERPARAMETERS["Transformer"]["nhead"]
+                        nhead=HYPERPARAMETERS["Transformer"]["nhead"],
                     ).to(device)
                 elif isinstance(model, FCNN):
                     fresh_model = FCNN(
                         next(model.parameters()).shape[1],
-                        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+                        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"],
                     ).to(device)
 
                 # Train the model
-                fresh_model = train_model(model_name, fresh_model, X_train, y_train, device, verbose=verbose)
+                fresh_model = train_model(
+                    model_name, fresh_model, X_train, y_train, device, verbose=verbose
+                )
 
                 # Evaluate on training and validation sets
                 fresh_model.eval()
@@ -118,13 +122,17 @@ def plot_learning_curve(
                     X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
                     outputs = fresh_model(X_train_tensor)
                     _, predicted = torch.max(outputs.data, 1)
-                    train_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_train).to(device)).sum().item() / len(y_train)
+                    train_scores[size_idx, fold_idx] = (
+                        predicted == torch.tensor(y_train).to(device)
+                    ).sum().item() / len(y_train)
 
                     # Validation score
                     X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
                     outputs = fresh_model(X_val_tensor)
                     _, predicted = torch.max(outputs.data, 1)
-                    test_scores[size_idx, fold_idx] = (predicted == torch.tensor(y_val).to(device)).sum().item() / len(y_val)
+                    test_scores[size_idx, fold_idx] = (
+                        predicted == torch.tensor(y_val).to(device)
+                    ).sum().item() / len(y_val)
 
         # Convert fractional train_sizes to actual sample counts for plotting
         train_sizes = (train_sizes * len(X)).astype(int)
@@ -137,7 +145,7 @@ def plot_learning_curve(
             n_jobs=n_jobs,
             train_sizes=train_sizes,
             scoring="accuracy",
-            random_state=random_state
+            random_state=random_state,
         )
 
     # Plot learning curve
@@ -171,13 +179,17 @@ def plot_learning_curve(
         alpha=0.1,
         color="C1",
     )
-    plt.title(f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)")
+    plt.title(
+        f"Learning Curve for {model_name}\n(Mean Accuracy ± 1 Standard Deviation)"
+    )
     plt.xlabel("Number of Training Samples")
     plt.ylabel("Accuracy")
 
     plt.legend(loc="best")
     plt.grid(True)
-    plt.savefig(os.path.join(output_path, f"learning_curve_{model_name.replace(' ', '_')}.png"))
+    plt.savefig(
+        os.path.join(output_path, f"learning_curve_{model_name.replace(' ', '_')}.png")
+    )
     plt.close()
 
     return train_scores, test_scores
