@@ -5,7 +5,7 @@ import torch
 from sklearn.metrics import classification_report
 
 from config import RESULTS_PATH
-from utils import plot_model_accuracies, plot_learning_curve
+from utils import plot_model_comparisons, plot_learning_curve
 
 
 def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
@@ -109,7 +109,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines))
 
-    plot_model_accuracies(performance_df, RESULTS_PATH)
+    plot_model_comparisons(performance_df, RESULTS_PATH)
     print("\nModel Performance Summary:")
     print(performance_df)
 

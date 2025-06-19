@@ -12,7 +12,7 @@ from training import train_model
 from models import FCNN, Transformer
 
 
-def plot_model_accuracies(performance_df, output_path):
+def plot_model_comparisons(performance_df, output_path):
     """
     Generate and save a bar plot comparing model accuracies.
 

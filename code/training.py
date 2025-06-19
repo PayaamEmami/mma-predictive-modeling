@@ -25,11 +25,8 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
 
     params = HYPERPARAMETERS[name]
 
-    if not isinstance(model, torch.nn.Module):
-        # Handle sklearn models
-        model.fit(X_train, y_train)
-    else:
-        # PyTorch model training
+    # Determine which type of model to train (PyTorch or sklearn)
+    if isinstance(model, torch.nn.Module):
         criterion = torch.nn.CrossEntropyLoss()
 
         # Configure optimizer based on model parameters
@@ -94,5 +91,7 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
+    else:
+        model.fit(X_train, y_train)
 
     return model
