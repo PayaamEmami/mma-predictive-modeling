@@ -133,6 +133,21 @@ HYPERPARAMETERS = {
     "Naive Bayes": {
         "var_smoothing": 1e-8,  # portion of variance added to avoid zero
     },
+    "Decision Tree": {
+        # tree-related parameters
+        "criterion": "gini",  # function to measure split quality
+        "splitter": "best",  # strategy used to choose the split
+        "max_depth": None,  # maximum depth of the tree
+        "min_samples_split": 2,  # minimum samples required to split
+        "min_samples_leaf": 1,  # minimum samples required in a leaf
+        "min_weight_fraction_leaf": 0.0,  # minimum weighted fraction of leaf
+        "max_features": None,  # number of features to consider for split
+        "random_state": 21,  # random seed for reproducibility
+        "max_leaf_nodes": None,  # maximum number of leaf nodes
+        "min_impurity_decrease": 0.0,  # minimum impurity decrease for split
+        "class_weight": None,  # weights associated with classes
+        "ccp_alpha": 0.0,  # complexity parameter for pruning
+    },
     "FCNN": {
         # model architecture
         "hidden_size": 256,  # number of units in hidden layer

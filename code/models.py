@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
 from config import HYPERPARAMETERS
 
 
@@ -98,6 +99,7 @@ def initialize_models(input_size, device):
     )
     models["KNN"] = KNeighborsClassifier(**HYPERPARAMETERS["KNN"])
     models["Naive Bayes"] = GaussianNB(**HYPERPARAMETERS["Naive Bayes"])
+    models["Decision Tree"] = DecisionTreeClassifier(**HYPERPARAMETERS["Decision Tree"])  # Added
 
     # Initialize PyTorch models
     models["FCNN"] = FCNN(
