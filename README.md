@@ -50,5 +50,6 @@ New fight event data is added periodically to keep the model updated. The pipeli
 ![Learning Curve for Logistic Regression](results/learning_curve_Logistic_Regression.png)
 ![Learning Curve for K-Nearest Neighbors](results/learning_curve_KNN.png)
 ![Learning Curve for Naive Bayes](results/learning_curve_Naive_Bayes.png)
+![Learning Curve for Decision Tree](results/learning_curve_Decision_Tree.png)
 ![Learning Curve for Fully Connected Neural Network](results/learning_curve_FCNN.png)
 ![Learning Curve for Transformer](results/learning_curve_Transformer.png)
