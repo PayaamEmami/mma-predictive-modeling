@@ -4,6 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+import boto3
 
 from config import DATA_PATH
 from preprocessing import (
@@ -16,12 +17,28 @@ from preprocessing import (
 )
 
 
-def load_ufc_data():
+def download_data_from_s3(bucket, key, dest):
+    s3 = boto3.client("s3")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    s3.download_file(bucket, key, dest)
+
+
+def upload_results_to_s3(local_dir, bucket, s3_prefix):
+    s3 = boto3.client("s3")
+    for root, _, files in os.walk(local_dir):
+        for file in files:
+            local_path = os.path.join(root, file)
+            relative_path = os.path.relpath(local_path, local_dir)
+            s3_key = os.path.join(s3_prefix, relative_path).replace("\\", "/")
+            s3.upload_file(local_path, bucket, s3_key)
+
+
+def load_fight_data():
     """
-    Load and preprocess UFC fight data for model training.
+    Load and preprocess fight event data for model training.
 
     This function:
-    1. Loads raw UFC fight data
+    1. Loads raw fight event data
     2. Processes fighter statistics and fight metrics
     3. Calculates historical performance metrics
     4. Applies feature engineering and preprocessing
@@ -34,8 +51,8 @@ def load_ufc_data():
             - label_encoder: Fitted label encoder for target classes
     """
     try:
-        print("Loading UFC data...")
-        fight_data_path = os.path.join(DATA_PATH, "ufc_events.csv")
+        print("Loading fight event data...")
+        fight_data_path = os.path.join(DATA_PATH, "fight_events.csv")
 
         # Load and clean initial data
         fight_data = pd.read_csv(
@@ -206,11 +223,11 @@ def load_ufc_data():
         final_df = pd.concat([X_processed_df, y_df], axis=1)
 
         # Save processed data
-        processed_data_path = os.path.join(DATA_PATH, "processed_ufc_data.csv")
+        processed_data_path = os.path.join(DATA_PATH, "processed_fight_data.csv")
         final_df.to_csv(processed_data_path, index=False, quotechar='"')
         print(f"Processed data saved to {processed_data_path}")
 
-        print(f"UFC Data: {len(fight_data)} records loaded.")
+        print(f"Fight data: {len(fight_data)} records loaded.")
         print(
             f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}"
         )
@@ -218,5 +235,5 @@ def load_ufc_data():
         return X_processed, y, le
 
     except Exception as e:
-        print(f"An error occurred while loading UFC data: {e}")
+        print(f"An error occurred while loading fight event data: {e}")
         raise

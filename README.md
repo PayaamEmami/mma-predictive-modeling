@@ -23,7 +23,7 @@ A machine learning project for predicting fight outcomes in Mixed Martial Arts (
 ### Training & Evaluation
 
 - Implements multiple machine learning models for comparison
-- Trains models using UFC fight data
+- Trains models using fight event data
 - Generates learning curve plots
 - Evaluates models with accuracy metrics and classification reports
 

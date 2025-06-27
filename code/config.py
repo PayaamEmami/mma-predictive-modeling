@@ -1,14 +1,13 @@
 import os
+from dotenv import load_dotenv
 import torch
 from datetime import datetime
 
-# paths for local usage
-# BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# DATA_PATH = os.path.join(BASE_PATH, "data")
-# RESULTS_PATH = os.path.join(BASE_PATH, "results")
+# Load environment variables from .env if present
+load_dotenv()
 
-# paths for google drive usage
-BASE_PATH = "/content/drive/MyDrive/dev/mma-predictive-modeling"
+# BASE_PATH from environment (required)
+BASE_PATH = os.environ["BASE_PATH"]
 DATA_PATH = os.path.join(BASE_PATH, "data")
 RESULTS_PATH = os.path.join(
     BASE_PATH,
@@ -16,182 +15,187 @@ RESULTS_PATH = os.path.join(
     datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
 )
 
-# ensure directories exist
+# S3 configuration variables (required)
+S3_BUCKET = os.environ["S3_BUCKET"]
+S3_DATA_KEY = os.environ["S3_DATA_KEY"]
+S3_RESULTS_PREFIX = os.environ["S3_RESULTS_PREFIX"]
+
+# Ensure directories exist
 os.makedirs(DATA_PATH, exist_ok=True)
 os.makedirs(RESULTS_PATH, exist_ok=True)
 
-# device configuration
+# Device configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
 HYPERPARAMETERS = {
     "Random Forest": {
-        # tree-related parameters
-        "n_estimators": 200,  # number of trees in the forest
-        "criterion": "gini",  # function to measure split quality
-        "max_depth": 10,  # maximum depth of the tree
-        "min_samples_split": 10,  # minimum samples required to split
-        "min_samples_leaf": 4,  # minimum samples required in a leaf
-        "min_weight_fraction_leaf": 0.0,  # minimum weighted fraction of leaf
-        "max_features": "sqrt",  # number of features to consider for split
-        "max_leaf_nodes": None,  # maximum number of leaf nodes
-        "min_impurity_decrease": 0.0,  # minimum impurity decrease for split
-        # ensemble-related parameters
-        "bootstrap": True,  # whether to bootstrap samples
-        "oob_score": False,  # whether to use out-of-bag samples
-        # computational settings
-        "n_jobs": -1,  # number of jobs to run in parallel
-        "random_state": 21,  # random seed for reproducibility
-        "verbose": 0,  # verbosity level
-        "warm_start": False,  # reuse previous solutions to add trees
-        # regularization
-        "class_weight": "balanced",  # weights associated with classes
-        "ccp_alpha": 0.0,  # complexity parameter for pruning
-        "max_samples": None,  # maximum samples to draw for bootstrap
+        # Tree-related parameters
+        "n_estimators": 200,  # Number of trees in the forest
+        "criterion": "gini",  # Function to measure split quality
+        "max_depth": 10,  # Maximum depth of the tree
+        "min_samples_split": 10,  # Minimum samples required to split
+        "min_samples_leaf": 4,  # Minimum samples required in a leaf
+        "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
+        "max_features": "sqrt",  # Number of features to consider for split
+        "max_leaf_nodes": None,  # Maximum number of leaf nodes
+        "min_impurity_decrease": 0.0,  # Minimum impurity decrease for split
+        # Ensemble-related parameters
+        "bootstrap": True,  # Whether to bootstrap samples
+        "oob_score": False,  # Whether to use out-of-bag samples
+        # Computational settings
+        "n_jobs": -1,  # Number of jobs to run in parallel
+        "random_state": 21,  # Random seed for reproducibility
+        "verbose": 0,  # Verbosity level
+        "warm_start": False,  # Reuse previous solutions to add trees
+        # Regularization
+        "class_weight": "balanced",  # Weights associated with classes
+        "ccp_alpha": 0.0,  # Complexity parameter for pruning
+        "max_samples": None,  # Maximum samples to draw for bootstrap
     },
     "Gradient Boosting": {
-        # loss and learning parameters
-        "loss": "log_loss",  # loss function to optimize
-        "learning_rate": 0.1,  # step size for each update
-        "n_estimators": 100,  # number of boosting stages
-        "subsample": 1.0,  # fraction of samples for fitting base learners
-        # tree-related parameters
-        "criterion": "friedman_mse",  # split quality function
-        "min_samples_split": 2,  # minimum samples required to split
-        "min_samples_leaf": 1,  # minimum samples required in a leaf
-        "min_weight_fraction_leaf": 0.0,  # minimum weighted fraction of leaf
-        "max_depth": 3,  # maximum depth of the tree
-        "min_impurity_decrease": 0.0,  # minimum impurity decrease for split
-        "init": None,  # estimator to use for initial predictions
-        # computational settings
-        "random_state": 21,  # random seed for reproducibility
-        "max_features": None,  # maximum number of features to consider
-        "verbose": 0,  # verbosity level
-        "max_leaf_nodes": None,  # maximum number of leaf nodes
-        "warm_start": False,  # reuse previous solutions to add trees
-        # early stopping parameters
-        "validation_fraction": 0.1,  # fraction of training data for validation
-        "n_iter_no_change": None,  # iterations with no improvement
-        "tol": 1e-4,  # tolerance for early stopping
-        # regularization
-        "ccp_alpha": 0.0,  # complexity parameter for pruning
+        # Loss and learning parameters
+        "loss": "log_loss",  # Loss function to optimize
+        "learning_rate": 0.1,  # Step size for each update
+        "n_estimators": 100,  # Number of boosting stages
+        "subsample": 1.0,  # Fraction of samples for fitting base learners
+        # Tree-related parameters
+        "criterion": "friedman_mse",  # Split quality function
+        "min_samples_split": 2,  # Minimum samples required to split
+        "min_samples_leaf": 1,  # Minimum samples required in a leaf
+        "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
+        "max_depth": 3,  # Maximum depth of the tree
+        "min_impurity_decrease": 0.0,  # Minimum impurity decrease for split
+        "init": None,  # Estimator to use for initial predictions
+        # Computational settings
+        "random_state": 21,  # Random seed for reproducibility
+        "max_features": None,  # Maximum number of features to consider
+        "verbose": 0,  # Verbosity level
+        "max_leaf_nodes": None,  # Maximum number of leaf nodes
+        "warm_start": False,  # Reuse previous solutions to add trees
+        # Early stopping parameters
+        "validation_fraction": 0.1,  # Fraction of training data for validation
+        "n_iter_no_change": None,  # Iterations with no improvement
+        "tol": 1e-4,  # Tolerance for early stopping
+        # Regularization
+        "ccp_alpha": 0.0,  # Complexity parameter for pruning
     },
     "SVM": {
-        # model settings
-        "C": 0.5,  # regularization parameter
-        "kernel": "rbf",  # kernel type for svm
-        "degree": 3,  # degree for polynomial kernel
-        "gamma": "scale",  # kernel coefficient
-        "coef0": 0.0,  # independent term in kernel function
-        # optimization
-        "shrinking": True,  # whether to use shrinking heuristic
-        "probability": True,  # whether to enable probability estimates
-        "tol": 1e-4,  # tolerance for stopping criterion
-        # computational settings
-        "cache_size": 500,  # size of kernel cache (mb)
-        "class_weight": "balanced",  # weights associated with classes
-        "verbose": False,  # verbosity level
-        "max_iter": -1,  # maximum number of iterations
-        # decision function
-        "decision_function_shape": "ovr",  # one-vs-rest decision function
-        "break_ties": False,  # whether to break ties
-        "random_state": 21,  # random seed for reproducibility
+        # Model settings
+        "C": 0.5,  # Regularization parameter
+        "kernel": "rbf",  # Kernel type for SVM
+        "degree": 3,  # Degree for polynomial kernel
+        "gamma": "scale",  # Kernel coefficient
+        "coef0": 0.0,  # Independent term in kernel function
+        # Optimization
+        "shrinking": True,  # Whether to use shrinking heuristic
+        "probability": True,  # Whether to enable probability estimates
+        "tol": 1e-4,  # Tolerance for stopping criterion
+        # Computational settings
+        "cache_size": 500,  # Size of kernel cache (MB)
+        "class_weight": "balanced",  # Weights associated with classes
+        "verbose": False,  # Verbosity level
+        "max_iter": -1,  # Maximum number of iterations
+        # Decision function
+        "decision_function_shape": "ovr",  # One-vs-rest decision function
+        "break_ties": False,  # Whether to break ties
+        "random_state": 21,  # Random seed for reproducibility
     },
     "Logistic Regression": {
-        # regularization
-        "penalty": "l2",  # regularization penalty
-        "dual": False,  # solve dual problem (only for l2)
-        # optimization
-        "tol": 1e-5,  # tolerance for stopping criteria
-        "C": 0.5,  # inverse of regularization strength
-        # model settings
-        "fit_intercept": True,  # whether to fit intercept
-        "intercept_scaling": 1,  # scaling of intercept
-        "class_weight": "balanced",  # weights associated with classes
-        # computational settings
-        "random_state": 21,  # random seed for reproducibility
-        "solver": "lbfgs",  # optimization solver
-        "max_iter": 3000,  # maximum iterations
-        "verbose": 0,  # verbosity level
-        "warm_start": False,  # reuse previous solution
-        "n_jobs": -1,  # number of jobs to run in parallel
-        "l1_ratio": None,  # elastic-net mixing parameter
+        # Regularization
+        "penalty": "l2",  # Regularization penalty
+        "dual": False,  # Solve dual problem (only for l2)
+        # Optimization
+        "tol": 1e-5,  # Tolerance for stopping criteria
+        "C": 0.5,  # Inverse of regularization strength
+        # Model settings
+        "fit_intercept": True,  # Whether to fit intercept
+        "intercept_scaling": 1,  # Scaling of intercept
+        "class_weight": "balanced",  # Weights associated with classes
+        # Computational settings
+        "random_state": 21,  # Random seed for reproducibility
+        "solver": "lbfgs",  # Optimization solver
+        "max_iter": 3000,  # Maximum iterations
+        "verbose": 0,  # Verbosity level
+        "warm_start": False,  # Reuse previous solution
+        "n_jobs": -1,  # Number of jobs to run in parallel
+        "l1_ratio": None,  # Elastic-net mixing parameter
     },
     "KNN": {
-        # model settings
-        "n_neighbors": 5,  # number of neighbors
-        "weights": "uniform",  # weight function used in prediction
-        "algorithm": "auto",  # algorithm for neighbor search
-        "leaf_size": 30,  # leaf size for tree-based algorithms
-        # distance metric
-        "p": 2,  # power parameter for minkowski metric
-        "metric": "minkowski",  # distance metric
-        "metric_params": None,  # additional parameters for metric
-        # computational settings
-        "n_jobs": -1,  # number of jobs to run in parallel
+        # Model settings
+        "n_neighbors": 5,  # Number of neighbors
+        "weights": "uniform",  # Weight function used in prediction
+        "algorithm": "auto",  # Algorithm for neighbor search
+        "leaf_size": 30,  # Leaf size for tree-based algorithms
+        # Distance metric
+        "p": 2,  # Power parameter for Minkowski metric
+        "metric": "minkowski",  # Distance metric
+        "metric_params": None,  # Additional parameters for metric
+        # Computational settings
+        "n_jobs": -1,  # Number of jobs to run in parallel
     },
     "Naive Bayes": {
-        "var_smoothing": 1e-8,  # portion of variance added to avoid zero
+        "var_smoothing": 1e-8,  # Portion of variance added to avoid zero
     },
     "Decision Tree": {
-        # tree-related parameters
-        "criterion": "gini",  # function to measure split quality
-        "splitter": "best",  # strategy used to choose the split
-        "max_depth": None,  # maximum depth of the tree
-        "min_samples_split": 2,  # minimum samples required to split
-        "min_samples_leaf": 1,  # minimum samples required in a leaf
-        "min_weight_fraction_leaf": 0.0,  # minimum weighted fraction of leaf
-        "max_features": None,  # number of features to consider for split
-        "random_state": 21,  # random seed for reproducibility
-        "max_leaf_nodes": None,  # maximum number of leaf nodes
-        "min_impurity_decrease": 0.0,  # minimum impurity decrease for split
-        "class_weight": None,  # weights associated with classes
-        "ccp_alpha": 0.0,  # complexity parameter for pruning
+        # Tree-related parameters
+        "criterion": "gini",  # Function to measure split quality
+        "splitter": "best",  # Strategy used to choose the split
+        "max_depth": None,  # Maximum depth of the tree
+        "min_samples_split": 2,  # Minimum samples required to split
+        "min_samples_leaf": 1,  # Minimum samples required in a leaf
+        "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
+        "max_features": None,  # Number of features to consider for split
+        "random_state": 21,  # Random seed for reproducibility
+        "max_leaf_nodes": None,  # Maximum number of leaf nodes
+        "min_impurity_decrease": 0.0,  # Minimum impurity decrease for split
+        "class_weight": None,  # Weights associated with classes
+        "ccp_alpha": 0.0,  # Complexity parameter for pruning
     },
     "FCNN": {
-        # model architecture
-        "hidden_size": 256,  # number of units in hidden layer
-        # training hyperparams common to all
-        "optimizer": "Adam",  # optimization algorithm
-        "learning_rate": 0.0005,  # step size for optimizer
-        "weight_decay": 0.01,  # weight decay for regularization
-        "num_epochs": 300,  # number of training epochs
-        "batch_size": 32,  # batch size for training
-        # sgd parameters
-        "momentum": 0.0,  # momentum factor
-        "dampening": 0.0,  # dampening for momentum
-        "nesterov": False,  # whether to enable nesterov momentum
-        "maximize": False,  # maximize instead of minimize
-        # adam/adamw parameters
-        "betas": (0.9, 0.999),  # coefficients for adam optimizer
-        "eps": 1e-8,  # term for numerical stability
-        "amsgrad": False,  # whether to use amsgrad variant
-        # rmsprop parameters
-        "alpha": 0.99,  # smoothing constant for rmsprop
-        "centered": False,  # whether to center rmsprop
+        # Model architecture
+        "hidden_size": 256,  # Number of units in hidden layer
+        # Training hyperparameters common to all
+        "optimizer": "Adam",  # Optimization algorithm
+        "learning_rate": 0.0005,  # Step size for optimizer
+        "weight_decay": 0.01,  # Weight decay for regularization
+        "num_epochs": 300,  # Number of training epochs
+        "batch_size": 32,  # Batch size for training
+        # SGD parameters
+        "momentum": 0.0,  # Momentum factor
+        "dampening": 0.0,  # Dampening for momentum
+        "nesterov": False,  # Whether to enable Nesterov momentum
+        "maximize": False,  # Maximize instead of minimize
+        # Adam/AdamW parameters
+        "betas": (0.9, 0.999),  # Coefficients for Adam optimizer
+        "eps": 1e-8,  # Term for numerical stability
+        "amsgrad": False,  # Whether to use AMSGrad variant
+        # RMSprop parameters
+        "alpha": 0.99,  # Smoothing constant for RMSprop
+        "centered": False,  # Whether to center RMSprop
     },
     "Transformer": {
-        # model architecture
-        "embedding_dim": 128,  # size of embedding vectors
-        "num_layers": 4,  # number of transformer layers
-        "nhead": 8,  # number of attention heads
-        # training hyperparams
-        "optimizer": "Adam",  # optimization algorithm
-        "learning_rate": 0.0005,  # step size for optimizer
-        "weight_decay": 0.01,  # weight decay for regularization
-        "num_epochs": 300,  # number of training epochs
-        "batch_size": 32,  # batch size for training
-        # sgd parameters
-        "momentum": 0.0,  # momentum factor
-        "dampening": 0.0,  # dampening for momentum
-        "nesterov": False,  # whether to enable nesterov momentum
-        "maximize": False,  # maximize instead of minimize
-        # adam/adamw parameters
-        "betas": (0.9, 0.999),  # coefficients for adam optimizer
-        "eps": 1e-8,  # term for numerical stability
-        "amsgrad": False,  # whether to use amsgrad variant
-        # rmsprop parameters
-        "alpha": 0.99,  # smoothing constant for rmsprop
-        "centered": False,  # whether to center rmsprop
+        # Model architecture
+        "embedding_dim": 128,  # Size of embedding vectors
+        "num_layers": 4,  # Number of transformer layers
+        "nhead": 8,  # Number of attention heads
+        # Training hyperparameters
+        "optimizer": "Adam",  # Optimization algorithm
+        "learning_rate": 0.0005,  # Step size for optimizer
+        "weight_decay": 0.01,  # Weight decay for regularization
+        "num_epochs": 300,  # Number of training epochs
+        "batch_size": 32,  # Batch size for training
+        # SGD parameters
+        "momentum": 0.0,  # Momentum factor
+        "dampening": 0.0,  # Dampening for momentum
+        "nesterov": False,  # Whether to enable Nesterov momentum
+        "maximize": False,  # Maximize instead of minimize
+        # Adam/AdamW parameters
+        "betas": (0.9, 0.999),  # Coefficients for Adam optimizer
+        "eps": 1e-8,  # Term for numerical stability
+        "amsgrad": False,  # Whether to use AMSGrad variant
+        # RMSprop parameters
+        "alpha": 0.99,  # Smoothing constant for RMSprop
+        "centered": False,  # Whether to center RMSprop
     },
 }

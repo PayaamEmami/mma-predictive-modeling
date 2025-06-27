@@ -3,3 +3,5 @@ numpy
 pandas
 torch
 scikit-learn
+boto3
+python-dotenv
