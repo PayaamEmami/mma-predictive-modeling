@@ -6,7 +6,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 import boto3
 
-from config import DATA_PATH
+from config import RESULTS_PATH, S3_BUCKET, S3_DATA_KEY, S3_RESULTS_PREFIX
 from preprocessing import (
     parse_height,
     parse_reach,
@@ -15,12 +15,6 @@ from preprocessing import (
     process_landed_attempted,
     compute_historical_stats,
 )
-
-
-def download_data_from_s3(bucket, key, dest):
-    s3 = boto3.client("s3")
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    s3.download_file(bucket, key, dest)
 
 
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
@@ -38,11 +32,12 @@ def load_fight_data():
     Load and preprocess fight event data for model training.
 
     This function:
-    1. Loads raw fight event data
+    1. Loads fight event data directly from S3
     2. Processes fighter statistics and fight metrics
     3. Calculates historical performance metrics
     4. Applies feature engineering and preprocessing
-    5. Returns processed features and encoded labels
+    5. Uploads results to S3
+    6. Returns processed features and encoded labels
 
     Returns:
         tuple: (X_processed, y, label_encoder)
@@ -51,12 +46,12 @@ def load_fight_data():
             - label_encoder: Fitted label encoder for target classes
     """
     try:
-        print("Loading fight event data...")
-        fight_data_path = os.path.join(DATA_PATH, "fight_events.csv")
-
-        # Load and clean initial data
+        print("Loading fight event data from S3...")
         fight_data = pd.read_csv(
-            fight_data_path, quotechar='"', parse_dates=["EventDate"]
+            f"s3://{S3_BUCKET}/{S3_DATA_KEY}",
+            quotechar='"',
+            parse_dates=["EventDate"],
+            storage_options={"anon": False},
         )
         print(f"Records before dropping data: {len(fight_data)}")
 
@@ -222,10 +217,10 @@ def load_fight_data():
         y_df = pd.Series(y, name="Winner")
         final_df = pd.concat([X_processed_df, y_df], axis=1)
 
-        # Save processed data
-        processed_data_path = os.path.join(DATA_PATH, "processed_fight_data.csv")
-        final_df.to_csv(processed_data_path, index=False, quotechar='"')
-        print(f"Processed data saved to {processed_data_path}")
+        # Upload results to S3
+        print("Uploading results to S3...")
+        upload_results_to_s3(RESULTS_PATH, S3_BUCKET, S3_RESULTS_PREFIX)
+        print(f"Results uploaded to s3://{S3_BUCKET}/{S3_RESULTS_PREFIX}")
 
         print(f"Fight data: {len(fight_data)} records loaded.")
         print(

@@ -6,22 +6,13 @@ from datetime import datetime
 # Load environment variables from .env if present
 load_dotenv()
 
-# BASE_PATH from environment (required)
-BASE_PATH = os.environ["BASE_PATH"]
-DATA_PATH = os.path.join(BASE_PATH, "data")
-RESULTS_PATH = os.path.join(
-    BASE_PATH,
-    "results",
-    datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-)
-
 # S3 configuration variables (required)
 S3_BUCKET = os.environ["S3_BUCKET"]
 S3_DATA_KEY = os.environ["S3_DATA_KEY"]
 S3_RESULTS_PREFIX = os.environ["S3_RESULTS_PREFIX"]
 
-# Ensure directories exist
-os.makedirs(DATA_PATH, exist_ok=True)
+# Path for local results before uploading to S3
+RESULTS_PATH = os.path.join(os.getcwd(), "results")
 os.makedirs(RESULTS_PATH, exist_ok=True)
 
 # Device configuration

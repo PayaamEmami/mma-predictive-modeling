@@ -1,5 +1,5 @@
 from sklearn.model_selection import train_test_split
-from data import load_fight_data, download_data_from_s3, upload_results_to_s3
+from data import load_fight_data, upload_results_to_s3
 from models import initialize_models
 from evaluation import evaluate_models
 from training import train_model
@@ -17,10 +17,7 @@ def main():
     4. Generates performance visualizations
     """
 
-    # Download latest data from S3
-    download_data_from_s3(S3_BUCKET, S3_DATA_KEY, "data/fight_events.csv")
-
-    # Load and validate data
+    # Load and validate data from S3
     X_fight, y_fight, label_encoder = load_fight_data()
     if X_fight is None:
         print("Failed to load fight event data.")
