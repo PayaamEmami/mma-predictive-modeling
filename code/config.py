@@ -1,15 +1,6 @@
 import os
-from dotenv import load_dotenv
 import torch
 from datetime import datetime
-
-# Load environment variables from .env if present
-load_dotenv()
-
-# S3 configuration variables (required)
-S3_BUCKET = os.environ["S3_BUCKET"]
-S3_DATA_KEY = os.environ["S3_DATA_KEY"]
-S3_RESULTS_PREFIX = os.environ["S3_RESULTS_PREFIX"]
 
 # Path for local results before uploading to S3
 RESULTS_PATH = os.path.join(os.getcwd(), "results")

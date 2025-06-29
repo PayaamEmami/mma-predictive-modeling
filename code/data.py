@@ -6,7 +6,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 import boto3
 
-from config import RESULTS_PATH, S3_BUCKET, S3_DATA_KEY, S3_RESULTS_PREFIX
+from config import RESULTS_PATH
 from preprocessing import (
     parse_height,
     parse_reach,
@@ -27,7 +27,7 @@ def upload_results_to_s3(local_dir, bucket, s3_prefix):
             s3.upload_file(local_path, bucket, s3_key)
 
 
-def load_fight_data():
+def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
     """
     Load and preprocess fight event data for model training.
 
@@ -48,7 +48,7 @@ def load_fight_data():
     try:
         print("Loading fight event data from S3...")
         fight_data = pd.read_csv(
-            f"s3://{S3_BUCKET}/{S3_DATA_KEY}",
+            f"s3://{s3_bucket}/{s3_data_key}",
             quotechar='"',
             parse_dates=["EventDate"],
             storage_options={"anon": False},
@@ -219,8 +219,8 @@ def load_fight_data():
 
         # Upload results to S3
         print("Uploading results to S3...")
-        upload_results_to_s3(RESULTS_PATH, S3_BUCKET, S3_RESULTS_PREFIX)
-        print(f"Results uploaded to s3://{S3_BUCKET}/{S3_RESULTS_PREFIX}")
+        upload_results_to_s3(RESULTS_PATH, s3_bucket, s3_results_prefix)
+        print(f"Results uploaded to s3://{s3_bucket}/{s3_results_prefix}")
 
         print(f"Fight data: {len(fight_data)} records loaded.")
         print(

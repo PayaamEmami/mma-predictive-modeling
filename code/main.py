@@ -1,12 +1,13 @@
+import argparse
 from sklearn.model_selection import train_test_split
 from data import load_fight_data, upload_results_to_s3
 from models import initialize_models
 from evaluation import evaluate_models
 from training import train_model
-from config import DEVICE, S3_BUCKET, S3_DATA_KEY, S3_RESULTS_PREFIX
+from config import DEVICE
 
 
-def main():
+def main(s3_bucket, s3_data_key, s3_results_prefix):
     """
     Main execution function for the fight prediction pipeline.
 
@@ -18,7 +19,9 @@ def main():
     """
 
     # Load and validate data from S3
-    X_fight, y_fight, label_encoder = load_fight_data()
+    X_fight, y_fight, label_encoder = load_fight_data(
+        s3_bucket, s3_data_key, s3_results_prefix
+    )
     if X_fight is None:
         print("Failed to load fight event data.")
         exit(1)
@@ -44,8 +47,13 @@ def main():
     )
 
     # Upload results to S3
-    upload_results_to_s3("results", S3_BUCKET, S3_RESULTS_PREFIX)
+    upload_results_to_s3("results", s3_bucket, s3_results_prefix)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="MMA Predictive Modeling Pipeline")
+    parser.add_argument("--s3_bucket", required=True)
+    parser.add_argument("--s3_data_key", required=True)
+    parser.add_argument("--s3_results_prefix", required=True)
+    args = parser.parse_args()
+    main(args.s3_bucket, args.s3_data_key, args.s3_results_prefix)
