@@ -1,6 +1,7 @@
 import boto3
 import datetime
 import json
+from datetime import timezone
 from botocore.exceptions import ClientError
 
 
@@ -16,9 +17,9 @@ def get_secret(secret_name, region_name="us-west-1"):
 
 def lambda_handler(event, context):
     sagemaker = boto3.client("sagemaker")
-    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
+    timestamp = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
 
-    secret_name = "mma-predictive-modeling-secrets"
+    secret_name = "mpm-secrets"
     region_name = "us-west-1"
     secrets = get_secret(secret_name, region_name)
 
@@ -28,8 +29,8 @@ def lambda_handler(event, context):
             "TrainingImage": "763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-training:1.13.1-gpu-py39-cu116",
             "TrainingInputMode": "File",
         },
-        RoleArn=secrets["mpm-RoleArn"],
-        OutputDataConfig={"S3OutputPath": secrets["mpm-S3OutputPath"]},
+        RoleArn=secrets["role_arn"],
+        OutputDataConfig={"S3OutputPath": secrets["s3_output_path"]},
         ResourceConfig={
             "InstanceType": "ml.g4dn.xlarge",
             "InstanceCount": 1,
@@ -37,11 +38,11 @@ def lambda_handler(event, context):
         },
         StoppingCondition={"MaxRuntimeInSeconds": 1800},
         HyperParameters={
-            "sagemaker_program": secrets["mpm-sagemaker_program"],
-            "sagemaker_submit_directory": secrets["mpm-sagemaker_submit_directory"],
-            "s3_bucket": secrets["mpm-s3_bucket"],
-            "s3_data_key": secrets["mpm-s3_data_key"],
-            "s3_results_prefix": secrets["mpm-s3_results_prefix"],
+            "sagemaker_program": secrets["sagemaker_program"],
+            "sagemaker_submit_directory": secrets["sagemaker_submit_directory"],
+            "s3_bucket": secrets["s3_bucket"],
+            "s3_data_key": secrets["s3_data_key"],
+            "s3_results_prefix": secrets["s3_results_prefix"],
         },
     )
 
