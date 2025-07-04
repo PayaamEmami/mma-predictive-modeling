@@ -26,7 +26,7 @@ def lambda_handler(event, context):
     response = sagemaker.create_training_job(
         TrainingJobName=f"mma-train-job-{timestamp}",
         AlgorithmSpecification={
-            "TrainingImage": "763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-training:1.13.1-gpu-py39-cu116",
+            "TrainingImage": "763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-training:1.13.1-gpu-py39",
             "TrainingInputMode": "File",
         },
         RoleArn=secrets["role_arn"],
