@@ -36,7 +36,7 @@ def lambda_handler(event, context):
             "InstanceCount": 1,
             "VolumeSizeInGB": 30,
         },
-        StoppingCondition={"MaxRuntimeInSeconds": 1800},
+        StoppingCondition={"MaxRuntimeInSeconds": 3600},
         HyperParameters={
             "sagemaker_program": secrets["sagemaker_program"],
             "sagemaker_submit_directory": secrets["sagemaker_submit_directory"],
