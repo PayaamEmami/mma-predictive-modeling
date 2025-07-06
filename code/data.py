@@ -26,6 +26,13 @@ def upload_results_to_s3(local_dir, bucket, s3_prefix):
             s3_key = os.path.join(s3_prefix, relative_path).replace("\\", "/")
             s3.upload_file(local_path, bucket, s3_key)
 
+    # Always re-upload a blank done.json file as a completion signal to trigger events in AWS lambda
+    done_key = os.path.join(s3_prefix, "done.json").replace("\\", "/")
+    with open("done.json", "w") as f:
+        f.write("")
+    s3.upload_file("done.json", bucket, done_key)
+    os.remove("done.json")
+
 
 def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
     """
