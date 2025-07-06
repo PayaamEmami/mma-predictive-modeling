@@ -14,7 +14,7 @@ jobs:
 
       - name: Create code.tar.gz
         run: |
-          tar --exclude='.git' --exclude='.github' -czf code.tar.gz .
+          tar --exclude='.git' --exclude='.github' --warning=no-file-changed -czf code.tar.gz . || true
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
