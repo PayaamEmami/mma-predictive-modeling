@@ -1,0 +1,26 @@
+name: Zip and Upload to S3
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  zip-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create code.tar.gz
+        run: |
+          tar -czf code.tar.gz .
+
+      - name: Upload to S3
+        uses: aws-actions/s3cp@v1
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          source: code.tar.gz
+          dest: s3://${{ secrets.S3_BUCKET_NAME }}/code.tar.gz
+          region: us-west-1
