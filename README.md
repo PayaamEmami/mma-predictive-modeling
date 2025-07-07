@@ -41,6 +41,22 @@ New fight event data is added periodically to keep the model updated. The pipeli
 
 🔒 Currently a solo project – external contributions are not planned at this time.
 
+## Automated Training & Deployment Pipeline
+
+This project includes a fully automated pipeline that handles data ingestion, model training, result generation, and repository updates. It scrapes the latest MMA event data, retrains all models, compares performance, and pushes the updated results to GitHub - all with no manual intervention.
+
+![MMA Predictive Modeling Pipeline](aws/aws-pipeline.png)
+
+**Pipeline Overview:**
+
+1. **EventBridge Rule** triggers every Sunday.
+2. **ECS Task** runs a .NET + Playwright data scraper inside a Docker container.
+3. Scraped data is uploaded to **S3** as a CSV file.
+4. An **S3-triggered Lambda** starts a **SageMaker training job**.
+5. The job runs **Python modeling code** using PyTorch + scikit-learn, and generates metrics and plots.
+6. Results are uploaded to **S3** in a `results/` folder.
+7. Another **Lambda function** detects the results and creates a **GitHub Pull Request** with the updated output.
+
 ## Results
 
 ![Comparison of Model Accuracies](results/model_accuracy_comparison.png)
