@@ -30,7 +30,7 @@ jobs:
           if [ "${{ github.ref_name }}" = "experimental" ]; then
             echo "S3_KEY=experiments/code.tar.gz" >> $GITHUB_ENV
           else
-            echo "S3_KEY=main/code.tar.gz" >> $GITHUB_ENV
+            echo "S3_KEY=code.tar.gz" >> $GITHUB_ENV
           fi
 
       - name: Upload to S3
