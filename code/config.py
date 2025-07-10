@@ -138,13 +138,13 @@ HYPERPARAMETERS = {
         # Model architecture
         "hidden_size": 256,  # Number of units in hidden layer
         # Training hyperparameters common to all
-        "optimizer": "Adam",  # Optimization algorithm
-        "learning_rate": 0.0005,  # Step size for optimizer
+        "optimizer": "SGD",  # Optimization algorithm
+        "learning_rate": 0.01,  # Step size for optimizer
         "weight_decay": 0.01,  # Weight decay for regularization
         "num_epochs": 300,  # Number of training epochs
         "batch_size": 32,  # Batch size for training
         # SGD parameters
-        "momentum": 0.0,  # Momentum factor
+        "momentum": 0.9,  # Momentum factor
         "dampening": 0.0,  # Dampening for momentum
         "nesterov": False,  # Whether to enable Nesterov momentum
         "maximize": False,  # Maximize instead of minimize
@@ -162,13 +162,13 @@ HYPERPARAMETERS = {
         "num_layers": 4,  # Number of transformer layers
         "nhead": 8,  # Number of attention heads
         # Training hyperparameters
-        "optimizer": "Adam",  # Optimization algorithm
-        "learning_rate": 0.0005,  # Step size for optimizer
+        "optimizer": "SGD",  # Optimization algorithm
+        "learning_rate": 0.01,  # Step size for optimizer
         "weight_decay": 0.01,  # Weight decay for regularization
         "num_epochs": 300,  # Number of training epochs
         "batch_size": 32,  # Batch size for training
         # SGD parameters
-        "momentum": 0.0,  # Momentum factor
+        "momentum": 0.9,  # Momentum factor
         "dampening": 0.0,  # Dampening for momentum
         "nesterov": False,  # Whether to enable Nesterov momentum
         "maximize": False,  # Maximize instead of minimize
