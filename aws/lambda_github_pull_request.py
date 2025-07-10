@@ -19,14 +19,16 @@ def get_secret(secret_name, region_name="us-west-1"):
 
 
 def lambda_handler(event, context):
-    secret_name = "mpm-secrets"
+    # Determine the secret name based on the S3 key
     region_name = "us-west-1"
+    s3_key = event["Records"][0]["s3"]["object"]["key"]
+    if s3_key.startswith("experiments/"):
+        secret_name = "mpm-secrets-experimental"
+        github_branch = "experimental"
+    else:
+        secret_name = "mpm-secrets"
+        github_branch = "main"
     secrets = get_secret(secret_name, region_name)
-
-    # GitHub repo config
-    GITHUB_REPO = "PayaamEmami/mma-predictive-modeling"
-    GITHUB_BRANCH = "main"
-    GITHUB_TOKEN = secrets["github_token"]
 
     # S3 config
     S3_BUCKET = secrets["s3_bucket"]
@@ -50,11 +52,13 @@ def lambda_handler(event, context):
             S3.download_file(S3_BUCKET, key, local_path)
 
     # Authenticate with GitHub
+    GITHUB_TOKEN = secrets["github_token"]
+    GITHUB_REPO = "PayaamEmami/mma-predictive-modeling"
     gh = Github(GITHUB_TOKEN)
     repo = gh.get_repo(GITHUB_REPO)
 
-    # Create a new branch from main
-    base = repo.get_branch(GITHUB_BRANCH)
+    # Create a new branch from the target branch
+    base = repo.get_branch(github_branch)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     new_branch = f"s3-results-update-{timestamp}"
     repo.create_git_ref(ref=f"refs/heads/{new_branch}", sha=base.commit.sha)
@@ -88,12 +92,15 @@ def lambda_handler(event, context):
                 )
 
     # Create Pull Request
-    repo.create_pull(
+    pr = repo.create_pull(
         title=f"Automated results update - {timestamp}",
         body="This pull request updates the results/ folder with new outputs from S3.",
         head=new_branch,
-        base=GITHUB_BRANCH,
+        base=github_branch,
     )
 
     shutil.rmtree(tmp_dir)
-    return {"statusCode": 200, "body": f"Pull request created for branch: {new_branch}"}
+    return {
+        "statusCode": 200,
+        "body": f"Pull request created for branch: {new_branch}, PR URL: {pr.html_url}",
+    }

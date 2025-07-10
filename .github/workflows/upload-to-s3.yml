@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - experimental
 
 jobs:
   zip-and-upload:
@@ -23,6 +24,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
 
+      - name: Set S3 key based on branch
+        id: s3key
+        run: |
+          if [ "${{ github.ref_name }}" = "experimental" ]; then
+            echo "S3_KEY=experiments/code.tar.gz" >> $GITHUB_ENV
+          else
+            echo "S3_KEY=main/code.tar.gz" >> $GITHUB_ENV
+          fi
+
       - name: Upload to S3
         run: |
-          aws s3 cp code.tar.gz s3://${{ secrets.S3_BUCKET_NAME }}/code.tar.gz
+          aws s3 cp code.tar.gz s3://${{ secrets.S3_BUCKET_NAME }}/$S3_KEY

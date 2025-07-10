@@ -49,7 +49,7 @@ This project includes a fully automated pipeline that handles data ingestion, mo
 6. Results are uploaded to **S3** in a `results/` folder.
 7. Another **Lambda function** detects the results and creates a **GitHub Pull Request** with the updated output.
 
-![MMA Predictive Modeling Pipeline](aws/aws-pipeline.png)
+![MMA Predictive Modeling Pipeline](aws/images/aws-pipeline.png)
 
 ## Results
 

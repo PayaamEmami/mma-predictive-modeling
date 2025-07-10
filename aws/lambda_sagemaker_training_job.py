@@ -19,12 +19,20 @@ def lambda_handler(event, context):
     sagemaker = boto3.client("sagemaker")
     timestamp = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
 
-    secret_name = "mpm-secrets"
+    # Determine the secret name based on the S3 key
     region_name = "us-west-1"
+    s3_key = event["Records"][0]["s3"]["object"]["key"]
+    if s3_key.startswith("experiments/"):
+        secret_name = "mpm-secrets-experimental"
+    else:
+        secret_name = "mpm-secrets"
     secrets = get_secret(secret_name, region_name)
 
+    job_name = f"mma-train-job-{'experimental' if secret_name == 'mpm-secrets-experimental' else 'main'}-{timestamp}"
+
+    # Create the training job
     response = sagemaker.create_training_job(
-        TrainingJobName=f"mma-train-job-{timestamp}",
+        TrainingJobName=job_name,
         AlgorithmSpecification={
             "TrainingImage": "763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-training:1.13.1-gpu-py39",
             "TrainingInputMode": "File",
