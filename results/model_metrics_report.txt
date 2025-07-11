@@ -104,31 +104,31 @@ weighted avg       0.54      0.54      0.54      1567
 
 
 Learning Curve Metrics for FCNN:
-  Final Training Accuracy: 0.6803 (+/- 0.0051)
-  Final Test Accuracy: 0.6158 (+/- 0.0128)
-  Learning Rate: -0.0948
+  Final Training Accuracy: 0.6493 (+/- 0.0054)
+  Final Test Accuracy: 0.5967 (+/- 0.0074)
+  Learning Rate: -0.0810
 Classification Report for FCNN:
               precision    recall  f1-score   support
 
-           1       0.61      0.65      0.63       791
-           2       0.62      0.58      0.60       776
+           1       0.59      0.69      0.63       791
+           2       0.61      0.50      0.55       776
 
-    accuracy                           0.62      1567
-   macro avg       0.62      0.62      0.62      1567
-weighted avg       0.62      0.62      0.62      1567
+    accuracy                           0.60      1567
+   macro avg       0.60      0.60      0.59      1567
+weighted avg       0.60      0.60      0.59      1567
 
 
 Learning Curve Metrics for Transformer:
-  Final Training Accuracy: 0.6378 (+/- 0.0045)
-  Final Test Accuracy: 0.6280 (+/- 0.0083)
-  Learning Rate: -0.0154
+  Final Training Accuracy: 0.5095 (+/- 0.0014)
+  Final Test Accuracy: 0.5048 (+/- 0.0058)
+  Learning Rate: -0.0092
 Classification Report for Transformer:
               precision    recall  f1-score   support
 
-           1       0.63      0.63      0.63       791
-           2       0.62      0.63      0.63       776
+           1       0.50      1.00      0.67       791
+           2       0.00      0.00      0.00       776
 
-    accuracy                           0.63      1567
-   macro avg       0.63      0.63      0.63      1567
-weighted avg       0.63      0.63      0.63      1567
+    accuracy                           0.50      1567
+   macro avg       0.25      0.50      0.34      1567
+weighted avg       0.25      0.50      0.34      1567
 
