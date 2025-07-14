@@ -18,6 +18,7 @@ from preprocessing import (
 
 
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
+    print("Uploading results to S3...")
     s3 = boto3.client("s3")
     for root, _, files in os.walk(local_dir):
         for file in files:
@@ -31,6 +32,7 @@ def upload_results_to_s3(local_dir, bucket, s3_prefix):
     with open("done.json", "w") as f:
         f.write("")
     s3.upload_file("done.json", bucket, done_key)
+    print(f"Results uploaded to s3://{bucket}/{s3_prefix}")
 
 
 def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
@@ -214,19 +216,6 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
 
         # Apply preprocessing
         X_processed = preprocessor.fit_transform(X)
-
-        # Convert to dataframe with feature names
-        feature_names = preprocessor.get_feature_names_out()
-        X_processed_df = pd.DataFrame(X_processed, columns=feature_names)
-
-        # Combine features and target
-        y_df = pd.Series(y, name="Winner")
-        final_df = pd.concat([X_processed_df, y_df], axis=1)
-
-        # Upload results to S3
-        print("Uploading results to S3...")
-        upload_results_to_s3(RESULTS_PATH, s3_bucket, s3_results_prefix)
-        print(f"Results uploaded to s3://{s3_bucket}/{s3_results_prefix}")
 
         print(f"Fight data: {len(fight_data)} records loaded.")
         print(
