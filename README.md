@@ -8,8 +8,6 @@ The project is implemented in Python, utilizing both Scikit-learn and PyTorch fo
 
 MMA fight prediction is, in theory, a well-posed input-output problem: given data, output a prediction (e.g., Fighter A wins or Fighter B wins). Any function, even a random one, can technically provide a prediction, so the problem is not mathematically undecidable.
 
-Technically, MMA fight prediction is a probabilistic classification problem under noisy and incomplete information. While finding the optimal predictor may be NP-hard or worse, it is not undecidable. The problem is best understood through the lens of statistical learning theory (how well we can approximate a solution with limited, noisy data) rather than computability theory (the limits of what computers can compute).
-
 However, in practice, accurate fight prediction is extremely challenging. Real-world outcomes depend on human behavior (which is non-deterministic and chaotic), incomplete data (such as injuries, mindset, or training changes), and inherent randomness (like lucky punches or judging errors). This introduces uncertainty and irreducible complexity, making perfect prediction impossible.
 
 MMA fight prediction is solvable in theory (a model can always make a prediction), but it is practically intractable to solve perfectly. No model can guarantee perfect accuracy due to real-world randomness and incomplete information.
@@ -63,3 +61,4 @@ This project includes a fully automated pipeline that handles data ingestion, mo
 ![Learning Curve for Decision Tree](results/learning_curve_Decision_Tree.png)
 ![Learning Curve for Fully Connected Neural Network](results/learning_curve_FCNN.png)
 ![Learning Curve for Transformer](results/learning_curve_Transformer.png)
+
