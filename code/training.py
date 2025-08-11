@@ -2,6 +2,9 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+import pickle
+import boto3
+import os
 from config import HYPERPARAMETERS
 
 
@@ -95,3 +98,101 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
         model.fit(X_train, y_train)
 
     return model
+
+
+def save_models(models, input_size, s3_bucket, models_prefix="models/"):
+    """
+    Save trained models to S3 for inference.
+
+    Args:
+        models: Dictionary of trained models
+        input_size: Input feature size
+        s3_bucket: S3 bucket name
+        models_prefix: S3 prefix for model files
+    """
+    s3_client = boto3.client("s3")
+
+    for name, model in models.items():
+        try:
+            if isinstance(model, torch.nn.Module):
+                # Save PyTorch models with metadata
+                model_data = {
+                    "state_dict": model.state_dict(),
+                    "input_size": input_size,
+                }
+
+                if name == "FCNN":
+                    model_data["hidden_size"] = HYPERPARAMETERS[name].get(
+                        "hidden_size", 64
+                    )
+                elif name == "Transformer":
+                    model_data["embedding_dim"] = HYPERPARAMETERS[name].get(
+                        "embedding_dim", 64
+                    )
+                    model_data["num_layers"] = HYPERPARAMETERS[name].get(
+                        "num_layers", 2
+                    )
+                    model_data["nhead"] = HYPERPARAMETERS[name].get("nhead", 8)
+
+                # Save to local file first
+                model_filename = f"{name}.pth"
+                torch.save(model_data, model_filename)
+
+                # Upload to S3
+                s3_key = f"{models_prefix}{model_filename}"
+                s3_client.upload_file(model_filename, s3_bucket, s3_key)
+
+                # Clean up local file
+                os.remove(model_filename)
+
+                print(f"Saved PyTorch model {name} to s3://{s3_bucket}/{s3_key}")
+
+            else:
+                # Save scikit-learn models
+                model_filename = f"{name.replace(' ', '_')}.pkl"
+
+                # Save to local file first
+                with open(model_filename, "wb") as f:
+                    pickle.dump(model, f)
+
+                # Upload to S3
+                s3_key = f"{models_prefix}{model_filename}"
+                s3_client.upload_file(model_filename, s3_bucket, s3_key)
+
+                # Clean up local file
+                os.remove(model_filename)
+
+                print(f"Saved sklearn model {name} to s3://{s3_bucket}/{s3_key}")
+
+        except Exception as e:
+            print(f"Failed to save model {name}: {e}")
+
+
+def save_label_encoder(label_encoder, s3_bucket, models_prefix="models/"):
+    """
+    Save label encoder to S3.
+
+    Args:
+        label_encoder: Trained label encoder
+        s3_bucket: S3 bucket name
+        models_prefix: S3 prefix for model files
+    """
+    try:
+        s3_client = boto3.client("s3")
+
+        # Save to local file first
+        encoder_filename = "label_encoder.pkl"
+        with open(encoder_filename, "wb") as f:
+            pickle.dump(label_encoder, f)
+
+        # Upload to S3
+        s3_key = f"{models_prefix}{encoder_filename}"
+        s3_client.upload_file(encoder_filename, s3_bucket, s3_key)
+
+        # Clean up local file
+        os.remove(encoder_filename)
+
+        print(f"Saved label encoder to s3://{s3_bucket}/{s3_key}")
+
+    except Exception as e:
+        print(f"Failed to save label encoder: {e}")

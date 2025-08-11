@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from data import load_fight_data, upload_results_to_s3
 from models import initialize_models
 from evaluation import evaluate_models
-from training import train_model
+from training import train_model, save_models, save_label_encoder
 from config import DEVICE
 
 
@@ -45,6 +45,10 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
     evaluate_models(
         trained_models, X_train, X_test, y_train, y_test, label_encoder, DEVICE
     )
+
+    # Save trained models and label encoder to S3
+    save_models(trained_models, input_size, s3_bucket)
+    save_label_encoder(label_encoder, s3_bucket)
 
     # Upload results to S3
     upload_results_to_s3("results", s3_bucket, s3_results_prefix)

@@ -28,7 +28,7 @@ def lambda_handler(event, context):
         secret_name = "mpm-secrets"
     secrets = get_secret(secret_name, region_name)
 
-    job_name = f"mma-train-job-{'experimental' if secret_name == 'mpm-secrets-experimental' else 'main'}-{timestamp}"
+    job_name = f"mpm-train-job-{'experimental' if secret_name == 'mpm-secrets-experimental' else 'main'}-{timestamp}"
 
     # Create the training job
     response = sagemaker.create_training_job(
