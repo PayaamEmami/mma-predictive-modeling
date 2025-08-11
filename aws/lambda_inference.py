@@ -38,7 +38,7 @@ def lambda_handler(event, context):
 
     # Create unique training job name
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    training_job_name = f"mma-inference-{timestamp}"
+    training_job_name = f"mpm-inference-{timestamp}"
 
     # Define training job parameters
     training_params = {
