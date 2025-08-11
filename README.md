@@ -10,7 +10,7 @@ MMA fight prediction is, in theory, a well-posed input-output problem: given dat
 
 This comprehensive machine learning system employs a diverse array of algorithms and sophisticated data processing techniques to analyze MMA fight outcomes. The project combines traditional statistical methods with modern deep learning approaches to create robust predictive models.
 
-#### 🧠 **Machine Learning Models**
+### 🧠 **Machine Learning Models**
 
 The system implements **9 distinct algorithms** across multiple paradigms for comprehensive predictive analysis:
 
@@ -20,7 +20,7 @@ The system implements **9 distinct algorithms** across multiple paradigms for co
 
 Each model contributes unique strengths to the ensemble, from the interpretability of decision trees to the pattern recognition capabilities of neural networks.
 
-#### 📊 **Data Processing & Feature Engineering**
+### 📊 **Data Processing & Feature Engineering**
 
 The data pipeline transforms raw fight statistics into meaningful predictive features through:
 
@@ -29,7 +29,7 @@ The data pipeline transforms raw fight statistics into meaningful predictive fea
 - **Intelligent preprocessing:** Automated handling of missing values, feature normalization, and outlier detection to ensure robust model training
 - **Temporal analysis:** Integration of career progression trends and recent performance patterns
 
-#### 🎯 **Training & Model Evaluation**
+### 🎯 **Training & Model Evaluation**
 
 The training framework ensures rigorous model development and validation:
 
@@ -43,11 +43,9 @@ The training framework ensures rigorous model development and validation:
 
 This project features a complete end-to-end automated machine learning pipeline that handles both **model training** and **inference** for MMA fight prediction. The system operates on AWS infrastructure and provides continuous updates with minimal manual intervention.
 
-### Pipeline Architecture
-
 The system consists of two main automated workflows:
 
-#### 🔄 **Training Pipeline** (Weekly - Sundays)
+### 🔄 **Training Pipeline** (Weekly - Sundays)
 
 Maintains and updates the machine learning models with the latest fight data:
 
@@ -59,9 +57,9 @@ Maintains and updates the machine learning models with the latest fight data:
 6. Model metrics, learning curves, and updated models are saved to **S3**
 7. **Lambda function** creates a **GitHub Pull Request** with new results
 
-#### 🎯 **Inference Pipeline** (Weekly - Fridays)
+### 🎯 **Inference Pipeline** (Weekly - Fridays)
 
-Generates predictions for upcoming UFC fights:
+Generates predictions for upcoming MMA fights:
 
 1. **EventBridge Rule** triggers every Friday
 2. **ECS Task** scrapes upcoming fight data in "prediction mode"
@@ -69,7 +67,7 @@ Generates predictions for upcoming UFC fights:
 4. **S3-triggered Lambda** starts **SageMaker inference job**
 5. **SageMaker** loads trained models and generates ensemble predictions
 6. Predictions with confidence scores are saved to **S3**
-7. Results are automatically displayed on the [project website](https://payaam.dev/projects/mma-predictive-modeling)
+7. Results are automatically displayed on the project website
 
 ### Key Features
 
@@ -91,7 +89,7 @@ This interactive results page showcases both aspects of the machine learning pip
 - **Learning curves** for all 9 machine learning models showing training progression
 - **Model performance comparisons** with accuracy metrics and visual analytics
 - **Interactive plot viewer** for detailed examination of model behavior
-- Real-time updates reflecting the latest model training cycles
+- **Real-time updates** reflecting the latest model training cycles
 
 ### 🥊 **Live Fight Predictions**
 
