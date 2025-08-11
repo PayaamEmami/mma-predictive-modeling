@@ -1,6 +1,6 @@
 # MMA Predictive Modeling
 
-MMA Predictive Modeling (MPM) is an advanced machine learning system that predicts Mixed Martial Arts (MMA) fight outcomes using ensemble methods and comprehensive statistical analysis. This project combines classical machine learning algorithms, deep neural networks, and modern ensemble techniques to analyze fighter performance data and generate intelligent predictions for upcoming MMA events.
+MMA Predictive Modeling (MPM) is an advanced machine learning system that predicts Mixed Martial Arts (MMA) fight outcomes using multi-model predictions and comprehensive statistical analysis. This project combines classical machine learning algorithms, deep neural networks, and multiple algorithmic approaches to analyze fighter performance data and generate intelligent predictions for upcoming MMA events.
 
 Built with Python using frameworks including scikit-learn and PyTorch, the system features automated data processing, model training, and real-time inference capabilities. The architecture maintains all fight data in structured CSV format for efficient updates and management, while generating comprehensive visualizations including model comparison charts, learning curves, and detailed performance analytics.
 
@@ -18,7 +18,7 @@ The system implements **9 distinct algorithms** across multiple paradigms for co
 - **Neural Networks:** Fully Connected Neural Network (FCNN), Transformers
 - **Ensemble Methods:** Gradient Boosting, Random Forest
 
-Each model contributes unique strengths to the ensemble, from the interpretability of decision trees to the pattern recognition capabilities of neural networks.
+Each model contributes unique strengths to the multi-model system, from the interpretability of decision trees to the pattern recognition capabilities of neural networks.
 
 ### 📊 **Data Processing & Feature Engineering**
 
@@ -65,13 +65,13 @@ Generates predictions for upcoming MMA fights:
 2. **ECS Task** scrapes upcoming fight data in "prediction mode"
 3. Fighter matchup data is uploaded to **S3** as JSON
 4. **S3-triggered Lambda** starts **SageMaker inference job**
-5. **SageMaker** loads trained models and generates ensemble predictions
+5. **SageMaker** loads trained models and generates combined predictions
 6. Predictions with confidence scores are saved to **S3**
 7. Results are automatically displayed on the project website
 
 ### Key Features
 
-- **Multi-model ensemble**: Predictions from 9 different ML algorithms
+- **Multi-model predictions**: Predictions from 9 different ML algorithms
 - **Confidence scoring**: Each prediction includes model agreement and confidence levels
 - **Automated data ingestion**: Continuous scraping of latest MMA fight data
 - **Real-time deployment**: Predictions automatically published to live website
@@ -93,7 +93,7 @@ This interactive results page showcases both aspects of the machine learning pip
 
 ### 🥊 **Live Fight Predictions**
 
-- **Current predictions** for upcoming MMA events with ensemble model consensus
+- **Current predictions** for upcoming MMA events with multi-model consensus
 - **Confidence scores** and individual model breakdowns for each fight
 - **Fighter matchup analysis** displaying predicted winners and probability distributions
 - **Multi-model voting** showing agreement levels across different algorithms
