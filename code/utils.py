@@ -43,7 +43,7 @@ def plot_model_comparisons(performance_df, output_path):
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(output_path, "model_accuracy_comparison.png"))
+    plt.savefig(os.path.join(output_path, "Model_Performance_Comparison.png"))
     plt.close()
 
 
