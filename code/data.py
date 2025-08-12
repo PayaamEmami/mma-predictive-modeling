@@ -250,28 +250,31 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
 
             # Get stats with Fighter1_ prefix
             for col in latest_f1.index:
-                if col.startswith("Fighter1_") and col.endswith(
-                    (
-                        "_AvgFightTime",
-                        "_TimeSinceLastFight",
-                        "_FinishRate",
-                        "_Wins",
-                        "_Losses",
-                        "_Draws",
-                        "_NoContests",
-                        "_AvgControlTime",
-                        "_AvgSubmissionAttempts",
-                        "_AvgLegStrikes",
-                        "_AvgClinchStrikes",
-                        "_AvgStrikesLanded",
-                        "_AvgStrikesAttempted",
-                        "_StrikeAccuracy",
-                        "_AvgTakedownsLanded",
-                        "_AvgTakedownsAttempted",
-                        "_AvgReversals",
-                        "_Height_cm",
-                        "_Reach_cm",
-                        "_Age",
+                if col.startswith("Fighter1_") and (
+                    col.endswith(
+                        (
+                            "_AvgFightTime",
+                            "_TimeSinceLastFight",
+                            "_FinishRate",
+                            "_Wins",
+                            "_Losses",
+                            "_Draws",
+                            "_NoContests",
+                            "_AvgControlTime",
+                            "_AvgSubmissionAttempts",
+                            "_AvgLegStrikes",
+                            "_AvgClinchStrikes",
+                            "_AvgStrikesLanded",
+                            "_AvgStrikesAttempted",
+                            "_StrikeAccuracy",
+                            "_AvgTakedownsLanded",
+                            "_AvgTakedownsAttempted",
+                            "_AvgReversals",
+                            "_Height_cm",
+                            "_Reach_cm",
+                            "_Age",
+                            "_Stance",
+                        )
                     )
                 ):
                     latest_stats[col] = latest_f1[col]
@@ -284,28 +287,31 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
 
             # Get stats with Fighter2_ prefix (keep original prefixes)
             for col in latest_f2.index:
-                if col.startswith("Fighter2_") and col.endswith(
-                    (
-                        "_AvgFightTime",
-                        "_TimeSinceLastFight",
-                        "_FinishRate",
-                        "_Wins",
-                        "_Losses",
-                        "_Draws",
-                        "_NoContests",
-                        "_AvgControlTime",
-                        "_AvgSubmissionAttempts",
-                        "_AvgLegStrikes",
-                        "_AvgClinchStrikes",
-                        "_AvgStrikesLanded",
-                        "_AvgStrikesAttempted",
-                        "_StrikeAccuracy",
-                        "_AvgTakedownsLanded",
-                        "_AvgTakedownsAttempted",
-                        "_AvgReversals",
-                        "_Height_cm",
-                        "_Reach_cm",
-                        "_Age",
+                if col.startswith("Fighter2_") and (
+                    col.endswith(
+                        (
+                            "_AvgFightTime",
+                            "_TimeSinceLastFight",
+                            "_FinishRate",
+                            "_Wins",
+                            "_Losses",
+                            "_Draws",
+                            "_NoContests",
+                            "_AvgControlTime",
+                            "_AvgSubmissionAttempts",
+                            "_AvgLegStrikes",
+                            "_AvgClinchStrikes",
+                            "_AvgStrikesLanded",
+                            "_AvgStrikesAttempted",
+                            "_StrikeAccuracy",
+                            "_AvgTakedownsLanded",
+                            "_AvgTakedownsAttempted",
+                            "_AvgReversals",
+                            "_Height_cm",
+                            "_Reach_cm",
+                            "_Age",
+                            "_Stance",
+                        )
                     )
                 ):
                     latest_stats[col] = latest_f2[col]
@@ -731,59 +737,145 @@ def preprocess_features(
         else:
             print(f"No URL provided for Fighter2: {fighter2_name} - skipping stats")
 
-        # Combine into feature vector matching training format
-        feature_vector = [
-            # Fighter1 stats
-            fighter1_stats.get("Fighter1_Height_cm", 177),
-            fighter1_stats.get("Fighter1_Reach_cm", 183),
-            fighter1_stats.get("Fighter1_Age", 30),
-            fighter1_stats.get("Fighter1_AvgFightTime", 0),
-            fighter1_stats.get("Fighter1_TimeSinceLastFight", 0),
-            fighter1_stats.get("Fighter1_FinishRate", 0),
-            fighter1_stats.get("Fighter1_Wins", 0),
-            fighter1_stats.get("Fighter1_Losses", 0),
-            fighter1_stats.get("Fighter1_AvgControlTime", 0),
-            fighter1_stats.get("Fighter1_AvgSubmissionAttempts", 0),
-            fighter1_stats.get("Fighter1_AvgLegStrikes", 0),
-            fighter1_stats.get("Fighter1_AvgClinchStrikes", 0),
-            fighter1_stats.get("Fighter1_AvgStrikesLanded", 0),
-            fighter1_stats.get("Fighter1_AvgStrikesAttempted", 0),
-            fighter1_stats.get("Fighter1_StrikeAccuracy", 0),
-            fighter1_stats.get("Fighter1_AvgTakedownsLanded", 0),
-            fighter1_stats.get("Fighter1_AvgTakedownsAttempted", 0),
-            fighter1_stats.get("Fighter1_AvgReversals", 0),
-            # Fighter2 stats (keep Fighter2_ prefix)
-            fighter2_stats.get("Fighter2_Height_cm", 177),
-            fighter2_stats.get("Fighter2_Reach_cm", 183),
-            fighter2_stats.get("Fighter2_Age", 30),
-            fighter2_stats.get("Fighter2_AvgFightTime", 0),
-            fighter2_stats.get("Fighter2_TimeSinceLastFight", 0),
-            fighter2_stats.get("Fighter2_FinishRate", 0),
-            fighter2_stats.get("Fighter2_Wins", 0),
-            fighter2_stats.get("Fighter2_Losses", 0),
-            fighter2_stats.get("Fighter2_AvgControlTime", 0),
-            fighter2_stats.get("Fighter2_AvgSubmissionAttempts", 0),
-            fighter2_stats.get("Fighter2_AvgLegStrikes", 0),
-            fighter2_stats.get("Fighter2_AvgClinchStrikes", 0),
-            fighter2_stats.get("Fighter2_AvgStrikesLanded", 0),
-            fighter2_stats.get("Fighter2_AvgStrikesAttempted", 0),
-            fighter2_stats.get("Fighter2_StrikeAccuracy", 0),
-            fighter2_stats.get("Fighter2_AvgTakedownsLanded", 0),
-            fighter2_stats.get("Fighter2_AvgTakedownsAttempted", 0),
-            fighter2_stats.get("Fighter2_AvgReversals", 0),
+        # Extract stance information (defaulting to Orthodox if not available)
+        fighter1_stance = fighter1_stats.get("Fighter1_Stance", "Orthodox")
+        fighter2_stance = fighter2_stats.get("Fighter2_Stance", "Orthodox")
+
+        # Build feature dictionary matching training format
+        fight_features = {
+            # Fighter1 numerical features
+            "Fighter1_Height_cm": fighter1_stats.get("Fighter1_Height_cm", 177),
+            "Fighter1_Reach_cm": fighter1_stats.get("Fighter1_Reach_cm", 183),
+            "Fighter1_Age": fighter1_stats.get("Fighter1_Age", 30),
+            "Fighter1_AvgFightTime": fighter1_stats.get("Fighter1_AvgFightTime", 0),
+            "Fighter1_TimeSinceLastFight": fighter1_stats.get(
+                "Fighter1_TimeSinceLastFight", 0
+            ),
+            "Fighter1_FinishRate": fighter1_stats.get("Fighter1_FinishRate", 0),
+            "Fighter1_Wins": fighter1_stats.get("Fighter1_Wins", 0),
+            "Fighter1_Losses": fighter1_stats.get("Fighter1_Losses", 0),
+            "Fighter1_AvgControlTime": fighter1_stats.get("Fighter1_AvgControlTime", 0),
+            "Fighter1_AvgSubmissionAttempts": fighter1_stats.get(
+                "Fighter1_AvgSubmissionAttempts", 0
+            ),
+            "Fighter1_AvgLegStrikes": fighter1_stats.get("Fighter1_AvgLegStrikes", 0),
+            "Fighter1_AvgClinchStrikes": fighter1_stats.get(
+                "Fighter1_AvgClinchStrikes", 0
+            ),
+            "Fighter1_AvgStrikesLanded": fighter1_stats.get(
+                "Fighter1_AvgStrikesLanded", 0
+            ),
+            "Fighter1_AvgStrikesAttempted": fighter1_stats.get(
+                "Fighter1_AvgStrikesAttempted", 0
+            ),
+            "Fighter1_StrikeAccuracy": fighter1_stats.get("Fighter1_StrikeAccuracy", 0),
+            "Fighter1_AvgTakedownsLanded": fighter1_stats.get(
+                "Fighter1_AvgTakedownsLanded", 0
+            ),
+            "Fighter1_AvgTakedownsAttempted": fighter1_stats.get(
+                "Fighter1_AvgTakedownsAttempted", 0
+            ),
+            "Fighter1_AvgReversals": fighter1_stats.get("Fighter1_AvgReversals", 0),
+            # Fighter2 numerical features
+            "Fighter2_Height_cm": fighter2_stats.get("Fighter2_Height_cm", 177),
+            "Fighter2_Reach_cm": fighter2_stats.get("Fighter2_Reach_cm", 183),
+            "Fighter2_Age": fighter2_stats.get("Fighter2_Age", 30),
+            "Fighter2_AvgFightTime": fighter2_stats.get("Fighter2_AvgFightTime", 0),
+            "Fighter2_TimeSinceLastFight": fighter2_stats.get(
+                "Fighter2_TimeSinceLastFight", 0
+            ),
+            "Fighter2_FinishRate": fighter2_stats.get("Fighter2_FinishRate", 0),
+            "Fighter2_Wins": fighter2_stats.get("Fighter2_Wins", 0),
+            "Fighter2_Losses": fighter2_stats.get("Fighter2_Losses", 0),
+            "Fighter2_AvgControlTime": fighter2_stats.get("Fighter2_AvgControlTime", 0),
+            "Fighter2_AvgSubmissionAttempts": fighter2_stats.get(
+                "Fighter2_AvgSubmissionAttempts", 0
+            ),
+            "Fighter2_AvgLegStrikes": fighter2_stats.get("Fighter2_AvgLegStrikes", 0),
+            "Fighter2_AvgClinchStrikes": fighter2_stats.get(
+                "Fighter2_AvgClinchStrikes", 0
+            ),
+            "Fighter2_AvgStrikesLanded": fighter2_stats.get(
+                "Fighter2_AvgStrikesLanded", 0
+            ),
+            "Fighter2_AvgStrikesAttempted": fighter2_stats.get(
+                "Fighter2_AvgStrikesAttempted", 0
+            ),
+            "Fighter2_StrikeAccuracy": fighter2_stats.get("Fighter2_StrikeAccuracy", 0),
+            "Fighter2_AvgTakedownsLanded": fighter2_stats.get(
+                "Fighter2_AvgTakedownsLanded", 0
+            ),
+            "Fighter2_AvgTakedownsAttempted": fighter2_stats.get(
+                "Fighter2_AvgTakedownsAttempted", 0
+            ),
+            "Fighter2_AvgReversals": fighter2_stats.get("Fighter2_AvgReversals", 0),
+            # Categorical features
+            "Fighter1_Stance": fighter1_stance,
+            "Fighter2_Stance": fighter2_stance,
+        }
+
+        processed_features.append(fight_features)
+
+    # Convert to DataFrame matching training format
+    features_df = pd.DataFrame(processed_features)
+
+    # Define feature columns exactly as in training
+    numerical_columns = [
+        "Fighter1_Height_cm",
+        "Fighter1_Reach_cm",
+        "Fighter1_Age",
+        "Fighter1_AvgFightTime",
+        "Fighter1_TimeSinceLastFight",
+        "Fighter1_FinishRate",
+        "Fighter1_Wins",
+        "Fighter1_Losses",
+        "Fighter1_AvgControlTime",
+        "Fighter1_AvgSubmissionAttempts",
+        "Fighter1_AvgLegStrikes",
+        "Fighter1_AvgClinchStrikes",
+        "Fighter1_AvgStrikesLanded",
+        "Fighter1_AvgStrikesAttempted",
+        "Fighter1_StrikeAccuracy",
+        "Fighter1_AvgTakedownsLanded",
+        "Fighter1_AvgTakedownsAttempted",
+        "Fighter1_AvgReversals",
+        "Fighter2_Height_cm",
+        "Fighter2_Reach_cm",
+        "Fighter2_Age",
+        "Fighter2_AvgFightTime",
+        "Fighter2_TimeSinceLastFight",
+        "Fighter2_FinishRate",
+        "Fighter2_Wins",
+        "Fighter2_Losses",
+        "Fighter2_AvgControlTime",
+        "Fighter2_AvgSubmissionAttempts",
+        "Fighter2_AvgLegStrikes",
+        "Fighter2_AvgClinchStrikes",
+        "Fighter2_AvgStrikesLanded",
+        "Fighter2_AvgStrikesAttempted",
+        "Fighter2_StrikeAccuracy",
+        "Fighter2_AvgTakedownsLanded",
+        "Fighter2_AvgTakedownsAttempted",
+        "Fighter2_AvgReversals",
+    ]
+
+    categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+
+    # Create preprocessing pipelines exactly as in training
+    numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
+    categorical_pipeline = Pipeline(
+        steps=[("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))]
+    )
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", numerical_pipeline, numerical_columns),
+            ("cat", categorical_pipeline, categorical_columns),
         ]
+    )
 
-        processed_features.append(feature_vector)
+    # Apply the same preprocessing as training
+    features_processed = preprocessor.fit_transform(features_df)
 
-    # Convert to numpy array and apply basic normalization
-    features_array = np.array(processed_features)
-
-    means = np.mean(features_array, axis=0)
-    stds = np.std(features_array, axis=0)
-
-    # Avoid division by zero
-    stds[stds == 0] = 1
-
-    features_scaled = (features_array - means) / stds
-
-    return features_scaled
+    return features_processed
