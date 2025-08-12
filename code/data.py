@@ -234,9 +234,9 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
     Returns:
         dict: Latest statistics for the fighter, with proper Fighter1/Fighter2 prefixes
     """
-    # Find all fights involving this fighter by URL
-    fighter1_fights = fight_data[fight_data["Fighter1_URL"] == fighter_url]
-    fighter2_fights = fight_data[fight_data["Fighter2_URL"] == fighter_url]
+    # Find all fights involving this fighter by URL (stored in Fighter1_ID/Fighter2_ID)
+    fighter1_fights = fight_data[fight_data["Fighter1_ID"] == fighter_url]
+    fighter2_fights = fight_data[fight_data["Fighter2_ID"] == fighter_url]
 
     # Get the most recent fight data
     latest_stats = {}
