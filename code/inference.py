@@ -11,7 +11,7 @@ import torch
 import argparse
 import boto3
 from typing import Dict, Any
-from io import StringIO
+from io import BytesIO
 from models import FCNN, Transformer
 from config import DEVICE
 from data import preprocess_features
@@ -62,7 +62,7 @@ class ModelInference:
                         Bucket=self.s3_bucket, Key=model_key
                     )
                     model_data = torch.load(
-                        StringIO(obj["Body"].read().decode()), map_location=DEVICE
+                        BytesIO(obj["Body"].read()), map_location=DEVICE
                     )
 
                     if model_name == "FCNN":
