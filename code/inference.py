@@ -1,8 +1,3 @@
-"""
-Model inference module for predicting upcoming fight outcomes.
-Loads trained models and generates predictions for upcoming fights.
-"""
-
 import pickle
 import json
 import numpy as np

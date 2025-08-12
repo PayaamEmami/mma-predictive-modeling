@@ -861,10 +861,22 @@ def preprocess_features(
 
     categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
 
+    # All possible stance categories to ensure consistent one-hot encoding
+    stance_categories = ["Orthodox", "Southpaw", "Switch", "Open Stance"]
+
     # Create preprocessing pipelines exactly as in training
     numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
     categorical_pipeline = Pipeline(
-        steps=[("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))]
+        steps=[
+            (
+                "onehot",
+                OneHotEncoder(
+                    categories=[stance_categories, stance_categories],
+                    handle_unknown="ignore",
+                    sparse_output=False,
+                ),
+            )
+        ]
     )
 
     # Combine preprocessing steps

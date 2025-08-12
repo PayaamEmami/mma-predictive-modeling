@@ -5,7 +5,7 @@ import torch
 from sklearn.metrics import classification_report, accuracy_score
 
 from config import RESULTS_PATH
-from utils import plot_model_comparisons, plot_learning_curve
+from plots import plot_model_comparisons, plot_learning_curve
 
 
 def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
@@ -71,7 +71,8 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
             "Final Test Accuracy": final_test_accuracy,
             "Train Std": train_std,
             "Validation Std": val_std,
-            "Learning Rate": (final_test_accuracy - final_train_accuracy) / final_train_accuracy,
+            "Learning Rate": (final_test_accuracy - final_train_accuracy)
+            / final_train_accuracy,
         }
 
         # Prepare learning curve metrics string
