@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import numpy as np
 
 
 def parse_height(height_str):
@@ -266,89 +267,419 @@ def compute_historical_stats(fight_data):
     return fight_data
 
 
-def preprocess_features(features):
+def preprocess_features(
+    upcoming_fights_data, historical_fight_data_path="fight_events.csv"
+):
     """
-    Preprocess features for inference.
-    This function applies the same normalization/scaling that was used during training.
+    Preprocess features for inference by computing historical statistics.
+
+    This function replicates the same preprocessing pipeline used in training:
+    1. Loads historical fight data
+    2. Processes fighter statistics and fight metrics
+    3. Calculates historical performance metrics up to current date
+    4. Extracts features for upcoming fights
+    5. Applies the same feature engineering as training
+
+    Args:
+        upcoming_fights_data: DataFrame or dict with upcoming fight matchups
+        historical_fight_data_path: Path to historical fight data
+
+    Returns:
+        numpy.array: Processed feature matrix ready for model prediction
     """
-    import pandas as pd
-    import numpy as np
-    from sklearn.preprocessing import StandardScaler
-    import joblib
     import boto3
     import tempfile
     import os
+    from datetime import datetime
 
-    # If features is a list/array, convert to DataFrame
-    if not isinstance(features, pd.DataFrame):
-        # Assume it's a single sample - convert to DataFrame
-        feature_names = [
-            "Fighter1_Height_cm",
-            "Fighter1_Reach_cm",
-            "Fighter1_Age",
-            "Fighter2_Height_cm",
-            "Fighter2_Reach_cm",
-            "Fighter2_Age",
-            "Fighter1_AvgFightTime",
-            "Fighter1_TimeSinceLastFight",
-            "Fighter1_FinishRate",
-            "Fighter1_Wins",
-            "Fighter1_Losses",
-            "Fighter1_Draws",
-            "Fighter1_NoContests",
-            "Fighter1_AvgControlTime",
-            "Fighter1_AvgSubmissionAttempts",
-            "Fighter1_AvgLegStrikes",
-            "Fighter1_AvgClinchStrikes",
-            "Fighter1_AvgStrikesLanded",
-            "Fighter1_AvgStrikesAttempted",
-            "Fighter1_StrikeAccuracy",
-            "Fighter1_AvgTakedownsLanded",
-            "Fighter1_AvgTakedownsAttempted",
-            "Fighter1_AvgReversals",
-            "Fighter2_AvgFightTime",
-            "Fighter2_TimeSinceLastFight",
-            "Fighter2_FinishRate",
-            "Fighter2_Wins",
-            "Fighter2_Losses",
-            "Fighter2_Draws",
-            "Fighter2_NoContests",
-            "Fighter2_AvgControlTime",
-            "Fighter2_AvgSubmissionAttempts",
-            "Fighter2_AvgLegStrikes",
-            "Fighter2_AvgClinchStrikes",
-            "Fighter2_AvgStrikesLanded",
-            "Fighter2_AvgStrikesAttempted",
-            "Fighter2_StrikeAccuracy",
-            "Fighter2_AvgTakedownsLanded",
-            "Fighter2_AvgTakedownsAttempted",
-            "Fighter2_AvgReversals",
+    # Load historical fight data from S3
+    s3 = boto3.client("s3")
+    bucket = os.environ.get("S3_BUCKET", "mpm-bucket-001")
+
+    # Download and load historical fight data
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp_file:
+        try:
+            s3.download_file(bucket, historical_fight_data_path, tmp_file.name)
+            fight_data = pd.read_csv(
+                tmp_file.name, quotechar='"', parse_dates=["EventDate"]
+            )
+        finally:
+            os.unlink(tmp_file.name)
+
+    print(f"Loaded {len(fight_data)} historical fights for feature computation")
+
+    # Apply the same preprocessing as training pipeline
+    # Remove non-contests and draws
+    fight_data = fight_data.drop(columns=["EventName"], errors="ignore")
+    fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
+
+    # Process physical attributes
+    fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(parse_height)
+    fight_data["Fighter2_Height_cm"] = fight_data["Fighter2_Height"].apply(parse_height)
+    fight_data["Fighter1_Reach_cm"] = fight_data["Fighter1_Reach"].apply(parse_reach)
+    fight_data["Fighter2_Reach_cm"] = fight_data["Fighter2_Reach"].apply(parse_reach)
+
+    # Process fight metrics
+    fight_data["Fighter1_Control_Time_sec"] = fight_data["Fighter1_Control_Time"].apply(
+        parse_control_time
+    )
+    fight_data["Fighter2_Control_Time_sec"] = fight_data["Fighter2_Control_Time"].apply(
+        parse_control_time
+    )
+
+    # Calculate fighter ages
+    fight_data["Fighter1_Age"] = (
+        fight_data["EventDate"]
+        - pd.to_datetime(fight_data["Fighter1_DOB"], errors="coerce")
+    ).dt.days / 365.25
+    fight_data["Fighter1_Age"] = fight_data["Fighter1_Age"].fillna(30)
+    fight_data["Fighter2_Age"] = (
+        fight_data["EventDate"]
+        - pd.to_datetime(fight_data["Fighter2_DOB"], errors="coerce")
+    ).dt.days / 365.25
+    fight_data["Fighter2_Age"] = fight_data["Fighter2_Age"].fillna(30)
+
+    # Process strike statistics
+    strike_columns = [
+        "Fighter1_Significant_Strikes",
+        "Fighter1_Head_Strikes",
+        "Fighter1_Body_Strikes",
+        "Fighter1_Leg_Strikes",
+        "Fighter1_Distance_Strikes",
+        "Fighter1_Clinch_Strikes",
+        "Fighter1_Ground_Strikes",
+        "Fighter1_Takedowns",
+        "Fighter2_Significant_Strikes",
+        "Fighter2_Head_Strikes",
+        "Fighter2_Body_Strikes",
+        "Fighter2_Leg_Strikes",
+        "Fighter2_Distance_Strikes",
+        "Fighter2_Clinch_Strikes",
+        "Fighter2_Ground_Strikes",
+        "Fighter2_Takedowns",
+    ]
+
+    for col in strike_columns:
+        process_landed_attempted(fight_data, col)
+
+    # Calculate fight duration
+    fight_data["Fight_Time_sec"] = fight_data.apply(
+        lambda row: calculate_fight_time(row["Round"], row["Time"]), axis=1
+    )
+
+    # Compute historical performance stats (this is the key step!)
+    fight_data = compute_historical_stats(fight_data)
+
+    # Clean the data
+    fight_data = fight_data.dropna()
+
+    # Now extract features for upcoming fights
+    # Convert upcoming_fights_data to DataFrame if needed
+    if isinstance(upcoming_fights_data, dict):
+        upcoming_fights_data = pd.DataFrame([upcoming_fights_data])
+    elif not isinstance(upcoming_fights_data, pd.DataFrame):
+        # If it's a list of fights
+        upcoming_fights_data = pd.DataFrame(upcoming_fights_data)
+
+    # For each upcoming fight, get the latest historical stats for each fighter
+    processed_features = []
+
+    for _, upcoming_fight in upcoming_fights_data.iterrows():
+        fighter1_name = upcoming_fight.get("Fighter1", upcoming_fight.get("fighter1"))
+        fighter2_name = upcoming_fight.get("Fighter2", upcoming_fight.get("fighter2"))
+
+        # Get latest stats for each fighter from historical data
+        fighter1_stats = get_latest_fighter_stats(fight_data, fighter1_name)
+        fighter2_stats = get_latest_fighter_stats(fight_data, fighter2_name)
+
+        # Combine into feature vector matching training format
+        feature_vector = [
+            fighter1_stats.get("Fighter1_Height_cm", 177),
+            fighter1_stats.get("Fighter1_Reach_cm", 183),
+            fighter1_stats.get("Fighter1_Age", 30),
+            fighter1_stats.get("Fighter1_AvgFightTime", 0),
+            fighter1_stats.get("Fighter1_TimeSinceLastFight", 0),
+            fighter1_stats.get("Fighter1_FinishRate", 0),
+            fighter1_stats.get("Fighter1_Wins", 0),
+            fighter1_stats.get("Fighter1_Losses", 0),
+            fighter1_stats.get("Fighter1_AvgControlTime", 0),
+            fighter1_stats.get("Fighter1_AvgSubmissionAttempts", 0),
+            fighter1_stats.get("Fighter1_AvgLegStrikes", 0),
+            fighter1_stats.get("Fighter1_AvgClinchStrikes", 0),
+            fighter1_stats.get("Fighter1_AvgStrikesLanded", 0),
+            fighter1_stats.get("Fighter1_AvgStrikesAttempted", 0),
+            fighter1_stats.get("Fighter1_StrikeAccuracy", 0),
+            fighter1_stats.get("Fighter1_AvgTakedownsLanded", 0),
+            fighter1_stats.get("Fighter1_AvgTakedownsAttempted", 0),
+            fighter1_stats.get("Fighter1_AvgReversals", 0),
+            fighter2_stats.get("Fighter2_Height_cm", 177),
+            fighter2_stats.get("Fighter2_Reach_cm", 183),
+            fighter2_stats.get("Fighter2_Age", 30),
+            fighter2_stats.get("Fighter2_AvgFightTime", 0),
+            fighter2_stats.get("Fighter2_TimeSinceLastFight", 0),
+            fighter2_stats.get("Fighter2_FinishRate", 0),
+            fighter2_stats.get("Fighter2_Wins", 0),
+            fighter2_stats.get("Fighter2_Losses", 0),
+            fighter2_stats.get("Fighter2_AvgControlTime", 0),
+            fighter2_stats.get("Fighter2_AvgSubmissionAttempts", 0),
+            fighter2_stats.get("Fighter2_AvgLegStrikes", 0),
+            fighter2_stats.get("Fighter2_AvgClinchStrikes", 0),
+            fighter2_stats.get("Fighter2_AvgStrikesLanded", 0),
+            fighter2_stats.get("Fighter2_AvgStrikesAttempted", 0),
+            fighter2_stats.get("Fighter2_StrikeAccuracy", 0),
+            fighter2_stats.get("Fighter2_AvgTakedownsLanded", 0),
+            fighter2_stats.get("Fighter2_AvgTakedownsAttempted", 0),
+            fighter2_stats.get("Fighter2_AvgReversals", 0),
         ]
 
-        if len(features) != len(feature_names):
-            # Pad or truncate to match expected size
-            if len(features) < len(feature_names):
-                features = list(features) + [0] * (len(feature_names) - len(features))
-            else:
-                features = features[: len(feature_names)]
+        processed_features.append(feature_vector)
 
-        features = pd.DataFrame([features], columns=feature_names)
+    # Convert to numpy array and apply basic normalization
+    features_array = np.array(processed_features)
 
-    # Handle missing values
-    features = features.fillna(0)
+    # Apply the same normalization as training (simplified version)
+    # In a production system, you'd load the saved scaler from training
+    means = np.mean(features_array, axis=0)
+    stds = np.std(features_array, axis=0)
+    stds[stds == 0] = 1  # Avoid division by zero
 
-    # Try to load scaler from S3, if it exists
-    try:
-        s3 = boto3.client("s3")
-        bucket = os.environ.get("S3_BUCKET", "mpm-bucket-001")
-
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            s3.download_file(bucket, "models/scaler.pkl", tmp_file.name)
-            scaler = joblib.load(tmp_file.name)
-            features_scaled = scaler.transform(features)
-    except:
-        # If no scaler exists, apply basic normalization
-        scaler = StandardScaler()
-        features_scaled = scaler.fit_transform(features)
+    features_scaled = (features_array - means) / stds
 
     return features_scaled
+
+
+def get_latest_fighter_stats(fight_data, fighter_name):
+    """
+    Get the latest historical statistics for a specific fighter.
+    This includes their performance up to and including their most recent fight.
+
+    Args:
+        fight_data: DataFrame with processed historical fight data
+        fighter_name: Name of the fighter to get stats for
+
+    Returns:
+        dict: Latest statistics for the fighter including their most recent fight
+    """
+    # Find all fights involving this fighter
+    fighter1_fights = fight_data[fight_data["Fighter1"] == fighter_name]
+    fighter2_fights = fight_data[fight_data["Fighter2"] == fighter_name]
+
+    # Get the most recent fight data
+    latest_stats = {}
+    most_recent_date = None
+
+    # Check Fighter1 position fights
+    if not fighter1_fights.empty:
+        latest_f1 = fighter1_fights.loc[fighter1_fights["EventDate"].idxmax()]
+        most_recent_date = latest_f1["EventDate"]
+
+        # Get stats that were calculated BEFORE this fight (pre-fight stats)
+        for col in latest_f1.index:
+            if col.startswith("Fighter1_") and col.endswith(
+                (
+                    "_AvgFightTime",
+                    "_TimeSinceLastFight",
+                    "_FinishRate",
+                    "_Wins",
+                    "_Losses",
+                    "_Draws",
+                    "_NoContests",
+                    "_AvgControlTime",
+                    "_AvgSubmissionAttempts",
+                    "_AvgLegStrikes",
+                    "_AvgClinchStrikes",
+                    "_AvgStrikesLanded",
+                    "_AvgStrikesAttempted",
+                    "_StrikeAccuracy",
+                    "_AvgTakedownsLanded",
+                    "_AvgTakedownsAttempted",
+                    "_AvgReversals",
+                    "_Height_cm",
+                    "_Reach_cm",
+                    "_Age",
+                )
+            ):
+                latest_stats[col] = latest_f1[col]
+
+    # Check Fighter2 position fights
+    if not fighter2_fights.empty:
+        latest_f2 = fighter2_fights.loc[fighter2_fights["EventDate"].idxmax()]
+
+        # Use whichever fight is more recent
+        if most_recent_date is None or latest_f2["EventDate"] > most_recent_date:
+            most_recent_date = latest_f2["EventDate"]
+            # Clear previous stats and use Fighter2 position stats
+            latest_stats = {}
+
+            for col in latest_f2.index:
+                if col.startswith("Fighter2_") and col.endswith(
+                    (
+                        "_AvgFightTime",
+                        "_TimeSinceLastFight",
+                        "_FinishRate",
+                        "_Wins",
+                        "_Losses",
+                        "_Draws",
+                        "_NoContests",
+                        "_AvgControlTime",
+                        "_AvgSubmissionAttempts",
+                        "_AvgLegStrikes",
+                        "_AvgClinchStrikes",
+                        "_AvgStrikesLanded",
+                        "_AvgStrikesAttempted",
+                        "_StrikeAccuracy",
+                        "_AvgTakedownsLanded",
+                        "_AvgTakedownsAttempted",
+                        "_AvgReversals",
+                        "_Height_cm",
+                        "_Reach_cm",
+                        "_Age",
+                    )
+                ):
+                    # Convert Fighter2_ stats to Fighter1_ format for consistency
+                    new_col = col.replace("Fighter2_", "Fighter1_")
+                    latest_stats[new_col] = latest_f2[col]
+        elif latest_f2["EventDate"] == most_recent_date:
+            # Same fight date - merge stats, prioritizing Fighter2 position if available
+            for col in latest_f2.index:
+                if col.startswith("Fighter2_") and col.endswith(
+                    (
+                        "_AvgFightTime",
+                        "_TimeSinceLastFight",
+                        "_FinishRate",
+                        "_Wins",
+                        "_Losses",
+                        "_Draws",
+                        "_NoContests",
+                        "_AvgControlTime",
+                        "_AvgSubmissionAttempts",
+                        "_AvgLegStrikes",
+                        "_AvgClinchStrikes",
+                        "_AvgStrikesLanded",
+                        "_AvgStrikesAttempted",
+                        "_StrikeAccuracy",
+                        "_AvgTakedownsLanded",
+                        "_AvgTakedownsAttempted",
+                        "_AvgReversals",
+                        "_Height_cm",
+                        "_Reach_cm",
+                        "_Age",
+                    )
+                ):
+                    new_col = col.replace("Fighter2_", "Fighter1_")
+                    latest_stats[new_col] = latest_f2[col]
+
+    # Now we need to manually compute the updated stats that include their most recent fight
+    # This simulates what the stats would be AFTER their most recent fight
+    if most_recent_date is not None:
+        # Find the most recent fight for this fighter
+        recent_fight = None
+        fighter_position = None
+
+        if not fighter1_fights.empty:
+            f1_recent = fighter1_fights.loc[fighter1_fights["EventDate"].idxmax()]
+            if f1_recent["EventDate"] == most_recent_date:
+                recent_fight = f1_recent
+                fighter_position = 1
+
+        if not fighter2_fights.empty:
+            f2_recent = fighter2_fights.loc[fighter2_fights["EventDate"].idxmax()]
+            if f2_recent["EventDate"] == most_recent_date:
+                if (
+                    recent_fight is None
+                    or f2_recent["EventDate"] >= recent_fight["EventDate"]
+                ):
+                    recent_fight = f2_recent
+                    fighter_position = 2
+
+        if recent_fight is not None and fighter_position is not None:
+            # Update stats to include the most recent fight
+            prefix = f"Fighter{fighter_position}_"
+
+            # Get pre-fight stats
+            num_fights_before = (
+                latest_stats.get("Fighter1_Wins", 0)
+                + latest_stats.get("Fighter1_Losses", 0)
+                + latest_stats.get("Fighter1_Draws", 0)
+            )
+
+            # Update win/loss record based on most recent fight outcome
+            winner = str(recent_fight["Winner"])
+            if (winner == "1" and fighter_position == 1) or (
+                winner == "2" and fighter_position == 2
+            ):
+                # Fighter won
+                latest_stats["Fighter1_Wins"] = latest_stats.get("Fighter1_Wins", 0) + 1
+            elif (winner == "1" and fighter_position == 2) or (
+                winner == "2" and fighter_position == 1
+            ):
+                # Fighter lost
+                latest_stats["Fighter1_Losses"] = (
+                    latest_stats.get("Fighter1_Losses", 0) + 1
+                )
+            elif winner == "D":
+                # Draw
+                latest_stats["Fighter1_Draws"] = (
+                    latest_stats.get("Fighter1_Draws", 0) + 1
+                )
+
+            # Update averages to include the most recent fight
+            if num_fights_before > 0:
+                total_fights_after = num_fights_before + 1
+
+                # Update average fight time
+                old_total_time = (
+                    latest_stats.get("Fighter1_AvgFightTime", 0) * num_fights_before
+                )
+                recent_fight_time = recent_fight.get("Fight_Time_sec", 0)
+                if not pd.isna(recent_fight_time):
+                    new_avg_fight_time = (
+                        old_total_time + recent_fight_time
+                    ) / total_fights_after
+                    latest_stats["Fighter1_AvgFightTime"] = new_avg_fight_time
+
+                # Update other averages similarly
+                recent_control_time = recent_fight.get(f"{prefix}Control_Time_sec", 0)
+                if not pd.isna(recent_control_time):
+                    old_total_control = (
+                        latest_stats.get("Fighter1_AvgControlTime", 0)
+                        * num_fights_before
+                    )
+                    latest_stats["Fighter1_AvgControlTime"] = (
+                        old_total_control + recent_control_time
+                    ) / total_fights_after
+
+                # Update strike statistics
+                recent_strikes_landed = recent_fight.get(
+                    f"{prefix}Significant_Strikes_Landed", 0
+                )
+                recent_strikes_attempted = recent_fight.get(
+                    f"{prefix}Significant_Strikes_Attempted", 0
+                )
+
+                if not pd.isna(recent_strikes_landed):
+                    old_total_landed = (
+                        latest_stats.get("Fighter1_AvgStrikesLanded", 0)
+                        * num_fights_before
+                    )
+                    latest_stats["Fighter1_AvgStrikesLanded"] = (
+                        old_total_landed + recent_strikes_landed
+                    ) / total_fights_after
+
+                if not pd.isna(recent_strikes_attempted):
+                    old_total_attempted = (
+                        latest_stats.get("Fighter1_AvgStrikesAttempted", 0)
+                        * num_fights_before
+                    )
+                    latest_stats["Fighter1_AvgStrikesAttempted"] = (
+                        old_total_attempted + recent_strikes_attempted
+                    ) / total_fights_after
+
+                # Recalculate strike accuracy
+                if latest_stats.get("Fighter1_AvgStrikesAttempted", 0) > 0:
+                    latest_stats["Fighter1_StrikeAccuracy"] = (
+                        latest_stats["Fighter1_AvgStrikesLanded"]
+                        / latest_stats["Fighter1_AvgStrikesAttempted"]
+                    )
+
+    return latest_stats
