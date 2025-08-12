@@ -436,11 +436,11 @@ def preprocess_features(
     # Convert to numpy array and apply basic normalization
     features_array = np.array(processed_features)
 
-    # Apply the same normalization as training (simplified version)
-    # In a production system, you'd load the saved scaler from training
     means = np.mean(features_array, axis=0)
     stds = np.std(features_array, axis=0)
-    stds[stds == 0] = 1  # Avoid division by zero
+
+    # Avoid division by zero
+    stds[stds == 0] = 1
 
     features_scaled = (features_array - means) / stds
 
