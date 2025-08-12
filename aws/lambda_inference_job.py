@@ -70,16 +70,11 @@ def lambda_handler(event, context):
         },
         "StoppingCondition": {"MaxRuntimeInSeconds": 3600},  # 1 hour
         "HyperParameters": {
+            "sagemaker_program": "inference.py",
+            "sagemaker_submit_directory": f"s3://{s3_bucket}/code.tar.gz",
             "mode": "inference",
             "epochs": "1",
-        },
-        "Environment": {
-            "PYTHONPATH": "/opt/ml/code:/opt/ml/code/code",
-            "SAGEMAKER_PROGRAM": "code/inference.py",
-            "SM_MODEL_DIR": "/opt/ml/model",
-            "SM_CHANNELS": "training",
-            "SM_CHANNEL_TRAINING": "/opt/ml/input/data/training",
-            "SM_OUTPUT_DATA_DIR": "/opt/ml/output/data",
+            "s3_bucket": s3_bucket,
         },
     }
 

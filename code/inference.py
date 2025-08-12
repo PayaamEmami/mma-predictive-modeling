@@ -277,17 +277,25 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="MMA Fight Prediction Inference")
-    parser.add_argument("--s3_bucket", required=True)
+    parser.add_argument("--s3_bucket", required=True, help="S3 bucket name")
     parser.add_argument("--upcoming_fights_key", default="upcoming_fights.json")
     parser.add_argument("--historical_data_key", default="fight_events.csv")
     parser.add_argument(
         "--predictions_key", default="predictions/latest_predictions.json"
     )
+    # Add SageMaker-specific arguments that we can ignore
+    parser.add_argument("--epochs", default="1", help="Ignored in inference mode")
+    parser.add_argument("--mode", default="inference", help="SageMaker mode")
 
     args = parser.parse_args()
-    main(
-        args.s3_bucket,
-        args.upcoming_fights_key,
-        args.historical_data_key,
-        args.predictions_key,
-    )
+
+    # Only run inference if mode is inference
+    if args.mode == "inference":
+        main(
+            args.s3_bucket,
+            args.upcoming_fights_key,
+            args.historical_data_key,
+            args.predictions_key,
+        )
+    else:
+        print(f"Mode {args.mode} not supported in inference script")
