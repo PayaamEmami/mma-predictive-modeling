@@ -12,7 +12,68 @@ from typing import Dict, Any
 import boto3
 from io import StringIO
 from models import FCNN, Transformer
-from preprocessing import preprocess_features
+
+# Debug preprocessing module import
+print("=== DEBUGGING PREPROCESSING IMPORT ===")
+import sys
+import os
+
+print(f"Python version: {sys.version}")
+print(f"Python path: {sys.path}")
+print(f"Current working directory: {os.getcwd()}")
+print(f"Files in current directory: {os.listdir('.')}")
+
+# Check if preprocessing.py exists
+if os.path.exists("preprocessing.py"):
+    print("✓ preprocessing.py file exists")
+    with open("preprocessing.py", "r") as f:
+        content = f.read()
+        if "def preprocess_features" in content:
+            print("✓ preprocess_features function found in file")
+        else:
+            print("✗ preprocess_features function NOT found in file")
+            print(
+                "Functions found:",
+                [
+                    line.strip()
+                    for line in content.split("\n")
+                    if line.strip().startswith("def ")
+                ],
+            )
+else:
+    print("✗ preprocessing.py file does NOT exist")
+
+try:
+    import preprocessing
+
+    print("✓ Successfully imported preprocessing module")
+    print(
+        f"Preprocessing module attributes: {[attr for attr in dir(preprocessing) if not attr.startswith('_')]}"
+    )
+
+    if hasattr(preprocessing, "preprocess_features"):
+        print("✓ preprocess_features attribute exists in module")
+    else:
+        print("✗ preprocess_features attribute does NOT exist in module")
+
+except Exception as e:
+    print(f"✗ Failed to import preprocessing module: {e}")
+    import traceback
+
+    traceback.print_exc()
+
+try:
+    from preprocessing import preprocess_features
+
+    print("✓ Successfully imported preprocess_features function")
+except Exception as e:
+    print(f"✗ Failed to import preprocess_features function: {e}")
+    import traceback
+
+    traceback.print_exc()
+
+print("=== END DEBUGGING ===")
+
 from config import DEVICE
 
 
