@@ -14,7 +14,7 @@ from typing import Dict, Any
 from io import StringIO
 from models import FCNN, Transformer
 from config import DEVICE
-from preprocessing import preprocess_features
+from data import preprocess_features
 
 
 class ModelInference:
