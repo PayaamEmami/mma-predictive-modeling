@@ -1,6 +1,9 @@
 import re
 import pandas as pd
 import numpy as np
+import boto3
+import tempfile
+import os
 
 
 def parse_height(height_str):
@@ -287,10 +290,6 @@ def preprocess_features(
     Returns:
         numpy.array: Processed feature matrix ready for model prediction
     """
-    import boto3
-    import tempfile
-    import os
-    from datetime import datetime
 
     # Load historical fight data from S3
     s3 = boto3.client("s3")
