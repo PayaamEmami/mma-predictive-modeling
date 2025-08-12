@@ -70,10 +70,8 @@ def lambda_handler(event, context):
         },
         "StoppingCondition": {"MaxRuntimeInSeconds": 3600},  # 1 hour
         "HyperParameters": {
-            "sagemaker_program": "inference.py",
+            "sagemaker_program": "code/inference.py",
             "sagemaker_submit_directory": f"s3://{s3_bucket}/code.tar.gz",
-            "mode": "inference",
-            "epochs": "1",
             "s3_bucket": s3_bucket,
         },
     }

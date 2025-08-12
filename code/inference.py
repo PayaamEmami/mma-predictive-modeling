@@ -8,8 +8,9 @@ import json
 import numpy as np
 import pandas as pd
 import torch
-from typing import Dict, Any
+import argparse
 import boto3
+from typing import Dict, Any
 from io import StringIO
 from models import FCNN, Transformer
 from config import DEVICE
@@ -164,7 +165,15 @@ def main(
         s3_client = boto3.client("s3")
         obj = s3_client.get_object(Bucket=s3_bucket, Key=upcoming_fights_key)
         upcoming_fights_data = json.loads(obj["Body"].read().decode())
-        print(f"Loaded upcoming fights data: {len(upcoming_fights_data)} events")
+
+        # Validate data structure
+        if "Fights" not in upcoming_fights_data:
+            print(f"Warning: No 'Fights' key found in upcoming fights data")
+            return
+
+        print(
+            f"Loaded upcoming fights data: {len(upcoming_fights_data.get('Fights', []))} fights for event: {upcoming_fights_data.get('EventName', 'Unknown')}"
+        )
     except Exception as e:
         print(f"Failed to load upcoming fights data: {e}")
         return
@@ -185,79 +194,87 @@ def main(
         return
 
     # Generate predictions using processed features
-    predictions = {"generated_at": pd.Timestamp.now().isoformat(), "fights": []}
+    predictions = {
+        "event_name": upcoming_fights_data.get("EventName", "Unknown Event"),
+        "event_date": upcoming_fights_data.get("EventDate", ""),
+        "event_location": upcoming_fights_data.get("EventLocation", ""),
+        "generated_at": pd.Timestamp.now().isoformat(),
+        "fights": [],
+    }
 
-    # Process each event and fight
-    for event_idx, event in enumerate(upcoming_fights_data):
-        for fight_idx, fight in enumerate(event.get("main_card", [])):
-            print(
-                f"Generating predictions for: {fight['fighter_a']} vs {fight['fighter_b']}"
+    # Process each individual fight
+    fights_list = upcoming_fights_data.get("Fights", [])
+
+    for fight_idx, fight in enumerate(fights_list):
+        fighter1_name = fight.get("Fighter1Name", "")
+        fighter2_name = fight.get("Fighter2Name", "")
+        weight_class = fight.get("WeightClass", "")
+
+        print(f"Generating predictions for: {fighter1_name} vs {fighter2_name}")
+
+        # Get the corresponding preprocessed features for this fight
+        if fight_idx < len(processed_features):
+            fight_features = processed_features[fight_idx].reshape(1, -1)
+
+            # Generate predictions using all models
+            fight_predictions = inference.predict_with_features(fight_features)
+
+            # Calculate aggregate predictions
+            fighter1_votes = sum(
+                1
+                for pred in fight_predictions.values()
+                if isinstance(pred, dict) and pred.get("prediction") == 1
+            )
+            fighter2_votes = sum(
+                1
+                for pred in fight_predictions.values()
+                if isinstance(pred, dict) and pred.get("prediction") == 0
+            )
+            total_models = len(
+                [pred for pred in fight_predictions.values() if isinstance(pred, dict)]
             )
 
-            # Get the corresponding preprocessed features for this fight
-            # Each fight should have one row in processed_features
-            if event_idx < len(processed_features):
-                fight_features = processed_features[event_idx].reshape(1, -1)
-
-                # Generate predictions using all models
-                fight_predictions = inference.predict_with_features(fight_features)
-
-                # Calculate aggregate predictions
-                fighter1_votes = sum(
-                    1
+            avg_confidence = np.mean(
+                [
+                    pred.get("confidence", 0.5)
                     for pred in fight_predictions.values()
-                    if isinstance(pred, dict) and pred.get("prediction") == 1
-                )
-                fighter2_votes = sum(
-                    1
-                    for pred in fight_predictions.values()
-                    if isinstance(pred, dict) and pred.get("prediction") == 0
-                )
-                total_models = len(
-                    [
-                        pred
-                        for pred in fight_predictions.values()
-                        if isinstance(pred, dict)
-                    ]
-                )
+                    if isinstance(pred, dict)
+                ]
+            )
 
-                avg_confidence = np.mean(
-                    [
-                        pred.get("confidence", 0.5)
-                        for pred in fight_predictions.values()
-                        if isinstance(pred, dict)
-                    ]
-                )
+            fight_result = {
+                "fighter1_name": fighter1_name,
+                "fighter2_name": fighter2_name,
+                "weight_class": weight_class,
+                "model_predictions": fight_predictions,
+                "aggregate": {
+                    "fighter1_votes": fighter1_votes,
+                    "fighter2_votes": fighter2_votes,
+                    "total_models": total_models,
+                    "fighter1_percentage": (
+                        round((fighter1_votes / total_models) * 100, 1)
+                        if total_models > 0
+                        else 0
+                    ),
+                    "fighter2_percentage": (
+                        round((fighter2_votes / total_models) * 100, 1)
+                        if total_models > 0
+                        else 0
+                    ),
+                    "predicted_winner": (
+                        fighter1_name
+                        if fighter1_votes > fighter2_votes
+                        else fighter2_name
+                    ),
+                    "average_confidence": round(avg_confidence, 3),
+                },
+            }
 
-                fight_result = {
-                    "fighter1_name": fight["fighter_a"],
-                    "fighter2_name": fight["fighter_b"],
-                    "weight_class": fight.get("weight_class", ""),
-                    "model_predictions": fight_predictions,
-                    "aggregate": {
-                        "fighter1_votes": fighter1_votes,
-                        "fighter2_votes": fighter2_votes,
-                        "total_models": total_models,
-                        "fighter1_percentage": (
-                            round((fighter1_votes / total_models) * 100, 1)
-                            if total_models > 0
-                            else 0
-                        ),
-                        "fighter2_percentage": (
-                            round((fighter2_votes / total_models) * 100, 1)
-                            if total_models > 0
-                            else 0
-                        ),
-                        "predicted_winner": (
-                            fight["fighter_a"]
-                            if fighter1_votes > fighter2_votes
-                            else fight["fighter_b"]
-                        ),
-                        "average_confidence": round(avg_confidence, 3),
-                    },
-                }
+            predictions["fights"].append(fight_result)
+        else:
+            print(f"Warning: No processed features found for fight {fight_idx}")
 
-                predictions["fights"].append(fight_result)
+    print(f"Generated predictions for {len(predictions['fights'])} fights")
 
     # Save predictions to S3
     try:
@@ -274,8 +291,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="MMA Fight Prediction Inference")
     parser.add_argument("--s3_bucket", required=True, help="S3 bucket name")
     parser.add_argument("--upcoming_fights_key", default="upcoming_fights.json")
@@ -283,19 +298,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--predictions_key", default="predictions/latest_predictions.json"
     )
-    # Add SageMaker-specific arguments that we can ignore
-    parser.add_argument("--epochs", default="1", help="Ignored in inference mode")
-    parser.add_argument("--mode", default="inference", help="SageMaker mode")
 
     args = parser.parse_args()
 
-    # Only run inference if mode is inference
-    if args.mode == "inference":
-        main(
-            args.s3_bucket,
-            args.upcoming_fights_key,
-            args.historical_data_key,
-            args.predictions_key,
-        )
-    else:
-        print(f"Mode {args.mode} not supported in inference script")
+    main(
+        args.s3_bucket,
+        args.upcoming_fights_key,
+        args.historical_data_key,
+        args.predictions_key,
+    )

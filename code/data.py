@@ -17,6 +17,97 @@ from preprocessing import (
 )
 
 
+def get_latest_fighter_stats_by_url(fight_data, fighter_url):
+    """
+    Get the latest historical statistics for a specific fighter using their URL.
+    This is more reliable than name matching since URLs are unique identifiers.
+
+    Args:
+        fight_data: DataFrame with processed historical fight data
+        fighter_url: UFC stats URL of the fighter
+
+    Returns:
+        dict: Latest statistics for the fighter, with proper Fighter1/Fighter2 prefixes
+    """
+    # Find all fights involving this fighter by URL
+    fighter1_fights = fight_data[fight_data["Fighter1_URL"] == fighter_url]
+    fighter2_fights = fight_data[fight_data["Fighter2_URL"] == fighter_url]
+
+    # Get the most recent fight data
+    latest_stats = {}
+    most_recent_date = None
+
+    # Check Fighter1 position fights
+    if not fighter1_fights.empty:
+        latest_f1 = fighter1_fights.loc[fighter1_fights["EventDate"].idxmax()]
+        if most_recent_date is None or latest_f1["EventDate"] > most_recent_date:
+            most_recent_date = latest_f1["EventDate"]
+
+            # Get stats with Fighter1_ prefix
+            for col in latest_f1.index:
+                if col.startswith("Fighter1_") and col.endswith(
+                    (
+                        "_AvgFightTime",
+                        "_TimeSinceLastFight",
+                        "_FinishRate",
+                        "_Wins",
+                        "_Losses",
+                        "_Draws",
+                        "_NoContests",
+                        "_AvgControlTime",
+                        "_AvgSubmissionAttempts",
+                        "_AvgLegStrikes",
+                        "_AvgClinchStrikes",
+                        "_AvgStrikesLanded",
+                        "_AvgStrikesAttempted",
+                        "_StrikeAccuracy",
+                        "_AvgTakedownsLanded",
+                        "_AvgTakedownsAttempted",
+                        "_AvgReversals",
+                        "_Height_cm",
+                        "_Reach_cm",
+                        "_Age",
+                    )
+                ):
+                    latest_stats[col] = latest_f1[col]
+
+    # Check Fighter2 position fights
+    if not fighter2_fights.empty:
+        latest_f2 = fighter2_fights.loc[fighter2_fights["EventDate"].idxmax()]
+        if most_recent_date is None or latest_f2["EventDate"] > most_recent_date:
+            most_recent_date = latest_f2["EventDate"]
+
+            # Get stats with Fighter2_ prefix (keep original prefixes)
+            for col in latest_f2.index:
+                if col.startswith("Fighter2_") and col.endswith(
+                    (
+                        "_AvgFightTime",
+                        "_TimeSinceLastFight",
+                        "_FinishRate",
+                        "_Wins",
+                        "_Losses",
+                        "_Draws",
+                        "_NoContests",
+                        "_AvgControlTime",
+                        "_AvgSubmissionAttempts",
+                        "_AvgLegStrikes",
+                        "_AvgClinchStrikes",
+                        "_AvgStrikesLanded",
+                        "_AvgStrikesAttempted",
+                        "_StrikeAccuracy",
+                        "_AvgTakedownsLanded",
+                        "_AvgTakedownsAttempted",
+                        "_AvgReversals",
+                        "_Height_cm",
+                        "_Reach_cm",
+                        "_Age",
+                    )
+                ):
+                    latest_stats[col] = latest_f2[col]
+
+    return latest_stats
+
+
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
     print("Uploading results to S3...")
     s3 = boto3.client("s3")
