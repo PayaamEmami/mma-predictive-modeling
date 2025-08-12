@@ -71,10 +71,15 @@ def lambda_handler(event, context):
         "StoppingCondition": {"MaxRuntimeInSeconds": 3600},  # 1 hour
         "HyperParameters": {
             "mode": "inference",
-            "s3_bucket": s3_bucket,
-            "upcoming_fights_key": "upcoming_fights.json",
-            "historical_data_key": "fight_events.csv",
-            "predictions_key": "predictions/latest_predictions.json",
+            "epochs": "1",
+        },
+        "Environment": {
+            "PYTHONPATH": "/opt/ml/code:/opt/ml/code/code",
+            "SAGEMAKER_PROGRAM": "code/inference.py",
+            "SM_MODEL_DIR": "/opt/ml/model",
+            "SM_CHANNELS": "training",
+            "SM_CHANNEL_TRAINING": "/opt/ml/input/data/training",
+            "SM_OUTPUT_DATA_DIR": "/opt/ml/output/data",
         },
     }
 

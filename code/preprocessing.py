@@ -1,15 +1,6 @@
 import re
 import pandas as pd
 import numpy as np
-
-
-# Debug function for SageMaker environment
-def debug_preprocessing_module():
-    """Simple test function to verify module loading"""
-    print("DEBUG: preprocessing module loaded successfully!")
-    return "preprocessing module is working"
-
-
 import boto3
 import tempfile
 import os
