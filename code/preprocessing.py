@@ -264,3 +264,91 @@ def compute_historical_stats(fight_data):
             s1["NoContests"] += 1
             s2["NoContests"] += 1
     return fight_data
+
+
+def preprocess_features(features):
+    """
+    Preprocess features for inference.
+    This function applies the same normalization/scaling that was used during training.
+    """
+    import pandas as pd
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler
+    import joblib
+    import boto3
+    import tempfile
+    import os
+
+    # If features is a list/array, convert to DataFrame
+    if not isinstance(features, pd.DataFrame):
+        # Assume it's a single sample - convert to DataFrame
+        feature_names = [
+            "Fighter1_Height_cm",
+            "Fighter1_Reach_cm",
+            "Fighter1_Age",
+            "Fighter2_Height_cm",
+            "Fighter2_Reach_cm",
+            "Fighter2_Age",
+            "Fighter1_AvgFightTime",
+            "Fighter1_TimeSinceLastFight",
+            "Fighter1_FinishRate",
+            "Fighter1_Wins",
+            "Fighter1_Losses",
+            "Fighter1_Draws",
+            "Fighter1_NoContests",
+            "Fighter1_AvgControlTime",
+            "Fighter1_AvgSubmissionAttempts",
+            "Fighter1_AvgLegStrikes",
+            "Fighter1_AvgClinchStrikes",
+            "Fighter1_AvgStrikesLanded",
+            "Fighter1_AvgStrikesAttempted",
+            "Fighter1_StrikeAccuracy",
+            "Fighter1_AvgTakedownsLanded",
+            "Fighter1_AvgTakedownsAttempted",
+            "Fighter1_AvgReversals",
+            "Fighter2_AvgFightTime",
+            "Fighter2_TimeSinceLastFight",
+            "Fighter2_FinishRate",
+            "Fighter2_Wins",
+            "Fighter2_Losses",
+            "Fighter2_Draws",
+            "Fighter2_NoContests",
+            "Fighter2_AvgControlTime",
+            "Fighter2_AvgSubmissionAttempts",
+            "Fighter2_AvgLegStrikes",
+            "Fighter2_AvgClinchStrikes",
+            "Fighter2_AvgStrikesLanded",
+            "Fighter2_AvgStrikesAttempted",
+            "Fighter2_StrikeAccuracy",
+            "Fighter2_AvgTakedownsLanded",
+            "Fighter2_AvgTakedownsAttempted",
+            "Fighter2_AvgReversals",
+        ]
+
+        if len(features) != len(feature_names):
+            # Pad or truncate to match expected size
+            if len(features) < len(feature_names):
+                features = list(features) + [0] * (len(feature_names) - len(features))
+            else:
+                features = features[: len(feature_names)]
+
+        features = pd.DataFrame([features], columns=feature_names)
+
+    # Handle missing values
+    features = features.fillna(0)
+
+    # Try to load scaler from S3, if it exists
+    try:
+        s3 = boto3.client("s3")
+        bucket = os.environ.get("S3_BUCKET", "mpm-bucket-001")
+
+        with tempfile.NamedTemporaryFile() as tmp_file:
+            s3.download_file(bucket, "models/scaler.pkl", tmp_file.name)
+            scaler = joblib.load(tmp_file.name)
+            features_scaled = scaler.transform(features)
+    except:
+        # If no scaler exists, apply basic normalization
+        scaler = StandardScaler()
+        features_scaled = scaler.fit_transform(features)
+
+    return features_scaled

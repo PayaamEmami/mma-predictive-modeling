@@ -64,9 +64,9 @@ def lambda_handler(event, context):
         ],
         "OutputDataConfig": {"S3OutputPath": f"s3://{s3_bucket}/inference-output/"},
         "ResourceConfig": {
-            "InstanceType": "ml.m5.large",
+            "InstanceType": "ml.g4dn.xlarge",
             "InstanceCount": 1,
-            "VolumeSizeInGB": 10,
+            "VolumeSizeInGB": 30,
         },
         "StoppingCondition": {"MaxRuntimeInSeconds": 3600},  # 1 hour
         "HyperParameters": {
