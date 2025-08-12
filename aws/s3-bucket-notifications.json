@@ -7,21 +7,19 @@
       "Filter": {
         "Key": {
           "FilterRules": [
-            {"Name": "Prefix", "Value": "results/"},
-            {"Name": "Suffix", "Value": "done.json"}
+            { "Name": "Prefix", "Value": "results/" },
+            { "Name": "Suffix", "Value": "done.json" }
           ]
         }
       }
     },
     {
       "Id": "inference-trigger",
-      "LambdaFunctionArn": "arn:aws:lambda:us-west-1:352126234815:function:mpm-inference-trigger",
+      "LambdaFunctionArn": "arn:aws:lambda:us-west-1:352126234815:function:mpm-inference-job",
       "Events": ["s3:ObjectCreated:Put"],
       "Filter": {
         "Key": {
-          "FilterRules": [
-            {"Name": "Suffix", "Value": "upcoming_fights.json"}
-          ]
+          "FilterRules": [{ "Name": "Suffix", "Value": "upcoming_fights.json" }]
         }
       }
     }
