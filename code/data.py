@@ -606,7 +606,7 @@ def preprocess_features(
 
     # Load historical fight data from S3
     s3 = boto3.client("s3")
-    bucket = os.environ.get("S3_BUCKET", "mpm-bucket-001")
+    bucket = os.environ.get("S3_BUCKET")
 
     # Download and load historical fight data
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp_file:

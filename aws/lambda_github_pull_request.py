@@ -4,35 +4,32 @@ import os
 import shutil
 from datetime import datetime, timezone
 from github import Github
-import json
-from botocore.exceptions import ClientError
 
 
-def get_secret(secret_name, region_name="us-west-1"):
-    session = boto3.session.Session()
-    client = session.client(service_name="secretsmanager", region_name=region_name)
+def get_github_token_from_parameter_store(parameter_name, region_name="us-west-1"):
+    """Get GitHub token from Parameter Store"""
+    ssm = boto3.client("ssm", region_name=region_name)
     try:
-        response = client.get_secret_value(SecretId=secret_name)
-        return json.loads(response["SecretString"])
-    except ClientError as e:
+        response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
+        return response["Parameter"]["Value"]
+    except Exception as e:
+        print(f"Error retrieving GitHub token from Parameter Store: {e}")
         raise e
 
 
 def lambda_handler(event, context):
-    # Determine the secret name based on the S3 key
-    region_name = "us-west-1"
+    # Use single GitHub token parameter for both main and experimental
     s3_key = event["Records"][0]["s3"]["object"]["key"]
     if s3_key.startswith("experiments/"):
-        secret_name = "mpm-secrets-experimental"
         github_branch = "experimental"
+        s3_results_prefix = "experiments/results/"
     else:
-        secret_name = "mpm-secrets"
         github_branch = "main"
-    secrets = get_secret(secret_name, region_name)
+        s3_results_prefix = "results/"
 
-    # S3 config
-    S3_BUCKET = secrets["s3_bucket"]
-    S3_PREFIX = secrets["s3_results_prefix"]
+    # Configuration from environment variables
+    S3_BUCKET = os.environ.get("S3_BUCKET")
+    S3_PREFIX = s3_results_prefix
     S3 = boto3.client("s3")
 
     # Download files from S3 to temp dir
@@ -51,9 +48,9 @@ def lambda_handler(event, context):
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             S3.download_file(S3_BUCKET, key, local_path)
 
-    # Authenticate with GitHub
-    GITHUB_TOKEN = secrets["github_token"]
-    GITHUB_REPO = "PayaamEmami/mma-predictive-modeling"
+    # Authenticate with GitHub using single Parameter Store token
+    GITHUB_TOKEN = get_github_token_from_parameter_store("mpm-github-token")
+    GITHUB_REPO = os.environ.get("GITHUB_REPO")
     gh = Github(GITHUB_TOKEN)
     repo = gh.get_repo(GITHUB_REPO)
 
