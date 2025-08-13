@@ -229,7 +229,7 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
 
     Args:
         fight_data: DataFrame with processed historical fight data
-        fighter_url: UFC stats URL of the fighter
+        fighter_url: URL of the fighter profile
 
     Returns:
         dict: Latest statistics for the fighter, with proper Fighter1/Fighter2 prefixes
