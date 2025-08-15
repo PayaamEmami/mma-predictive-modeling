@@ -23,9 +23,8 @@ Each model contributes unique strengths to the multi-model system, from the inte
 The data pipeline transforms raw fight statistics into meaningful predictive features through:
 
 - **Multi-source data extraction:** Fighter profiles, historical performance metrics, and event-specific contextual data
-- **Advanced feature engineering:** Derivation of key performance indicators including striking accuracy, takedown defense rates, fight finish percentages, and momentum-based metrics
-- **Intelligent preprocessing:** Automated handling of missing values, feature normalization, and outlier detection to ensure robust model training
-- **Temporal analysis:** Integration of career progression trends and recent performance patterns
+- **Feature engineering:** Derivation of key performance indicators including striking accuracy, takedown defense rates, fight finish percentages, and momentum-based metrics
+- **Preprocessing:** Automated handling of missing values, feature normalization, and outlier detection to ensure robust model training
 
 ### 🎯 **Training & Model Evaluation**
 
@@ -60,7 +59,7 @@ Maintains and updates the machine learning models with the latest fight data:
 Generates predictions for upcoming MMA fights:
 
 1. **EventBridge Rule** triggers every Friday
-2. **ECS Task** scrapes upcoming fight data in "prediction mode"
+2. **ECS Task** scrapes upcoming fight data
 3. Fighter matchup data is uploaded to **S3** as JSON
 4. **S3-triggered Lambda** starts **SageMaker inference job**
 5. **SageMaker** loads trained models and generates combined predictions
