@@ -134,8 +134,10 @@ def handle_list_past_predictions(query_params, headers):
             f"Loaded fight events data: {len(fight_events) if fight_events is not None else 0} total fights"
         )
 
-        if fight_events is not None and not fight_events.empty:
-            unique_events = fight_events["Event"].unique()
+        if fight_events is not None and len(fight_events) > 0:
+            unique_events = list(
+                set(fight.get("EventName", "") for fight in fight_events)
+            )
             print(
                 f"Available events in fight_events.csv: {len(unique_events)} unique events"
             )
@@ -342,25 +344,6 @@ def get_event_accuracy(prediction_data):
         }
 
 
-def event_exists_in_fight_data(fight_events_df, event_name):
-    """
-    Check if an event exists in the fight events data.
-    This ensures we only show past predictions for events where we have actual outcomes.
-    """
-    if fight_events_df is None or fight_events_df.empty:
-        return False
-
-    # Clean and normalize event names for comparison
-    event_name_clean = event_name.strip().lower()
-
-    # Check if any fight in the CSV matches this event
-    matching_fights = fight_events_df[
-        fight_events_df["Event"].str.strip().str.lower() == event_name_clean
-    ]
-
-    return len(matching_fights) > 0
-
-
 def load_fight_events():
     """
     Load and parse the fight_events.csv file from S3.
@@ -375,6 +358,23 @@ def load_fight_events():
     except Exception as e:
         print(f"Error loading fight events: {str(e)}")
         return []
+
+
+def event_exists_in_fight_data(fight_events, event_name):
+    """
+    Check if an event exists in the fight events data.
+    Returns True if the event has actual fight outcome data.
+    """
+    if fight_events is None or len(fight_events) == 0:
+        return False
+
+    # Check if any fights exist for this event
+    # fight_events is a list of dictionaries from CSV
+    for fight in fight_events:
+        if fight.get("EventName", "").strip() == event_name.strip():
+            return True
+
+    return False
 
 
 def find_fight_result(fight_events, event_name, fighter1_name, fighter2_name):
