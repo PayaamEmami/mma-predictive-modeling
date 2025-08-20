@@ -288,8 +288,8 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MMA Fight Prediction Inference")
     parser.add_argument("--s3_bucket", required=True, help="S3 bucket name")
-    parser.add_argument("--upcoming_fights_key", default="upcoming_fights.json")
-    parser.add_argument("--historical_data_key", default="fight_events.csv")
+    parser.add_argument("--upcoming_fights_key", default="data/upcoming_fights.json")
+    parser.add_argument("--historical_data_key", default="data/fight_events.csv")
     parser.add_argument(
         "--predictions_key", default="predictions/latest_predictions.json"
     )

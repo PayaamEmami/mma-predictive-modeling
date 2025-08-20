@@ -584,7 +584,7 @@ def compute_historical_stats(fight_data):
 
 
 def preprocess_features(
-    upcoming_fights_data, historical_fight_data_path="fight_events.csv"
+    upcoming_fights_data, historical_fight_data_path="data/fight_events.csv"
 ):
     """
     Preprocess features for inference by computing historical statistics.

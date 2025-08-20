@@ -23,7 +23,7 @@ def lambda_handler(event, context):
         key = event["Records"][0]["s3"]["object"]["key"]
 
         # Only trigger if it's the upcoming fights file
-        if key != "upcoming_fights.json":
+        if key != "data/upcoming_fights.json":
             print(f"Ignoring S3 event for {key}")
             return {
                 "statusCode": 200,
