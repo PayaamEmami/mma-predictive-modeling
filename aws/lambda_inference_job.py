@@ -1,3 +1,27 @@
+"""
+AWS Lambda Function: SageMaker Inference Job Trigger
+====================================================
+
+This Lambda function triggers SageMaker training jobs for MMA prediction inference
+when new upcoming fights data is uploaded to S3. It monitors S3 events and starts
+the machine learning inference pipeline to generate predictions.
+
+Triggered by:
+- S3 object creation events for data/upcoming_fights.json
+
+Key Features:
+- Validates S3 event is for upcoming fights data
+- Creates unique training job names with timestamps
+- Configures SageMaker with appropriate instance types and resources
+- Passes S3 bucket information as hyperparameters
+- Monitors job execution with timeout controls
+
+Dependencies:
+- Environment variables: SAGEMAKER_ROLE_ARN, TRAINING_IMAGE_URI, S3_BUCKET
+- SageMaker execution role with appropriate permissions
+- Docker image URI for the training container
+"""
+
 import json
 import boto3
 import os

@@ -1,3 +1,26 @@
+"""
+AWS Lambda Function: Past Predictions and Accuracy API
+======================================================
+
+This Lambda function serves historical prediction data and accuracy metrics
+via API Gateway. It calculates prediction accuracy by comparing archived
+predictions with actual fight outcomes from scraped data.
+
+API Endpoints:
+- GET /past-predictions - List all past prediction events with pagination and accuracy metrics
+- GET /past-predictions/{event-filename} - Get specific past prediction details
+- GET /past-predictions/{event-filename}/accuracy - Get detailed accuracy metrics for specific event
+
+Key Features:
+- Only shows events that have actual fight outcome data in fight_events.csv
+- Calculates fighter-level and event-level accuracy statistics
+- Supports pagination and filtering
+
+Dependencies:
+- S3 bucket with archived-predictions/ and data/fight_events.csv
+- Environment variables: BUCKET_NAME, FIGHT_EVENTS_KEY
+"""
+
 import json
 import boto3
 import csv
@@ -18,9 +41,16 @@ if not BUCKET_NAME:
 def lambda_handler(event, context):
     """
     Lambda function to handle past predictions API endpoints:
-    - GET /past-predictions - List all past prediction events with pagination
-    - GET /past-predictions/{event-filename} - Get specific past prediction
-    - GET /past-predictions/{event-filename}/accuracy - Get accuracy metrics for specific event
+
+    Endpoints:
+    - GET /past-predictions - List all past prediction events with pagination and accuracy metrics
+    - GET /past-predictions/{event-filename} - Get specific past prediction details
+    - GET /past-predictions/{event-filename}/accuracy - Get detailed accuracy metrics for specific event
+
+    Returns:
+    - Past prediction data with calculated accuracy metrics
+    - Only shows events that have actual fight outcome data in fight_events.csv
+    - Includes fighter-level and event-level accuracy statistics
     """
 
     # Enable CORS
@@ -98,6 +128,18 @@ def handle_list_past_predictions(query_params, headers):
             }
 
         # Process each archived file to get metadata
+        # Load fight events data once for all checks
+        fight_events = load_fight_events()
+        print(
+            f"Loaded fight events data: {len(fight_events) if fight_events is not None else 0} total fights"
+        )
+
+        if fight_events is not None and not fight_events.empty:
+            unique_events = fight_events["Event"].unique()
+            print(
+                f"Available events in fight_events.csv: {len(unique_events)} unique events"
+            )
+
         events = []
         for obj in response["Contents"]:
             key = obj["Key"]
@@ -110,13 +152,23 @@ def handle_list_past_predictions(query_params, headers):
                 content = file_response["Body"].read().decode("utf-8")
                 prediction_data = json.loads(content)
 
+                event_name = prediction_data.get("event_name", "")
+
+                # Only include events that exist in fight_events.csv
+                # This ensures we have actual fight outcomes to compare against
+                if not event_exists_in_fight_data(fight_events, event_name):
+                    print(f"Skipping '{event_name}' - no fight data available yet")
+                    continue
+
+                print(f"Including '{event_name}' - fight data confirmed available")
+
                 # Get accuracy if available
                 filename = key.split("/")[-1].replace(".json", "")
                 accuracy = get_event_accuracy(prediction_data)
 
                 event_info = {
                     "filename": filename,
-                    "event_name": prediction_data.get("event_name", ""),
+                    "event_name": event_name,
                     "event_date": prediction_data.get("event_date", ""),
                     "event_location": prediction_data.get("event_location", ""),
                     "generated_at": prediction_data.get("generated_at", ""),
@@ -288,6 +340,25 @@ def get_event_accuracy(prediction_data):
             "fight_results": [],
             "error": str(e),
         }
+
+
+def event_exists_in_fight_data(fight_events_df, event_name):
+    """
+    Check if an event exists in the fight events data.
+    This ensures we only show past predictions for events where we have actual outcomes.
+    """
+    if fight_events_df is None or fight_events_df.empty:
+        return False
+
+    # Clean and normalize event names for comparison
+    event_name_clean = event_name.strip().lower()
+
+    # Check if any fight in the CSV matches this event
+    matching_fights = fight_events_df[
+        fight_events_df["Event"].str.strip().str.lower() == event_name_clean
+    ]
+
+    return len(matching_fights) > 0
 
 
 def load_fight_events():

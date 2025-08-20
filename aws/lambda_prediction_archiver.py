@@ -1,3 +1,31 @@
+"""
+AWS Lambda Function: Prediction File Archiver
+=============================================
+
+This Lambda function automatically archives prediction files when latest_predictions.json
+is uploaded to S3. It creates event-specific copies of predictions for historical tracking
+and accuracy calculation purposes.
+
+Triggered by:
+- S3 object creation events for predictions/latest_predictions.json
+
+Key Features:
+- Extracts event name from prediction JSON content
+- Converts event names to filename-safe format (e.g., "UFC 319" -> "ufc-319")
+- Creates archived copies in archived-predictions/ folder
+- Adds metadata for easy querying and identification
+- Handles special characters and formatting consistently
+
+Archive Format:
+- Source: predictions/latest_predictions.json
+- Target: archived-predictions/{event-name}.json
+- Metadata: original file info, event details, archive timestamp
+
+Dependencies:
+- Environment variables: ARCHIVE_PREFIX, PREDICTIONS_PREFIX, PREDICTIONS_FILENAME
+- S3 bucket access for reading and writing prediction files
+"""
+
 import json
 import boto3
 import re
@@ -14,8 +42,18 @@ PREDICTIONS_FILENAME = os.environ.get("PREDICTIONS_FILENAME")
 
 def lambda_handler(event, context):
     """
-    Lambda function to archive prediction files when latest_predictions.json is uploaded.
-    Creates a copy of the file with a name based on the event name from the JSON content.
+    Main handler for prediction file archiving.
+
+    Process:
+    1. Validate S3 event is for latest_predictions.json in predictions/ folder
+    2. Download and parse prediction JSON to extract event details
+    3. Convert event name to filename-safe format
+    4. Create archived copy with metadata in archived-predictions/ folder
+    5. Log archival details for tracking
+
+    Returns:
+    - Success: Archive file location and event details
+    - Error: Detailed error message with original file info
     """
 
     try:

@@ -1,3 +1,27 @@
+"""
+AWS Lambda Function: GitHub Pull Request Automation
+==================================================
+
+This Lambda function automatically creates GitHub pull requests when new
+training results are uploaded to S3. It downloads the results, creates a
+new branch, and submits a PR to merge the results into the repository.
+
+Triggered by:
+- S3 object creation events in results/ or experiments/results/ folders
+
+Key Features:
+- Supports both main and experimental branch workflows
+- Downloads all S3 results to temporary directory
+- Creates timestamped branches for each update
+- Automatically creates pull requests with descriptive titles
+- Handles both file creation and updates in the repository
+
+Dependencies:
+- Parameter Store: mpm-github-token (GitHub authentication)
+- Environment variables: S3_BUCKET, GITHUB_REPO
+- Required permissions: S3 read access, Parameter Store access
+"""
+
 import boto3
 import tempfile
 import os
@@ -18,6 +42,21 @@ def get_github_token_from_parameter_store(parameter_name, region_name="us-west-1
 
 
 def lambda_handler(event, context):
+    """
+    Main handler for GitHub pull request automation.
+
+    Process:
+    1. Determine branch (main vs experimental) based on S3 key
+    2. Download all result files from S3 to temporary directory
+    3. Authenticate with GitHub using Parameter Store token
+    4. Create new timestamped branch from target branch
+    5. Update/create files in repository results/ folder
+    6. Create pull request with descriptive title and body
+
+    Returns:
+    - Success: PR URL and branch information
+    - Error: Detailed error message with cleanup
+    """
     # Use single GitHub token parameter for both main and experimental
     s3_key = event["Records"][0]["s3"]["object"]["key"]
     if s3_key.startswith("experiments/"):

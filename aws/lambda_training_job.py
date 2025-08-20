@@ -1,3 +1,33 @@
+"""
+AWS Lambda Function: SageMaker Training Job Trigger
+===================================================
+
+This Lambda function triggers SageMaker training jobs for MMA prediction model
+training when new data is uploaded to S3. It supports both main and experimental
+training workflows with separate configurations.
+
+Triggered by:
+- S3 object creation events in data/ folder (main training)
+- S3 object creation events in experiments/ folder (experimental training)
+
+Key Features:
+- Dual-mode operation: main vs experimental training
+- Environment-based configuration management
+- Automatic job naming with timestamps
+- GPU-optimized instance configuration (ml.g4dn.xlarge)
+- Comprehensive hyperparameter passing to training containers
+
+Training Modes:
+- Main: Uses standard environment variables for production training
+- Experimental: Uses EXPERIMENTAL_ prefixed variables for testing
+
+Dependencies:
+- Environment variables: ROLE_ARN, SAGEMAKER_PROGRAM, SAGEMAKER_SUBMIT_DIRECTORY, etc.
+- Experimental variables: EXPERIMENTAL_ROLE_ARN, EXPERIMENTAL_SAGEMAKER_PROGRAM, etc.
+- SageMaker execution role with appropriate permissions
+- PyTorch training container image
+"""
+
 import boto3
 import datetime
 import os
@@ -37,6 +67,20 @@ def get_config_from_env(is_experimental=False):
 
 
 def lambda_handler(event, context):
+    """
+    Main handler for SageMaker training job creation.
+
+    Process:
+    1. Determine training mode (main vs experimental) from S3 key
+    2. Load appropriate environment configuration
+    3. Generate unique training job name with timestamp
+    4. Configure SageMaker job parameters and hyperparameters
+    5. Submit training job to SageMaker
+
+    Returns:
+    - Success: Training job ARN and job details
+    - Error: Configuration or SageMaker submission errors
+    """
     sagemaker = boto3.client("sagemaker")
     timestamp = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
 

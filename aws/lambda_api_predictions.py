@@ -1,3 +1,18 @@
+"""
+AWS Lambda Function: Current Predictions API
+============================================
+
+This Lambda function serves the current/latest fight predictions via API Gateway.
+It retrieves the most recent prediction data from S3 and serves it to the frontend.
+
+API Endpoints:
+- GET /predictions - Get the latest fight predictions
+
+Dependencies:
+- S3 bucket with predictions/latest_predictions.json
+- Environment variable: S3_BUCKET
+"""
+
 import json
 import boto3
 import logging
@@ -13,7 +28,14 @@ PREDICTIONS_KEY = "predictions/latest_predictions.json"
 
 def lambda_handler(event, context):
     """
-    Lambda function to serve latest predictions via API Gateway
+    Lambda function to handle current predictions API endpoints:
+
+    Endpoints:
+    - GET /predictions - Get the latest fight predictions
+
+    Returns:
+    - Latest prediction data with event details, fight predictions, and metadata
+    - 404 if no predictions are currently available
     """
     headers = {
         "Content-Type": "application/json",

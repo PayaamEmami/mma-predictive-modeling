@@ -1,3 +1,20 @@
+"""
+AWS Lambda Function: Training Plots and Metrics API
+===================================================
+
+This Lambda function serves training curve plots and model performance metrics
+via API Gateway. It retrieves visualization data and performance metrics from S3.
+
+API Endpoints:
+- GET /training/overview - Get training overview with model performance metrics
+- GET /training/plot?name={plot_name} - Get specific training plot as base64-encoded image
+- GET /training/plots - List all available training plots
+
+Dependencies:
+- S3 bucket with results/ folder containing training artifacts
+- Environment variable: S3_BUCKET
+"""
+
 import json
 import boto3
 import logging
@@ -15,7 +32,16 @@ RESULTS_PREFIX = "results/"
 
 def lambda_handler(event, context):
     """
-    Lambda function to serve training curve plots and model metrics via API Gateway
+    Lambda function to handle training plots and metrics API endpoints:
+
+    Endpoints:
+    - GET /training/overview - Get training overview with model performance metrics
+    - GET /training/plot?name={plot_name} - Get specific training plot as base64-encoded image
+    - GET /training/plots - List all available training plots
+
+    Returns:
+    - Training metrics, model performance data, and visualization plots
+    - Base64-encoded PNG images for plot endpoints
     """
     headers = {
         "Content-Type": "application/json",
