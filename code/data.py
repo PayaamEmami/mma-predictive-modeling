@@ -584,7 +584,9 @@ def compute_historical_stats(fight_data):
 
 
 def preprocess_features(
-    upcoming_fights_data, historical_fight_data_path="data/fight_events.csv"
+    upcoming_fights_data,
+    historical_fight_data_path="data/fight_events.csv",
+    s3_bucket=None,
 ):
     """
     Preprocess features for inference by computing historical statistics.
@@ -606,7 +608,16 @@ def preprocess_features(
 
     # Load historical fight data from S3
     s3 = boto3.client("s3")
-    bucket = os.environ.get("S3_BUCKET")
+
+    # Get bucket name from parameter or environment variable
+    if s3_bucket is None:
+        bucket = os.environ.get("S3_BUCKET")
+        if bucket is None:
+            raise ValueError(
+                "S3 bucket must be provided either as parameter or S3_BUCKET environment variable"
+            )
+    else:
+        bucket = s3_bucket
 
     # Download and load historical fight data
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp_file:

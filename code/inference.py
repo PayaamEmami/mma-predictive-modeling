@@ -178,7 +178,7 @@ def main(
     try:
         print("Preprocessing features using training pipeline...")
         processed_features = preprocess_features(
-            upcoming_fights_data, historical_data_key
+            upcoming_fights_data, historical_data_key, s3_bucket
         )
         print(f"Generated features with shape: {processed_features.shape}")
     except Exception as e:
