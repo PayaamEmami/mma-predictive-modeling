@@ -26,7 +26,6 @@ import boto3
 import csv
 import os
 from io import StringIO
-from urllib.parse import unquote_plus
 
 s3_client = boto3.client("s3")
 
