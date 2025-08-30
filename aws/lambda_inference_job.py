@@ -11,10 +11,16 @@ Triggered by:
 
 Key Features:
 - Validates S3 event is for upcoming fights data
+- Prevents duplicate predictions by checking if event already has archived predictions
 - Creates unique training job names with timestamps
 - Configures SageMaker with appropriate instance types and resources
 - Passes S3 bucket information as hyperparameters
 - Monitors job execution with timeout controls
+
+Duplicate Prevention:
+- Reads upcoming fights data to extract event name
+- Checks if archived prediction already exists for this event
+- Skips inference job if predictions already exist to prevent waste and duplication
 
 Dependencies:
 - Environment variables: SAGEMAKER_ROLE_ARN, TRAINING_IMAGE_URI, S3_BUCKET
@@ -25,7 +31,57 @@ Dependencies:
 import json
 import boto3
 import os
+import re
 from datetime import datetime
+
+
+def convert_event_name_to_filename(event_name):
+    """
+    Convert event name to a filename-safe format (same logic as prediction archiver).
+    """
+    # Convert to lowercase
+    filename = event_name.lower()
+
+    # Replace common separators with hyphens
+    filename = re.sub(r"[:\-–—]+", "-", filename)
+
+    # Replace spaces and other non-alphanumeric characters with hyphens
+    filename = re.sub(r"[^a-z0-9]+", "-", filename)
+
+    # Remove leading/trailing hyphens and multiple consecutive hyphens
+    filename = re.sub(r"^-+|-+$", "", filename)
+    filename = re.sub(r"-+", "-", filename)
+
+    return filename
+
+
+def check_predictions_already_exist(s3_bucket, event_name):
+    """
+    Check if predictions for this event already exist in the archived predictions.
+    Returns True if predictions already exist, False otherwise.
+    """
+    try:
+        s3_client = boto3.client("s3")
+
+        # Convert event name to filename format (same as archiver)
+        filename = convert_event_name_to_filename(event_name)
+        archive_key = f"predictions/archive/{filename}.json"
+
+        # Check if the archived prediction file exists
+        s3_client.head_object(Bucket=s3_bucket, Key=archive_key)
+
+        print(f"Predictions already exist for event '{event_name}' at {archive_key}")
+        return True
+
+    except s3_client.exceptions.NoSuchKey:
+        print(
+            f"No existing predictions found for event '{event_name}' - proceeding with inference"
+        )
+        return False
+    except Exception as e:
+        print(f"Error checking for existing predictions: {e}")
+        # If we can't check, err on the side of caution and don't run inference
+        return True
 
 
 def lambda_handler(event, context):
@@ -33,8 +89,6 @@ def lambda_handler(event, context):
     Lambda function to trigger SageMaker training job for MMA predictions inference.
     Triggered when upcoming fights data is uploaded to S3.
     """
-
-    sagemaker_client = boto3.client("sagemaker")
 
     # Configuration
     role_arn = os.environ["SAGEMAKER_ROLE_ARN"]
@@ -59,6 +113,43 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Error parsing S3 event: {e}")
         return {"statusCode": 400, "body": json.dumps(f"Error parsing S3 event: {e}")}
+
+    # Check if predictions already exist for this event to prevent duplicates
+    try:
+        s3_client = boto3.client("s3")
+
+        # Read the upcoming fights data to get the event name
+        response = s3_client.get_object(Bucket=bucket, Key=key)
+        upcoming_fights_content = response["Body"].read().decode("utf-8")
+        upcoming_fights_data = json.loads(upcoming_fights_content)
+
+        event_name = upcoming_fights_data.get("EventName", "")
+        if not event_name:
+            print("Warning: No EventName found in upcoming fights data")
+        else:
+            print(f"Event name: {event_name}")
+
+            # Check if predictions already exist
+            if check_predictions_already_exist(s3_bucket, event_name):
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps(
+                        {
+                            "message": "Predictions already exist for this event - skipping inference job",
+                            "event_name": event_name,
+                            "skipped": True,
+                        }
+                    ),
+                }
+
+    except Exception as e:
+        print(f"Error checking for existing predictions: {e}")
+        # If we can't read the file or check for existing predictions, proceed with caution
+        # This ensures the system still works even if there's an issue with the duplicate check
+        print("Proceeding with inference job due to error in duplicate check")
+
+    # Initialize SageMaker client after duplicate check
+    sagemaker_client = boto3.client("sagemaker")
 
     # Create unique training job name
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
