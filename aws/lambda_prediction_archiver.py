@@ -34,10 +34,14 @@ from urllib.parse import unquote_plus
 from datetime import datetime
 
 s3_client = boto3.client("s3")
+lambda_client = boto3.client("lambda")
 
 ARCHIVE_PREFIX = os.environ.get("ARCHIVE_PREFIX")
 PREDICTIONS_PREFIX = os.environ.get("PREDICTIONS_PREFIX")
 PREDICTIONS_FILENAME = os.environ.get("PREDICTIONS_FILENAME")
+MODEL_LEADERBOARD_FUNCTION = os.environ.get(
+    "MODEL_LEADERBOARD_FUNCTION", "mpm-model-leaderboard"
+)
 
 
 def lambda_handler(event, context):
@@ -112,6 +116,27 @@ def lambda_handler(event, context):
 
         print(f"Successfully archived {key} as {archive_key}")
 
+        # Trigger model leaderboard refresh
+        try:
+            print("Triggering model leaderboard refresh...")
+            lambda_client.invoke(
+                FunctionName=MODEL_LEADERBOARD_FUNCTION,
+                InvocationType="Event",  # Async invocation
+                Payload=json.dumps(
+                    {
+                        "httpMethod": "POST",
+                        "path": "/model-leaderboard/refresh",
+                        "source": "prediction-archiver",
+                        "archived_file": archive_key,
+                        "event_name": event_name,
+                    }
+                ),
+            )
+            print("Model leaderboard refresh triggered successfully")
+        except Exception as e:
+            print(f"Warning: Failed to trigger leaderboard refresh: {e}")
+            # Don't fail the entire operation if leaderboard refresh fails
+
         return {
             "statusCode": 200,
             "body": json.dumps(
@@ -120,6 +145,7 @@ def lambda_handler(event, context):
                     "original_file": key,
                     "archived_file": archive_key,
                     "event_name": event_name,
+                    "leaderboard_refresh_triggered": True,
                 }
             ),
         }

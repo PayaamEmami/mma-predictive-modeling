@@ -193,7 +193,7 @@ def get_training_overview():
 
 
 def get_plot_image(plot_name):
-    """Get a specific plot image as base64 encoded data"""
+    """Get a specific plot image as a direct S3 URL or fallback to base64"""
     headers_image = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
@@ -227,42 +227,78 @@ def get_plot_image(plot_name):
 
         object_key = f"{RESULTS_PREFIX}{plot_name}"
 
-        # Get the image from S3
-        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=object_key)
-        image_data = response["Body"].read()
+        # Check if object exists first
+        try:
+            head_response = s3_client.head_object(Bucket=BUCKET_NAME, Key=object_key)
+        except s3_client.exceptions.NoSuchKey:
+            return {
+                "statusCode": 404,
+                "headers": headers_image,
+                "body": json.dumps(
+                    {
+                        "error": "Plot not found",
+                        "message": f"Plot '{plot_name}' does not exist",
+                    }
+                ),
+            }
 
-        # Encode image as base64
-        image_base64 = base64.b64encode(image_data).decode("utf-8")
+        # Generate a presigned URL for direct access (expires in 1 hour)
+        try:
+            presigned_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": BUCKET_NAME, "Key": object_key},
+                ExpiresIn=3600,  # 1 hour
+            )
 
-        return {
-            "statusCode": 200,
-            "headers": headers_image,
-            "body": json.dumps(
-                {
-                    "filename": plot_name,
-                    "content_type": "image/png",
-                    "data": image_base64,
-                    "size": len(image_data),
-                    "last_modified": (
-                        response.get("LastModified", "").isoformat()
-                        if response.get("LastModified")
-                        else None
-                    ),
-                }
-            ),
-        }
+            return {
+                "statusCode": 200,
+                "headers": headers_image,
+                "body": json.dumps(
+                    {
+                        "filename": plot_name,
+                        "content_type": "image/png",
+                        "url": presigned_url,  # Direct S3 URL
+                        "size": head_response.get("ContentLength", 0),
+                        "last_modified": (
+                            head_response.get("LastModified", "").isoformat()
+                            if head_response.get("LastModified")
+                            else None
+                        ),
+                        "expires_at": (datetime.utcnow().timestamp() + 3600)
+                        * 1000,  # JavaScript timestamp
+                        "delivery_method": "presigned_url",
+                    }
+                ),
+            }
+        except Exception as e:
+            logger.warning(
+                f"Failed to generate presigned URL, falling back to base64: {e}"
+            )
 
-    except s3_client.exceptions.NoSuchKey:
-        return {
-            "statusCode": 404,
-            "headers": headers_image,
-            "body": json.dumps(
-                {
-                    "error": "Plot not found",
-                    "message": f"Plot '{plot_name}' does not exist",
-                }
-            ),
-        }
+            # Fallback to base64 if presigned URL fails
+            response = s3_client.get_object(Bucket=BUCKET_NAME, Key=object_key)
+            image_data = response["Body"].read()
+            image_base64 = base64.b64encode(image_data).decode("utf-8")
+
+            return {
+                "statusCode": 200,
+                "headers": headers_image,
+                "body": json.dumps(
+                    {
+                        "filename": plot_name,
+                        "content_type": "image/png",
+                        "data": image_base64,  # Base64 fallback
+                        "size": len(image_data),
+                        "last_modified": (
+                            response.get("LastModified", "").isoformat()
+                            if response.get("LastModified")
+                            else None
+                        ),
+                        "delivery_method": "base64_fallback",
+                    }
+                ),
+            }
+
     except Exception as e:
         logger.error(f"Error getting plot image: {str(e)}")
         return {
