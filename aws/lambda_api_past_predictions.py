@@ -303,6 +303,8 @@ def get_event_accuracy(prediction_data):
                 fight_events, event_name, fighter1_name, fighter2_name
             )
 
+            # Determine if fight was changed/cancelled (no matching actual fight)
+            fight_changed = actual_result is None
             is_correct = False
             if actual_result:
                 actual_winner = actual_result["winner_name"]
@@ -319,16 +321,28 @@ def get_event_accuracy(prediction_data):
                         actual_result["winner_name"] if actual_result else None
                     ),
                     "is_correct": is_correct,
+                    "fight_changed": fight_changed,
                     "confidence": fight["aggregate"]["average_confidence"],
                 }
             )
 
-        overall_accuracy = (correct_predictions / len(fights)) * 100 if fights else 0
+        # Calculate accuracy only for fights that actually occurred (not changed/cancelled)
+        actual_fights = [
+            fr for fr in fight_results if not fr.get("fight_changed", False)
+        ]
+        overall_accuracy = (
+            (correct_predictions / len(actual_fights)) * 100 if actual_fights else 0
+        )
 
         return {
             "overall_accuracy": round(overall_accuracy, 1),
             "correct_predictions": correct_predictions,
-            "total_fights": len(fights),
+            "total_fights": len(
+                actual_fights
+            ),  # Only count fights that actually occurred
+            "total_predicted_fights": len(fights),  # Total originally predicted
+            "changed_fights": len(fights)
+            - len(actual_fights),  # Number of changed fights
             "fight_results": fight_results,
         }
 

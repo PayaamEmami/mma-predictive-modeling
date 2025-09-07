@@ -264,7 +264,12 @@ def calculate_model_leaderboard():
                         fight_result = result
                         break
 
-                if not fight_result or not fight_result.get("actual_winner"):
+                if (
+                    not fight_result
+                    or not fight_result.get("actual_winner")
+                    or fight_result.get("fight_changed", False)
+                ):
+                    # Skip fights that were changed/cancelled or have no actual result
                     continue
 
                 # Check each model's prediction for this fight
@@ -395,7 +400,11 @@ def get_event_accuracy(prediction_data, fight_events):
                         actual_winner = event_fight.get("Fighter2_Name", "").strip()
                     break
 
+            # Determine if fight was changed/cancelled (no matching actual fight)
+            fight_changed = actual_winner is None
             is_correct = actual_winner == predicted_winner if actual_winner else False
+
+            # Only include fights with actual results in accuracy calculations
             if actual_winner:
                 total_fights += 1
                 if is_correct:
@@ -408,6 +417,7 @@ def get_event_accuracy(prediction_data, fight_events):
                     "predicted_winner": predicted_winner,
                     "actual_winner": actual_winner,
                     "is_correct": is_correct,
+                    "fight_changed": fight_changed,
                     "confidence": fight.get("aggregate", {}).get(
                         "average_confidence", 0
                     ),
