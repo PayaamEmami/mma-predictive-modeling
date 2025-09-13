@@ -73,15 +73,18 @@ def check_predictions_already_exist(s3_bucket, event_name):
         print(f"Predictions already exist for event '{event_name}' at {archive_key}")
         return True
 
-    except s3_client.exceptions.NoSuchKey:
-        print(
-            f"No existing predictions found for event '{event_name}' - proceeding with inference"
-        )
-        return False
     except Exception as e:
-        print(f"Error checking for existing predictions: {e}")
-        # If we can't check, err on the side of caution and don't run inference
-        return True
+        # Handle both NoSuchKey and other S3 exceptions
+        error_str = str(e)
+        if "404" in error_str or "NoSuchKey" in error_str or "Not Found" in error_str:
+            print(
+                f"No existing predictions found for event '{event_name}' - proceeding with inference"
+            )
+            return False
+        else:
+            print(f"Error checking for existing predictions: {e}")
+            # If we can't check for other reasons, err on the side of caution and don't run inference
+            return True
 
 
 def lambda_handler(event, context):
