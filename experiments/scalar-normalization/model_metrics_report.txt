@@ -88,11 +88,11 @@ Classification Report for Naive Bayes:
 weighted avg       0.25      0.50      0.34      1556
 
 
-Learning Curve Metrics for FCNN:
+Learning Curve Metrics for FNN:
   Final Training Accuracy: 0.5117 (+/- 0.0028)
   Final Validation Accuracy: 0.5076 (+/- 0.0071)
   Learning Rate: -0.0080
-Classification Report for FCNN:
+Classification Report for FNN:
               precision    recall  f1-score   support
 
            1       0.50      1.00      0.67       784

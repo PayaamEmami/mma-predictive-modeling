@@ -134,7 +134,7 @@ HYPERPARAMETERS = {
         "class_weight": None,  # Weights associated with classes
         "ccp_alpha": 0.0,  # Complexity parameter for pruning
     },
-    "FCNN": {
+    "FNN": {
         # Model architecture
         "hidden_size": 256,  # Number of units in hidden layer
         # Training hyperparameters common to all

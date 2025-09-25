@@ -13,7 +13,7 @@ This machine learning system analyzes fighter performance data using classical a
 The system implements **9 distinct algorithms** across multiple paradigms for comprehensive predictive analysis:
 
 - **Classical ML:** K-Nearest Neighbors (KNN), Naive Bayes, Logistic Regression, Support Vector Machines (SVM), Decision Trees
-- **Neural Networks:** Fully Connected Neural Network (FCNN), Transformers
+- **Neural Networks:** Feedforward Neural Network (FNN), Transformers
 - **Ensemble Methods:** Gradient Boosting, Random Forest
 
 Each model contributes unique strengths to the multi-model system, from the interpretability of decision trees to the pattern recognition capabilities of neural networks.

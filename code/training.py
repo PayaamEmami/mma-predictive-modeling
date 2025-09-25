@@ -121,7 +121,7 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                     "input_size": input_size,
                 }
 
-                if name == "FCNN":
+                if name == "FNN":
                     model_data["hidden_size"] = HYPERPARAMETERS[name].get(
                         "hidden_size", 64
                     )

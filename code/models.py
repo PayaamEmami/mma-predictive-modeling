@@ -10,16 +10,16 @@ from sklearn.tree import DecisionTreeClassifier
 from config import HYPERPARAMETERS
 
 
-class FCNN(nn.Module):
+class FNN(nn.Module):
     """
-    Fully Connected Neural Network for fight outcome prediction.
+    Feedforward Neural Network for fight outcome prediction.
 
     Architecture:
         - Input layer -> Hidden layer (ReLU) -> Output layer
     """
 
     def __init__(self, input_size, hidden_size):
-        super(FCNN, self).__init__()
+        super(FNN, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_size, 2)
@@ -99,11 +99,13 @@ def initialize_models(input_size, device):
     )
     models["KNN"] = KNeighborsClassifier(**HYPERPARAMETERS["KNN"])
     models["Naive Bayes"] = GaussianNB(**HYPERPARAMETERS["Naive Bayes"])
-    models["Decision Tree"] = DecisionTreeClassifier(**HYPERPARAMETERS["Decision Tree"])  # Added
+    models["Decision Tree"] = DecisionTreeClassifier(
+        **HYPERPARAMETERS["Decision Tree"]
+    )  # Added
 
     # Initialize PyTorch models
-    models["FCNN"] = FCNN(
-        input_size, hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"]
+    models["FNN"] = FNN(
+        input_size, hidden_size=HYPERPARAMETERS["FNN"]["hidden_size"]
     ).to(device)
 
     models["Transformer"] = Transformer(

@@ -52,7 +52,7 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
         val_std = test_scores[-1].std()
 
         # Get predictions for classification report
-        if name in ["FCNN", "RNN", "LSTM", "Transformer"]:
+        if name in ["FNN", "RNN", "LSTM", "Transformer"]:
             model.eval()
             with torch.no_grad():
                 X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)

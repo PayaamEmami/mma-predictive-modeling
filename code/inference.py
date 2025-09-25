@@ -7,7 +7,7 @@ import argparse
 import boto3
 from typing import Dict, Any
 from io import BytesIO
-from models import FCNN, Transformer
+from models import FNN, Transformer
 from config import DEVICE
 from data import preprocess_features
 
@@ -48,8 +48,8 @@ class ModelInference:
                 except Exception as e:
                     print(f"Failed to load {model_name}: {e}")
 
-            # Load PyTorch models (FCNN and Transformer)
-            pytorch_models = ["FCNN", "Transformer"]
+            # Load PyTorch models (FNN and Transformer)
+            pytorch_models = ["FNN", "Transformer"]
             for model_name in pytorch_models:
                 try:
                     model_key = f"{self.models_prefix}{model_name}.pth"
@@ -60,8 +60,8 @@ class ModelInference:
                         BytesIO(obj["Body"].read()), map_location=DEVICE
                     )
 
-                    if model_name == "FCNN":
-                        model = FCNN(
+                    if model_name == "FNN":
+                        model = FNN(
                             input_size=model_data["input_size"],
                             hidden_size=model_data["hidden_size"],
                         ).to(DEVICE)
@@ -102,7 +102,7 @@ class ModelInference:
 
         for model_name, model in self.models.items():
             try:
-                if model_name in ["FCNN", "Transformer"]:
+                if model_name in ["FNN", "Transformer"]:
                     # PyTorch models
                     with torch.no_grad():
                         features_tensor = torch.FloatTensor(fight_features).to(DEVICE)

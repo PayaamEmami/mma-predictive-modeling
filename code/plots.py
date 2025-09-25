@@ -9,7 +9,7 @@ from sklearn.model_selection import learning_curve, KFold
 import torch
 from config import HYPERPARAMETERS
 from training import train_model
-from models import FCNN, Transformer
+from models import FNN, Transformer
 
 
 def plot_model_comparisons(performance_df, output_path):
@@ -104,10 +104,10 @@ def plot_learning_curve(
                         num_layers=HYPERPARAMETERS["Transformer"]["num_layers"],
                         nhead=HYPERPARAMETERS["Transformer"]["nhead"],
                     ).to(device)
-                elif isinstance(model, FCNN):
-                    fresh_model = FCNN(
+                elif isinstance(model, FNN):
+                    fresh_model = FNN(
                         next(model.parameters()).shape[1],
-                        hidden_size=HYPERPARAMETERS["FCNN"]["hidden_size"],
+                        hidden_size=HYPERPARAMETERS["FNN"]["hidden_size"],
                     ).to(device)
 
                 # Train the model

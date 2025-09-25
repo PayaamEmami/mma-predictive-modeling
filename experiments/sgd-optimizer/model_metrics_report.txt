@@ -103,11 +103,11 @@ Classification Report for Decision Tree:
 weighted avg       0.54      0.54      0.54      1567
 
 
-Learning Curve Metrics for FCNN:
+Learning Curve Metrics for FNN:
   Final Training Accuracy: 0.6493 (+/- 0.0054)
   Final Test Accuracy: 0.5967 (+/- 0.0074)
   Learning Rate: -0.0810
-Classification Report for FCNN:
+Classification Report for FNN:
               precision    recall  f1-score   support
 
            1       0.59      0.69      0.63       791
