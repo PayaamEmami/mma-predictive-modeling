@@ -1,6 +1,5 @@
 import os
 import torch
-from datetime import datetime
 
 # Path for local results before uploading to S3
 RESULTS_PATH = os.path.join(os.getcwd(), "results")
@@ -181,3 +180,15 @@ HYPERPARAMETERS = {
         "centered": False,  # Whether to center RMSprop
     },
 }
+
+
+def is_experimental():
+    """
+    Check if this is an experimental run based on S3 results prefix.
+    This is the single source of truth for experimental vs main runs.
+
+    Returns:
+        bool: True if experimental run, False if main/production run
+    """
+    s3_results_prefix = os.environ.get("S3_RESULTS_PREFIX", "")
+    return s3_results_prefix.startswith("experiments/")

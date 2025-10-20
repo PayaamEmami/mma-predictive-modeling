@@ -1,0 +1,17 @@
+{
+  "experiment_name": "Example Experiment Name",
+  "date": "2024-10-20",
+  "hypothesis": "Brief description of what you're testing and why",
+  "changed_hyperparameters": {
+    "ModelName": {
+      "parameter_name": {
+        "old": "previous_value",
+        "new": "new_value"
+      },
+      "another_parameter": {
+        "old": 0.001,
+        "new": 0.01
+      }
+    }
+  }
+}

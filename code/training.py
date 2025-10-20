@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import boto3
 import os
-from config import HYPERPARAMETERS
+from config import HYPERPARAMETERS, RESULTS_PATH, is_experimental
 
 
 def train_model(name, model, X_train, y_train, device, verbose=True):
@@ -103,6 +103,7 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
 def save_models(models, input_size, s3_bucket, models_prefix="models/"):
     """
     Save trained models to S3 for inference.
+    For experimental runs, also saves models locally to results/models/ folder.
 
     Args:
         models: Dictionary of trained models
@@ -112,6 +113,13 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
     """
     s3_client = boto3.client("s3")
 
+    # For experimental runs, create local models directory
+    local_models_dir = None
+    if is_experimental():
+        local_models_dir = os.path.join(RESULTS_PATH, "models")
+        os.makedirs(local_models_dir, exist_ok=True)
+        print(f"Saving experiment models locally to {local_models_dir}")
+
     for name, model in models.items():
         try:
             if isinstance(model, torch.nn.Module):
@@ -119,6 +127,7 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                 model_data = {
                     "state_dict": model.state_dict(),
                     "input_size": input_size,
+                    "hyperparameters": HYPERPARAMETERS[name],
                 }
 
                 if name == "FNN":
@@ -142,7 +151,12 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                 s3_key = f"{models_prefix}{model_filename}"
                 s3_client.upload_file(model_filename, s3_bucket, s3_key)
 
-                # Clean up local file
+                # For experiments, also save to local results/models/
+                if local_models_dir:
+                    local_model_path = os.path.join(local_models_dir, model_filename)
+                    torch.save(model_data, local_model_path)
+
+                # Clean up temporary file
                 os.remove(model_filename)
 
                 print(f"Saved PyTorch model {name} to s3://{s3_bucket}/{s3_key}")
@@ -159,13 +173,22 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                 s3_key = f"{models_prefix}{model_filename}"
                 s3_client.upload_file(model_filename, s3_bucket, s3_key)
 
-                # Clean up local file
+                # For experiments, also save to local results/models/
+                if local_models_dir:
+                    local_model_path = os.path.join(local_models_dir, model_filename)
+                    with open(local_model_path, "wb") as f:
+                        pickle.dump(model, f)
+
+                # Clean up temporary file
                 os.remove(model_filename)
 
                 print(f"Saved sklearn model {name} to s3://{s3_bucket}/{s3_key}")
 
         except Exception as e:
             print(f"Failed to save model {name}: {e}")
+
+    if local_models_dir:
+        print(f"Experiment models saved locally to {local_models_dir}")
 
 
 def save_label_encoder(label_encoder, s3_bucket, models_prefix="models/"):
