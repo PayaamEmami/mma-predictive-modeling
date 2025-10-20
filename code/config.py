@@ -14,7 +14,7 @@ HYPERPARAMETERS = {
         # Tree-related parameters
         "n_estimators": 200,  # Number of trees in the forest
         "criterion": "gini",  # Function to measure split quality
-        "max_depth": 10,  # Maximum depth of the tree
+        "max_depth": 8,  # Maximum depth of the tree
         "min_samples_split": 10,  # Minimum samples required to split
         "min_samples_leaf": 4,  # Minimum samples required in a leaf
         "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
@@ -31,7 +31,7 @@ HYPERPARAMETERS = {
         "warm_start": False,  # Reuse previous solutions to add trees
         # Regularization
         "class_weight": "balanced",  # Weights associated with classes
-        "ccp_alpha": 0.0,  # Complexity parameter for pruning
+        "ccp_alpha": 0.01,  # Complexity parameter for pruning
         "max_samples": None,  # Maximum samples to draw for bootstrap
     },
     "Gradient Boosting": {
@@ -45,7 +45,7 @@ HYPERPARAMETERS = {
         "min_samples_split": 2,  # Minimum samples required to split
         "min_samples_leaf": 1,  # Minimum samples required in a leaf
         "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
-        "max_depth": 3,  # Maximum depth of the tree
+        "max_depth": 2,  # Maximum depth of the tree
         "min_impurity_decrease": 0.0,  # Minimum impurity decrease for split
         "init": None,  # Estimator to use for initial predictions
         # Computational settings
@@ -59,7 +59,7 @@ HYPERPARAMETERS = {
         "n_iter_no_change": None,  # Iterations with no improvement
         "tol": 1e-4,  # Tolerance for early stopping
         # Regularization
-        "ccp_alpha": 0.0,  # Complexity parameter for pruning
+        "ccp_alpha": 0.01,  # Complexity parameter for pruning
     },
     "SVM": {
         # Model settings
@@ -122,16 +122,16 @@ HYPERPARAMETERS = {
         # Tree-related parameters
         "criterion": "gini",  # Function to measure split quality
         "splitter": "best",  # Strategy used to choose the split
-        "max_depth": None,  # Maximum depth of the tree
+        "max_depth": 10,  # Maximum depth of the tree
         "min_samples_split": 2,  # Minimum samples required to split
-        "min_samples_leaf": 1,  # Minimum samples required in a leaf
+        "min_samples_leaf": 5,  # Minimum samples required in a leaf
         "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
         "max_features": None,  # Number of features to consider for split
         "random_state": 21,  # Random seed for reproducibility
         "max_leaf_nodes": None,  # Maximum number of leaf nodes
         "min_impurity_decrease": 0.0,  # Minimum impurity decrease for split
         "class_weight": None,  # Weights associated with classes
-        "ccp_alpha": 0.0,  # Complexity parameter for pruning
+        "ccp_alpha": 0.01,  # Complexity parameter for pruning
     },
     "FNN": {
         # Model architecture
@@ -139,7 +139,7 @@ HYPERPARAMETERS = {
         # Training hyperparameters common to all
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer
-        "weight_decay": 0.01,  # Weight decay for regularization
+        "weight_decay": 0.05,  # Weight decay for regularization
         "num_epochs": 300,  # Number of training epochs
         "batch_size": 32,  # Batch size for training
         # SGD parameters
@@ -163,7 +163,7 @@ HYPERPARAMETERS = {
         # Training hyperparameters
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer
-        "weight_decay": 0.01,  # Weight decay for regularization
+        "weight_decay": 0.05,  # Weight decay for regularization
         "num_epochs": 300,  # Number of training epochs
         "batch_size": 32,  # Batch size for training
         # SGD parameters
