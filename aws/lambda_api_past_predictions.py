@@ -36,6 +36,10 @@ FIGHT_EVENTS_KEY = os.environ.get("FIGHT_EVENTS_KEY")
 if not BUCKET_NAME:
     raise ValueError("BUCKET_NAME environment variable is required")
 
+# Global cache for Lambda container reuse (persists across invocations)
+_fight_events_cache = None
+_event_names_cache = None
+
 
 def lambda_handler(event, context):
     """
@@ -359,14 +363,33 @@ def get_event_accuracy(prediction_data):
 
 def load_fight_events():
     """
-    Load and parse the fight_events.csv file from S3.
+    Load and parse the fight_events.csv file from S3 with caching.
+    Uses global cache to persist data across Lambda invocations in the same container.
     """
+    global _fight_events_cache, _event_names_cache
+
+    # Return cached data if available
+    if _fight_events_cache is not None:
+        print(f"Using cached fight events data ({len(_fight_events_cache)} fights)")
+        return _fight_events_cache
+
     try:
+        print("Loading fight events from S3...")
         response = s3_client.get_object(Bucket=BUCKET_NAME, Key=FIGHT_EVENTS_KEY)
         content = response["Body"].read().decode("utf-8")
 
         csv_reader = csv.DictReader(StringIO(content))
-        return list(csv_reader)
+        _fight_events_cache = list(csv_reader)
+
+        # Pre-compute set of unique event names for fast lookup
+        _event_names_cache = set(
+            fight.get("EventName", "").strip()
+            for fight in _fight_events_cache
+            if fight.get("EventName", "").strip()
+        )
+
+        print(f"Cached {len(_fight_events_cache)} fights, {len(_event_names_cache)} unique events")
+        return _fight_events_cache
 
     except Exception as e:
         print(f"Error loading fight events: {str(e)}")
@@ -377,12 +400,18 @@ def event_exists_in_fight_data(fight_events, event_name):
     """
     Check if an event exists in the fight events data.
     Returns True if the event has actual fight outcome data.
+    Uses cached set for O(1) lookup instead of O(n) iteration.
     """
+    global _event_names_cache
+
     if fight_events is None or len(fight_events) == 0:
         return False
 
-    # Check if any fights exist for this event
-    # fight_events is a list of dictionaries from CSV
+    # Use pre-computed set for fast lookup
+    if _event_names_cache is not None:
+        return event_name.strip() in _event_names_cache
+
+    # Fallback to linear search if cache not available (shouldn't happen)
     for fight in fight_events:
         if fight.get("EventName", "").strip() == event_name.strip():
             return True
