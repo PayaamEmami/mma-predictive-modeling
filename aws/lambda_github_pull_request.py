@@ -99,14 +99,20 @@ def lambda_handler(event, context):
     new_branch = f"s3-results-update-{timestamp}"
     repo.create_git_ref(ref=f"refs/heads/{new_branch}", sha=base.commit.sha)
 
-    # For each file in s3_results_dir, update or create in results/ in the repo
+    # Determine target directory in repo based on whether this is experimental
+    if s3_results_prefix.startswith("experiments/"):
+        repo_results_prefix = "experiments/results"
+    else:
+        repo_results_prefix = "results"
+
+    # For each file in s3_results_dir, update or create in appropriate results/ folder in the repo
     for root, _, files in os.walk(s3_results_dir):
         for file in files:
             if file == "done.json":
                 continue
             local_path = os.path.join(root, file)
             rel_path = os.path.relpath(local_path, s3_results_dir)
-            repo_path = f"results/{rel_path.replace(os.sep, '/')}"
+            repo_path = f"{repo_results_prefix}/{rel_path.replace(os.sep, '/')}"
 
             with open(local_path, "rb") as f:
                 content = f.read()
@@ -127,10 +133,19 @@ def lambda_handler(event, context):
                     branch=new_branch,
                 )
 
-    # Create Pull Request
+    # Create Pull Request with appropriate title and body
+    if s3_results_prefix.startswith("experiments/"):
+        pr_title = f"Automated experimental results update - {timestamp}"
+        pr_body = "This pull request updates the experiments/results/ folder with new experimental outputs from S3."
+    else:
+        pr_title = f"Automated results update - {timestamp}"
+        pr_body = (
+            "This pull request updates the results/ folder with new outputs from S3."
+        )
+
     pr = repo.create_pull(
-        title=f"Automated results update - {timestamp}",
-        body="This pull request updates the results/ folder with new outputs from S3.",
+        title=pr_title,
+        body=pr_body,
         head=new_branch,
         base=github_branch,
     )
