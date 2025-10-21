@@ -20,7 +20,25 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 <!-- EXPERIMENTS_LIST_START -->
 
-_No experiments completed yet. Run your first experiment to populate this list!_
+### 1. [Increased Regularization Across Models](./increased-regularization/experiment_report.md)
+
+**Date:** October 20, 2024
+**Status:** ⚠️ Mixed Results
+
+**Hypothesis:** Increasing regularization strength should reduce overfitting, particularly for Decision Tree which showed 100% training accuracy.
+
+**Key Findings:**
+
+- ❌ Tree-based models (Decision Tree, Random Forest, Gradient Boosting) over-regularized with accuracy drops of 7-13%
+- 🟡 Neural networks (FNN, Transformer) showed minor performance loss (~1%)
+- ✅ Successfully confirmed Decision Tree overfitting issue
+- 💡 Learned that combined regularization techniques compound effects
+
+**Outcome:** Regularization approach validated but applied too aggressively. Follow-up experiment recommended with moderate settings.
+
+[View Full Report →](./increased-regularization/experiment_report.md)
+
+---
 
 <!-- EXPERIMENTS_LIST_END -->
 

@@ -58,16 +58,6 @@ GitHub Actions will automatically upload your code to S3.
 
 Trigger the SageMaker training job (your usual process).
 
-The training will automatically:
-
-- ✅ Detect it's an experimental run (from S3 path)
-- ✅ Copy baseline metrics from production
-- ✅ Train all models with your changes
-- ✅ Generate comparison report
-- ✅ Save model files locally
-- ✅ Upload everything to S3
-- ✅ Create GitHub PR with results
-
 ## Step 5: Review Results
 
 Once the PR is created, review your experiment folder:
@@ -75,13 +65,9 @@ Once the PR is created, review your experiment folder:
 ```
 experiments/my-new-experiment/
   experiment_config.json       ← Your input
-  baseline_metrics.json        ← Baseline accuracies
+  baseline_metrics.csv         ← Baseline accuracies
   experiment_report.md         ← 🆕 Auto-generated comparison!
   model_performances.csv       ← Experiment results
   model_metrics_report.txt     ← Detailed metrics
   learning_curve_*.png         ← Training plots
-  models/                      ← 🆕 Saved models!
-    FNN.pth
-    Transformer.pth
-    ...
 ```
