@@ -1,0 +1,53 @@
+{
+  "experiment_name": "Increased Regularization Across Models",
+  "date": "2024-10-20",
+  "hypothesis": "Increasing regularization strength across models should reduce overfitting and improve generalization on the test set, given the relatively small dataset (~8k examples). Decision Tree in particular has no depth limit and may be severely overfitting.",
+  "changed_hyperparameters": {
+    "Decision Tree": {
+      "max_depth": {
+        "old": null,
+        "new": 10
+      },
+      "ccp_alpha": {
+        "old": 0.0,
+        "new": 0.01
+      },
+      "min_samples_leaf": {
+        "old": 1,
+        "new": 5
+      }
+    },
+    "Random Forest": {
+      "ccp_alpha": {
+        "old": 0.0,
+        "new": 0.01
+      },
+      "max_depth": {
+        "old": 10,
+        "new": 8
+      }
+    },
+    "Gradient Boosting": {
+      "ccp_alpha": {
+        "old": 0.0,
+        "new": 0.01
+      },
+      "max_depth": {
+        "old": 3,
+        "new": 2
+      }
+    },
+    "FNN": {
+      "weight_decay": {
+        "old": 0.01,
+        "new": 0.05
+      }
+    },
+    "Transformer": {
+      "weight_decay": {
+        "old": 0.01,
+        "new": 0.05
+      }
+    }
+  }
+}

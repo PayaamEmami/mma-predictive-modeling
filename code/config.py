@@ -122,9 +122,9 @@ HYPERPARAMETERS = {
         # Tree-related parameters
         "criterion": "gini",  # Function to measure split quality
         "splitter": "best",  # Strategy used to choose the split
-        "max_depth": None,  # Maximum depth of the tree
-        "min_samples_split": 2,  # Minimum samples required to split
-        "min_samples_leaf": 1,  # Minimum samples required in a leaf
+        "max_depth": 15,  # Maximum depth of the tree
+        "min_samples_split": 5,  # Minimum samples required to split
+        "min_samples_leaf": 2,  # Minimum samples required in a leaf
         "min_weight_fraction_leaf": 0.0,  # Minimum weighted fraction of leaf
         "max_features": None,  # Number of features to consider for split
         "random_state": 21,  # Random seed for reproducibility

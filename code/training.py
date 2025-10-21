@@ -103,7 +103,7 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
 def save_models(models, input_size, s3_bucket, models_prefix="models/"):
     """
     Save trained models to S3 for inference.
-    For experimental runs, also saves models locally to results/models/ folder.
+    Skips S3 upload for experimental runs to avoid overwriting production models.
 
     Args:
         models: Dictionary of trained models
@@ -111,14 +111,12 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
         s3_bucket: S3 bucket name
         models_prefix: S3 prefix for model files
     """
-    s3_client = boto3.client("s3")
-
-    # For experimental runs, create local models directory
-    local_models_dir = None
+    # Skip model saving entirely for experimental runs
     if is_experimental():
-        local_models_dir = os.path.join(RESULTS_PATH, "models")
-        os.makedirs(local_models_dir, exist_ok=True)
-        print(f"Saving experiment models locally to {local_models_dir}")
+        print("Experimental run detected - skipping model uploads to S3")
+        return
+
+    s3_client = boto3.client("s3")
 
     for name, model in models.items():
         try:
@@ -151,11 +149,6 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                 s3_key = f"{models_prefix}{model_filename}"
                 s3_client.upload_file(model_filename, s3_bucket, s3_key)
 
-                # For experiments, also save to local results/models/
-                if local_models_dir:
-                    local_model_path = os.path.join(local_models_dir, model_filename)
-                    torch.save(model_data, local_model_path)
-
                 # Clean up temporary file
                 os.remove(model_filename)
 
@@ -173,12 +166,6 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
                 s3_key = f"{models_prefix}{model_filename}"
                 s3_client.upload_file(model_filename, s3_bucket, s3_key)
 
-                # For experiments, also save to local results/models/
-                if local_models_dir:
-                    local_model_path = os.path.join(local_models_dir, model_filename)
-                    with open(local_model_path, "wb") as f:
-                        pickle.dump(model, f)
-
                 # Clean up temporary file
                 os.remove(model_filename)
 
@@ -187,19 +174,22 @@ def save_models(models, input_size, s3_bucket, models_prefix="models/"):
         except Exception as e:
             print(f"Failed to save model {name}: {e}")
 
-    if local_models_dir:
-        print(f"Experiment models saved locally to {local_models_dir}")
-
 
 def save_label_encoder(label_encoder, s3_bucket, models_prefix="models/"):
     """
     Save label encoder to S3.
+    Skips S3 upload for experimental runs to avoid overwriting production encoder.
 
     Args:
         label_encoder: Trained label encoder
         s3_bucket: S3 bucket name
         models_prefix: S3 prefix for model files
     """
+    # Skip encoder saving entirely for experimental runs
+    if is_experimental():
+        print("Experimental run detected - skipping label encoder upload to S3")
+        return
+
     try:
         s3_client = boto3.client("s3")
 
