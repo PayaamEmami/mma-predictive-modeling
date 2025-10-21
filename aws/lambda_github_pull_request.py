@@ -139,7 +139,9 @@ def lambda_handler(event, context):
         pr_body = "This pull request updates the experiments/results/ folder with new experimental outputs from S3."
     else:
         pr_title = f"Automated results update - {timestamp}"
-        pr_body = "This pull request updates the results/ folder with new outputs from S3."
+        pr_body = (
+            "This pull request updates the results/ folder with new outputs from S3."
+        )
 
     pr = repo.create_pull(
         title=pr_title,
