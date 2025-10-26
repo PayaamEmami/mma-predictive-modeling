@@ -268,8 +268,9 @@ def calculate_model_leaderboard():
                     not fight_result
                     or not fight_result.get("actual_winner")
                     or fight_result.get("fight_changed", False)
+                    or fight_result.get("result_type")
                 ):
-                    # Skip fights that were changed/cancelled or have no actual result
+                    # Skip fights that were changed/cancelled, NC, or Draw
                     continue
 
                 # Check each model's prediction for this fight
@@ -377,6 +378,7 @@ def get_event_accuracy(prediction_data, fight_events):
 
             # Find actual winner from fight events
             actual_winner = None
+            result_type = None
             for event_fight in fight_events:
                 if event_fight.get("EventName", "").strip() == event_name.strip() and (
                     (
@@ -398,6 +400,12 @@ def get_event_accuracy(prediction_data, fight_events):
                         actual_winner = event_fight.get("Fighter1_Name", "").strip()
                     elif winner_num == "2":
                         actual_winner = event_fight.get("Fighter2_Name", "").strip()
+                    elif winner_num == "NC":
+                        actual_winner = "No Contest"
+                        result_type = "no_contest"
+                    elif winner_num == "D":
+                        actual_winner = "Draw"
+                        result_type = "draw"
                     break
 
             # Determine if fight was changed/cancelled (no matching actual fight)
@@ -405,24 +413,30 @@ def get_event_accuracy(prediction_data, fight_events):
             is_correct = actual_winner == predicted_winner if actual_winner else False
 
             # Only include fights with actual results in accuracy calculations
-            if actual_winner:
+            if actual_winner and not result_type:
                 total_fights += 1
                 if is_correct:
                     correct_predictions += 1
 
-            fight_results.append(
-                {
-                    "fighter1_name": fighter1_name,
-                    "fighter2_name": fighter2_name,
-                    "predicted_winner": predicted_winner,
-                    "actual_winner": actual_winner,
-                    "is_correct": is_correct,
-                    "fight_changed": fight_changed,
-                    "confidence": fight.get("aggregate", {}).get(
-                        "average_confidence", 0
-                    ),
-                }
-            )
+            fight_result_entry = {
+                "fighter1_name": fighter1_name,
+                "fighter2_name": fighter2_name,
+                "predicted_winner": predicted_winner,
+                "actual_winner": actual_winner,
+                "is_correct": is_correct,
+                "fight_changed": fight_changed,
+                "confidence": fight.get("aggregate", {}).get(
+                    "average_confidence", 0
+                ),
+            }
+
+            # Add result_type only for exceptional cases
+            if result_type:
+                fight_result_entry["result_type"] = result_type
+            elif fight_changed:
+                fight_result_entry["result_type"] = "changed"
+
+            fight_results.append(fight_result_entry)
 
         overall_accuracy = (
             (correct_predictions / total_fights * 100) if total_fights > 0 else 0
