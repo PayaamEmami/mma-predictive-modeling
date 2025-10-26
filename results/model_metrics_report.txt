@@ -89,13 +89,13 @@ weighted avg       0.56      0.56      0.56      1567
 
 
 Learning Curve Metrics for Decision Tree:
-  Final Training Accuracy: 1.0000 (+/- 0.0000)
-  Final Test Accuracy: 0.5692 (+/- 0.0132)
-  Learning Rate: -0.4308
+  Final Training Accuracy: 0.9074 (+/- 0.0056)
+  Final Test Accuracy: 0.5718 (+/- 0.0119)
+  Learning Rate: -0.3698
 Classification Report for Decision Tree:
               precision    recall  f1-score   support
 
-           1       0.56      0.60      0.58       774
+           1       0.56      0.61      0.58       774
            2       0.58      0.54      0.56       793
 
     accuracy                           0.57      1567
@@ -104,14 +104,14 @@ weighted avg       0.57      0.57      0.57      1567
 
 
 Learning Curve Metrics for FNN:
-  Final Training Accuracy: 0.6796 (+/- 0.0026)
-  Final Test Accuracy: 0.6228 (+/- 0.0096)
-  Learning Rate: -0.0835
+  Final Training Accuracy: 0.6789 (+/- 0.0042)
+  Final Test Accuracy: 0.6216 (+/- 0.0048)
+  Learning Rate: -0.0844
 Classification Report for FNN:
               precision    recall  f1-score   support
 
-           1       0.61      0.66      0.63       774
-           2       0.64      0.59      0.61       793
+           1       0.61      0.65      0.63       774
+           2       0.63      0.60      0.61       793
 
     accuracy                           0.62      1567
    macro avg       0.62      0.62      0.62      1567
@@ -119,14 +119,14 @@ weighted avg       0.62      0.62      0.62      1567
 
 
 Learning Curve Metrics for Transformer:
-  Final Training Accuracy: 0.6343 (+/- 0.0063)
-  Final Test Accuracy: 0.6235 (+/- 0.0101)
-  Learning Rate: -0.0171
+  Final Training Accuracy: 0.6381 (+/- 0.0063)
+  Final Test Accuracy: 0.6235 (+/- 0.0080)
+  Learning Rate: -0.0229
 Classification Report for Transformer:
               precision    recall  f1-score   support
 
-           1       0.61      0.68      0.64       774
-           2       0.64      0.57      0.61       793
+           1       0.60      0.69      0.64       774
+           2       0.65      0.56      0.60       793
 
     accuracy                           0.62      1567
    macro avg       0.63      0.62      0.62      1567
