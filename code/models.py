@@ -63,7 +63,7 @@ class Transformer(nn.Module):
 
         # Dropout before classification head
         self.dropout = nn.Dropout(p=dropout_rate)
-        
+
         # Classification head
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
@@ -111,7 +111,7 @@ def initialize_models(input_size, device):
 
     # Initialize PyTorch models
     models["FNN"] = FNN(
-        input_size, 
+        input_size,
         hidden_size=HYPERPARAMETERS["FNN"]["hidden_size"],
         dropout_rate=HYPERPARAMETERS["FNN"]["dropout_rate"]
     ).to(device)
