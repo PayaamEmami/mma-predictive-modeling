@@ -307,32 +307,42 @@ def get_event_accuracy(prediction_data):
                 fight_events, event_name, fighter1_name, fighter2_name
             )
 
-            # Determine if fight was changed/cancelled (no matching actual fight)
+            # Determine fight status and correctness
             fight_changed = actual_result is None
+            result_type = actual_result.get("result_type") if actual_result else None
             is_correct = False
+
             if actual_result:
                 actual_winner = actual_result["winner_name"]
-                is_correct = predicted_winner == actual_winner
-                if is_correct:
-                    correct_predictions += 1
+                # Only calculate correctness for fights with actual winners (not NC/Draw)
+                if actual_winner and result_type is None:
+                    is_correct = predicted_winner == actual_winner
+                    if is_correct:
+                        correct_predictions += 1
 
-            fight_results.append(
-                {
-                    "fighter1_name": fighter1_name,
-                    "fighter2_name": fighter2_name,
-                    "predicted_winner": predicted_winner,
-                    "actual_winner": (
-                        actual_result["winner_name"] if actual_result else None
-                    ),
-                    "is_correct": is_correct,
-                    "fight_changed": fight_changed,
-                    "confidence": fight["aggregate"]["average_confidence"],
-                }
-            )
+            fight_result_entry = {
+                "fighter1_name": fighter1_name,
+                "fighter2_name": fighter2_name,
+                "predicted_winner": predicted_winner,
+                "actual_winner": (
+                    actual_result["winner_name"] if actual_result else None
+                ),
+                "is_correct": is_correct,
+                "fight_changed": fight_changed,
+                "confidence": fight["aggregate"]["average_confidence"],
+            }
+
+            # Add result_type only for exceptional cases
+            if result_type:
+                fight_result_entry["result_type"] = result_type
+            elif fight_changed:
+                fight_result_entry["result_type"] = "changed"
+
+            fight_results.append(fight_result_entry)
 
         # Calculate accuracy only for fights that actually occurred (not changed/cancelled)
         actual_fights = [
-            fr for fr in fight_results if not fr.get("fight_changed", False)
+            fr for fr in fight_results if not fr.get("fight_changed", False) and not fr.get("result_type")
         ]
         overall_accuracy = (
             (correct_predictions / len(actual_fights)) * 100 if actual_fights else 0
@@ -422,6 +432,7 @@ def event_exists_in_fight_data(fight_events, event_name):
 def find_fight_result(fight_events, event_name, fighter1_name, fighter2_name):
     """
     Find the actual fight result from the fight_events data.
+    Returns result with winner_name and optional result_type for exceptional cases.
     """
     for event in fight_events:
         if event["EventName"] == event_name:
@@ -435,19 +446,26 @@ def find_fight_result(fight_events, event_name, fighter1_name, fighter2_name):
             ):
 
                 winner_num = event["Winner"]
-                if winner_num == "1":
-                    winner_name = event["Fighter1_Name"]
-                elif winner_num == "2":
-                    winner_name = event["Fighter2_Name"]
-                else:
-                    winner_name = None
-
-                return {
-                    "winner_name": winner_name,
+                result = {
                     "method": event["Method"],
                     "round": event["Round"],
                     "time": event["Time"],
                 }
+
+                if winner_num == "1":
+                    result["winner_name"] = event["Fighter1_Name"]
+                elif winner_num == "2":
+                    result["winner_name"] = event["Fighter2_Name"]
+                elif winner_num == "NC":
+                    result["winner_name"] = "No Contest"
+                    result["result_type"] = "no_contest"
+                elif winner_num == "D":
+                    result["winner_name"] = "Draw"
+                    result["result_type"] = "draw"
+                else:
+                    result["winner_name"] = None
+
+                return result
 
     return None
 

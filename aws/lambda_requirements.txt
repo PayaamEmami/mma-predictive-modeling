@@ -1,4 +1,4 @@
 boto3
 botocore
 PyGithub==1.59.1
-cryptography==3.4.8
+cryptography>=39.0.1
