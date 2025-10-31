@@ -5,7 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
-from sklearn.model_selection import learning_curve, KFold
+from sklearn.model_selection import learning_curve, StratifiedKFold
 import torch
 from config import HYPERPARAMETERS
 from training import train_model
@@ -81,15 +81,14 @@ def plot_learning_curve(
         test_scores: Array of validation scores for each training size and fold
     """
     if isinstance(model, torch.nn.Module):
-        kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
+        kf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
 
         train_scores = np.zeros((len(train_sizes), cv))
         test_scores = np.zeros((len(train_sizes), cv))
 
         for size_idx, size in enumerate(train_sizes):
-            subset_size = int(len(X) * size)
-
-            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X)):
+            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X, y)):
+                subset_size = int(len(train_idx) * size)
                 # Get subset of training data
                 X_train = X[train_idx[:subset_size]]
                 y_train = y[train_idx[:subset_size]]
@@ -134,8 +133,9 @@ def plot_learning_curve(
                         predicted == torch.tensor(y_val).to(device)
                     ).sum().item() / len(y_val)
 
-        # Convert fractional train_sizes to actual sample counts for plotting
-        train_sizes = (train_sizes * len(X)).astype(int)
+        # Convert fractional train_sizes to actual per-fold sample counts for plotting
+        max_per_fold = int(len(X) * (cv - 1) / cv)
+        train_sizes = (train_sizes * max_per_fold).astype(int)
     else:
         train_sizes, train_scores, test_scores = learning_curve(
             model,
