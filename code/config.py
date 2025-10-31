@@ -136,6 +136,7 @@ HYPERPARAMETERS = {
     "FNN": {
         # Model architecture
         "hidden_size": 256,  # Number of units in hidden layer
+        "dropout_rate": 0.3,  # Dropout rate for regularization
         # Training hyperparameters common to all
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer
@@ -160,6 +161,7 @@ HYPERPARAMETERS = {
         "embedding_dim": 128,  # Size of embedding vectors
         "num_layers": 4,  # Number of transformer layers
         "nhead": 8,  # Number of attention heads
+        "dropout_rate": 0.2,  # Dropout rate for regularization
         # Training hyperparameters
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer

@@ -15,19 +15,21 @@ class FNN(nn.Module):
     Feedforward Neural Network for fight outcome prediction.
 
     Architecture:
-        - Input layer -> Hidden layer (ReLU) -> Output layer
+        - Input layer -> Hidden layer (ReLU) -> Dropout -> Output layer
     """
 
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, dropout_rate=0.0):
         super(FNN, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=dropout_rate)
         self.fc2 = nn.Linear(hidden_size, 2)
 
     def forward(self, x):
         # Input shape: (batch_size, input_size)
         out = self.fc1(x)  # Shape: (batch_size, hidden_size)
         out = self.relu(out)  # Shape: (batch_size, hidden_size)
+        out = self.dropout(out)  # Shape: (batch_size, hidden_size)
         out = self.fc2(out)  # Shape: (batch_size, 2)
         return out
 
@@ -37,10 +39,10 @@ class Transformer(nn.Module):
     Transformer Network for fight outcome prediction.
 
     Architecture:
-        - Input embedding -> Positional encoding -> Transformer encoder -> Classification layer
+        - Input embedding -> Positional encoding -> Transformer encoder -> Dropout -> Classification layer
     """
 
-    def __init__(self, input_size, embedding_dim, num_layers, nhead):
+    def __init__(self, input_size, embedding_dim, num_layers, nhead, dropout_rate=0.0):
         super(Transformer, self).__init__()
         self.num_features = input_size
         self.embedding_dim = embedding_dim
@@ -51,14 +53,17 @@ class Transformer(nn.Module):
             torch.zeros(1, self.num_features, self.embedding_dim)
         )
 
-        # Transformer encoder setup
+        # Transformer encoder setup with dropout
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.embedding_dim, nhead=nhead, batch_first=True
+            d_model=self.embedding_dim, nhead=nhead, dropout=dropout_rate, batch_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(
             encoder_layer, num_layers=num_layers
         )
 
+        # Dropout before classification head
+        self.dropout = nn.Dropout(p=dropout_rate)
+        
         # Classification head
         self.fc = nn.Linear(self.num_features * self.embedding_dim, 2)
 
@@ -71,6 +76,7 @@ class Transformer(nn.Module):
             x
         )  # Shape: (batch_size, num_features, embedding_dim)
         x = x.flatten(1)  # Shape: (batch_size, num_features * embedding_dim)
+        x = self.dropout(x)  # Apply dropout before classification
         x = self.fc(x)  # Shape: (batch_size, 2)
         return x
 
@@ -105,7 +111,9 @@ def initialize_models(input_size, device):
 
     # Initialize PyTorch models
     models["FNN"] = FNN(
-        input_size, hidden_size=HYPERPARAMETERS["FNN"]["hidden_size"]
+        input_size, 
+        hidden_size=HYPERPARAMETERS["FNN"]["hidden_size"],
+        dropout_rate=HYPERPARAMETERS["FNN"]["dropout_rate"]
     ).to(device)
 
     models["Transformer"] = Transformer(
@@ -113,6 +121,7 @@ def initialize_models(input_size, device):
         embedding_dim=HYPERPARAMETERS["Transformer"]["embedding_dim"],
         num_layers=HYPERPARAMETERS["Transformer"]["num_layers"],
         nhead=HYPERPARAMETERS["Transformer"]["nhead"],
+        dropout_rate=HYPERPARAMETERS["Transformer"]["dropout_rate"]
     ).to(device)
 
     return models
