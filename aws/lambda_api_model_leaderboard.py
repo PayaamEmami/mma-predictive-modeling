@@ -253,8 +253,6 @@ def calculate_model_leaderboard():
 
             # Process each fight to calculate model-level accuracy
             for fight in prediction_data.get("fights", []):
-                total_fights_processed += 1
-
                 # Find the actual winner for this fight
                 fight_result = None
                 for result in accuracy_data.get("fight_results", []):
@@ -272,6 +270,9 @@ def calculate_model_leaderboard():
                 ):
                     # Skip fights that were changed/cancelled, NC, or Draw
                     continue
+
+                # Only count fights that are actually used in accuracy calculations
+                total_fights_processed += 1
 
                 # Check each model's prediction for this fight
                 for model_name, prediction in fight.get(
