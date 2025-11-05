@@ -1,0 +1,20 @@
+{
+  "experiment_name": "Dropout Regularization for Neural Networks",
+  "date": "2024-10-31",
+  "hypothesis": "Adding dropout regularization to FNN and Transformer models should reduce overfitting and improve generalization. Dropout randomly deactivates neurons during training, forcing the network to learn more robust features and preventing co-adaptation of neurons.",
+  "changed_hyperparameters": {
+    "FNN": {
+      "dropout_rate": {
+        "old": 0.0,
+        "new": 0.3
+      }
+    },
+    "Transformer": {
+      "dropout_rate": {
+        "old": 0.0,
+        "new": 0.2
+      }
+    }
+  }
+}
+
