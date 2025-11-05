@@ -146,7 +146,8 @@ def handle_list_past_predictions(query_params, headers):
             )
 
         events = []
-        total_fights_processed = 0
+        total_fights_processed = 0  # Track total fights across all events (excluding changed/NC/Draw)
+        total_correct_predictions = 0  # Track total correct predictions across all events
 
         for obj in response["Contents"]:
             key = obj["Key"]
@@ -173,7 +174,9 @@ def handle_list_past_predictions(query_params, headers):
                 filename = key.split("/")[-1].replace(".json", "")
                 accuracy = get_event_accuracy(prediction_data)
 
+                # Add to total fights and correct predictions (only fights that count for accuracy)
                 total_fights_processed += accuracy.get("total_fights", 0)
+                total_correct_predictions += accuracy.get("correct_predictions", 0)
 
                 event_info = {
                     "filename": filename,
@@ -193,6 +196,13 @@ def handle_list_past_predictions(query_params, headers):
 
         # Sort by event date (most recent first)
         events.sort(key=lambda x: x["event_date"], reverse=True)
+
+        # Calculate overall accuracy across all events
+        overall_accuracy = (
+            (total_correct_predictions / total_fights_processed) * 100
+            if total_fights_processed > 0
+            else 0
+        )
 
         # Apply pagination
         total = len(events)
@@ -215,6 +225,8 @@ def handle_list_past_predictions(query_params, headers):
                     "metadata": {
                         "total_events_processed": total,
                         "total_fights_processed": total_fights_processed,
+                        "total_correct_predictions": total_correct_predictions,
+                        "overall_accuracy": round(overall_accuracy, 1),
                     }
                 }
             ),
