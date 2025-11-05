@@ -146,6 +146,8 @@ def handle_list_past_predictions(query_params, headers):
             )
 
         events = []
+        total_fights_processed = 0
+
         for obj in response["Contents"]:
             key = obj["Key"]
             if not key.endswith(".json") or key == "predictions/archive/":
@@ -170,6 +172,8 @@ def handle_list_past_predictions(query_params, headers):
                 # Get accuracy if available
                 filename = key.split("/")[-1].replace(".json", "")
                 accuracy = get_event_accuracy(prediction_data)
+
+                total_fights_processed += accuracy.get("total_fights", 0)
 
                 event_info = {
                     "filename": filename,
@@ -208,6 +212,10 @@ def handle_list_past_predictions(query_params, headers):
                     "page": page,
                     "limit": limit,
                     "total_pages": total_pages,
+                    "metadata": {
+                        "total_events_processed": total,
+                        "total_fights_processed": total_fights_processed,
+                    }
                 }
             ),
         }
@@ -342,7 +350,10 @@ def get_event_accuracy(prediction_data):
 
         # Calculate accuracy only for fights that actually occurred (not changed/cancelled)
         actual_fights = [
-            fr for fr in fight_results if not fr.get("fight_changed", False) and not fr.get("result_type")
+            fr for fr in fight_results
+            if not fr.get("fight_changed", False)
+            and not fr.get("result_type")
+            and fr.get("actual_winner")  # Exclude fights with no actual winner (data issues)
         ]
         overall_accuracy = (
             (correct_predictions / len(actual_fights)) * 100 if actual_fights else 0
