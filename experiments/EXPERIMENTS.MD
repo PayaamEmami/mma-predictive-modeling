@@ -22,7 +22,6 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 ### 1. [Increased Regularization Across Models](./increased-regularization/experiment_report.md)
 
-**Date:** October 20, 2024
 **Status:** ⚠️ Mixed Results
 
 **Hypothesis:** Increasing regularization strength should reduce overfitting, particularly for Decision Tree which showed 100% training accuracy.
@@ -37,6 +36,26 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 **Outcome:** Regularization approach validated but applied too aggressively. Follow-up experiment recommended with moderate settings.
 
 [View Full Report →](./increased-regularization/experiment_report.md)
+
+---
+
+### 2. [Dropout Regularization for Neural Networks](./dropout-regularization/experiment_report.md)
+
+**Status:** ❌ Negative Results
+
+**Hypothesis:** Adding dropout regularization to FNN and Transformer models should reduce overfitting and improve generalization by preventing neuron co-adaptation.
+
+**Key Findings:**
+
+- ❌ FNN performance decreased from 62.09% to 61.46% (-1.0%)
+- ❌ Transformer performance decreased from 60.82% to 60.69% (-0.2%)
+- 💡 Current models are already appropriately regularized with weight decay
+- 💡 Small dataset + simple architectures mean capacity matters more than additional regularization
+- ✅ Validated that baseline hyperparameters are well-tuned for this problem
+
+**Outcome:** Dropout provides no benefit for our MMA prediction task. The baseline models with weight decay alone perform better. Change will not be merged. Experiment demonstrates that aggressive regularization is counterproductive when models aren't severely overfitting.
+
+[View Full Report →](./dropout-regularization/experiment_report.md)
 
 ---
 
