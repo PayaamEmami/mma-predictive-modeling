@@ -2,18 +2,11 @@
 
 MMA Predictive Modeling (MPM) is a machine learning system designed to predict Mixed Martial Arts (MMA) fight outcomes using various models.
 
+MPM features a fully automated end-to-end pipeline that scrapes the latest fight results and upcoming matchups, continuously retrains models using new fight data, generates predictions with confidence scores for each model, and publishes results to the project website.
+
 MMA fight prediction is impossible to perfect because real outcomes depend on unpredictable human behavior, hidden factors like injuries or mindset, and inherent randomness, including lucky shots and judging errors. The sport is chaotic and the data is incomplete, so no model can guarantee perfect accuracy.
 
 ## Project Overview
-
-### Key Features
-
-Fully automated end-to-end pipeline featuring:
-
-- **Data collection**: Scraping of latest fight results and upcoming matchups
-- **Model retraining**: Continuous updates using new fight data
-- **Fight predictions**: Upcoming matchups analyzed with confidence scores for each model
-- **Live deployment**: Results published to website
 
 ### 🧠 **Machine Learning Models**
 
