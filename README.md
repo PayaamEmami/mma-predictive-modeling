@@ -1,98 +1,79 @@
 # MMA Predictive Modeling
 
-MMA Predictive Modeling (MPM) is a machine learning system designed to predict Mixed Martial Arts (MMA) fight outcomes by combining classical algorithms and deep neural networks. It processes detailed fighter performance data to deliver data-driven predictions for upcoming events.
+MMA Predictive Modeling (MPM) is a machine learning system designed to predict Mixed Martial Arts (MMA) fight outcomes using various models.
 
-MMA fight prediction is practically intractable to solve perfectly. MMA fight prediction is, in theory, a well-posed input-output problem: given data, output a prediction (e.g., Fighter A wins or Fighter B wins). However, in practice, accurate fight prediction is extremely challenging. Real-world outcomes depend on human behavior (which is non-deterministic and chaotic), incomplete data (such as injuries, mindset, or training changes), and inherent randomness (like lucky punches or judging errors). This introduces uncertainty and irreducible complexity, making perfect prediction impossible. No model can guarantee perfect accuracy due to real-world randomness and incomplete information.
+MMA fight prediction is impossible to perfect because real outcomes depend on unpredictable human behavior, hidden factors like injuries or mindset, and inherent randomness, including lucky shots and judging errors. The sport is chaotic and the data is incomplete, so no model can guarantee perfect accuracy.
 
 ## Project Overview
 
-This machine learning system analyzes fighter performance data using classical algorithms, deep learning models, and robust data processing techniques to predict MMA fight outcomes. Developed in Python with scikit-learn and PyTorch, it automates data processing, model training, and real-time inference.
+### Key Features
+
+Fully automated end-to-end pipeline featuring:
+
+- **Data collection**: Scraping of latest fight results and upcoming matchups
+- **Model retraining**: Continuous updates using new fight data
+- **Fight predictions**: Upcoming matchups analyzed with confidence scores for each model
+- **Live deployment**: Results published to website
 
 ### 🧠 **Machine Learning Models**
 
-The system implements **9 distinct algorithms** across multiple paradigms for comprehensive predictive analysis:
+The system implements the following models for predictive analysis:
 
 - **Classical ML:** K-Nearest Neighbors (KNN), Naive Bayes, Logistic Regression, Support Vector Machines (SVM), Decision Trees
-- **Neural Networks:** Feedforward Neural Network (FNN), Transformers
+- **Neural Networks:** Feedforward Neural Network (FNN), Transformer
 - **Ensemble Methods:** Gradient Boosting, Random Forest
-
-Each model contributes unique strengths to the multi-model system, from the interpretability of decision trees to the pattern recognition capabilities of neural networks.
 
 ### 📊 **Data Processing & Feature Engineering**
 
-The data pipeline transforms raw fight statistics into meaningful predictive features through:
+The data pipeline transforms raw fight statistics into predictive features:
 
-- **Multi-source data extraction:** Fighter profiles, historical performance metrics, and event-specific contextual data
-- **Feature engineering:** Derivation of key performance indicators including striking accuracy, takedown defense rates, fight finish percentages, and momentum-based metrics
-- **Preprocessing:** Automated handling of missing values, feature normalization, and outlier detection to ensure robust model training
+- **Physical attributes:** Height, reach, age, and fighting stance
+- **Historical performance:** Chronologically computed statistics including win/loss records, finish rates, average fight time, and time since last fight
+- **Fighting metrics:** Strike accuracy, average strikes landed/attempted, takedown rates, control time, submission attempts, and reversals
+- **Preprocessing:** StandardScaler normalization for numerical features and OneHotEncoder for categorical features using scikit-learn pipelines
 
 ### 🎯 **Training & Model Evaluation**
 
-The training framework ensures rigorous model development and validation:
+Models are trained and evaluated using a rigorous validation framework:
 
-- **Comparative analysis:** Systematic evaluation across all 9 algorithms using consistent training protocols
-- **Comprehensive datasets:** Models trained on extensive historical fight data with careful train/validation/test splits
-- **Performance visualization:** Generation of detailed learning curves and accuracy progression plots
-- **Multi-metric evaluation:** Assessment using accuracy, precision, recall, and F1-score
-- **Cross-validation:** Robust validation strategies to ensure generalization and prevent overfitting
+- **Train/test split:** 80/20 split on historical fight data
+- **Learning curves:** 5-fold cross-validation across training sizes from 20% to 100% of data
+- **Optimization:** PyTorch models trained with Adam optimizer and CrossEntropyLoss
+- **Metrics:** Train/test accuracy with standard deviations, plus precision, recall, and F1-score via classification reports
+- **Visualization:** Learning curves and accuracy progression plots saved for each model
 
 ## Automated ML Pipeline
 
-This project features a complete end-to-end automated machine learning pipeline that handles both **model training** and **inference** for MMA fight prediction. The system operates on AWS infrastructure and provides continuous updates with minimal manual intervention.
+This project features a complete end-to-end automated machine learning pipeline that handles **data ingestion**, **model training**, and **inference** for MMA fight prediction. The system operates on AWS infrastructure with three main automated workflows:
 
-The system consists of two main automated workflows:
+### 📥 **Data Ingestion Pipeline**
 
-### 🔄 **Training Pipeline** (Weekly - Sundays)
+Automatically collects the latest MMA fight data:
+
+1. **EventBridge Rule** triggers scheduled scraping tasks
+2. **ECS Task** runs containerized web scraper in Docker
+3. Historical fight results and upcoming matchups are extracted
+4. Data is uploaded to **S3** (CSV for historical, JSON for upcoming)
+5. **S3 upload events** trigger downstream training or inference pipelines
+
+### 🔄 **Training Pipeline**
 
 Maintains and updates the machine learning models with the latest fight data:
 
-1. **EventBridge Rule** triggers every Sunday
-2. **ECS Task** runs a .NET + Playwright data scraper in Docker
-3. Latest fight data is uploaded to **S3** as CSV
-4. **S3-triggered Lambda** initiates **SageMaker training job**
-5. **SageMaker** retrains all 9 ML models using PyTorch + scikit-learn
-6. Model metrics, learning curves, and updated models are saved to **S3**
-7. **Lambda function** creates a **GitHub Pull Request** with new results
+1. **S3-triggered Lambda** initiates **SageMaker training job**
+2. **SageMaker** loads historical fight data and retrains all models using PyTorch + scikit-learn
+3. Model metrics, learning curves, and updated models are saved to **S3**
+4. **Lambda function** creates a **GitHub Pull Request** with new results
 
-### 🎯 **Inference Pipeline** (Weekly - Fridays)
+### 🎯 **Inference Pipeline**
 
 Generates predictions for upcoming MMA fights:
 
-1. **EventBridge Rule** triggers every Friday
-2. **ECS Task** scrapes upcoming fight data
-3. Fighter matchup data is uploaded to **S3** as JSON
-4. **S3-triggered Lambda** starts **SageMaker inference job**
-5. **SageMaker** loads trained models and generates combined predictions
-6. Predictions with confidence scores are saved to **S3**
-7. Results are automatically displayed on the project website
-
-### Key Features
-
-- **Multi-model predictions**: Predictions from 9 different ML algorithms
-- **Confidence scoring**: Each prediction includes model agreement and confidence levels
-- **Automated data ingestion**: Continuous scraping of latest MMA fight data
-- **Real-time deployment**: Predictions automatically published to live website
-- **Model persistence**: Trained models and latest predictions stored in S3
-- **Zero manual intervention**: Complete automation from data collection to result publication
+1. **S3-triggered Lambda** starts **SageMaker inference job**
+2. **SageMaker** loads trained models and generates predictions for upcoming matchups
+3. Predictions with confidence scores are saved to **S3**
+4. Results are automatically displayed on the project website
 
 ## Results
 
-Explore the comprehensive outcomes and insights from the MMA predictive modeling system: [**payaam.dev/projects/mma-predictive-modeling**](https://payaam.dev/projects/mma-predictive-modeling)
-
-This interactive results page showcases both aspects of the machine learning pipeline:
-
-### 🤖 **Training Results**
-
-- **Learning curves** for all 9 machine learning models showing training progression
-- **Model performance comparisons** with accuracy metrics and visual analytics
-- **Interactive plot viewer** for detailed examination of model behavior
-- **Real-time updates** reflecting the latest model training cycles
-
-### 🥊 **Live Fight Predictions**
-
-- **Current predictions** for upcoming MMA events with multi-model consensus
-- **Confidence scores** and individual model breakdowns for each fight
-- **Fighter matchup analysis** displaying predicted winners and probability distributions
-- **Multi-model voting** showing agreement levels across different algorithms
-
-The results page provides a complete view of both the machine learning development process and the practical application of the trained models to real-world fight predictions.
+Learning curves, past results, future predictions, and model comparisons can be viewed here: [**payaam.dev/projects/mma-predictive-modeling**](https://payaam.dev/projects/mma-predictive-modeling)
