@@ -8,19 +8,31 @@ Sensitive values (S3 configuration) are loaded from environment variables.
 """
 
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file (optional - Lambda uses native env vars)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not available (e.g., in Lambda) - use native environment variables
+    pass
 
 # File paths
-CSV_FILE_PATH = "./data/fight_events.csv"
-JSON_FILE_PATH = "./data/upcoming_fights.json"
+# Use /tmp in Lambda environment, ./data locally
+# Lambda sets LAMBDA_TASK_ROOT, AWS_LAMBDA_FUNCTION_NAME, or AWS_EXECUTION_ENV
+_is_lambda = (
+    os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None or
+    os.environ.get('LAMBDA_TASK_ROOT') is not None or
+    os.environ.get('AWS_EXECUTION_ENV') is not None
+)
+_data_dir = "/tmp" if _is_lambda else "./data"
+CSV_FILE_PATH = f"{_data_dir}/fight_events.csv"
+JSON_FILE_PATH = f"{_data_dir}/upcoming_fights.json"
 
 # S3 configuration (loaded from environment variables)
-# Uses existing AWS_S3_BUCKET and AWS_REGION from project .env
-S3_BUCKET = os.getenv("AWS_S3_BUCKET")
-S3_REGION = os.getenv("AWS_REGION")
+# Lambda uses S3_BUCKET, local uses AWS_S3_BUCKET for consistency
+S3_BUCKET = os.getenv("S3_BUCKET") or os.getenv("AWS_S3_BUCKET")
+S3_REGION = os.getenv("AWS_REGION", "us-west-1")
 S3_CSV_KEY = os.getenv("S3_CSV_KEY")
 S3_JSON_KEY = os.getenv("S3_JSON_KEY")
 

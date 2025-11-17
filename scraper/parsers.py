@@ -20,7 +20,7 @@ def parse_events_page(html: str) -> list[tuple[str, str, str]]:
     Returns:
         List of (event_url, event_name, event_date_str) tuples
     """
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, 'html.parser')
     events = []
 
     # Find all event rows in the table
@@ -51,7 +51,7 @@ def parse_event_page(html: str) -> tuple[str, str, list[str]]:
     Returns:
         Tuple of (event_name, event_location, list_of_fight_detail_urls)
     """
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, 'html.parser')
 
     # Extract event name
     name_elem = soup.select_one('.b-content__title-highlight')
@@ -89,7 +89,7 @@ def parse_fight_details(html: str) -> dict:
     Returns:
         Dictionary with fight statistics and fighter info
     """
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, 'html.parser')
     fight_data = data_transforms.initialize_empty_fight_dict()
 
     # Extract fighter names and profile URLs
@@ -146,11 +146,15 @@ def parse_fight_details(html: str) -> dict:
             fight_data['Time'] = time_text
 
     # Extract fight statistics from tables
+    # Table 0: Overall totals
+    # Table 1: Round-specific data (skip)
+    # Table 2: Significant strikes breakdown
+    # Table 3: Round-specific strikes (skip)
     fight_tables = soup.select('tbody.b-fight-details__table-body')
 
-    if len(fight_tables) >= 2:
+    if len(fight_tables) >= 3:  # Need at least tables 0 and 2
         totals_table = fight_tables[0]
-        significant_strikes_table = fight_tables[1]
+        significant_strikes_table = fight_tables[2]
 
         # Extract from totals table
         totals_rows = totals_table.select('tr')
@@ -174,6 +178,11 @@ def parse_fight_details(html: str) -> dict:
             fight_data['Fighter1_Knockdowns'] = f1_kd
             fight_data['Fighter2_Knockdowns'] = f2_kd
 
+            # Column 3: Significant Strikes
+            f1_sig, f2_sig = get_fighter_stats(totals_row, 3)
+            fight_data['Fighter1_Significant_Strikes'] = f1_sig
+            fight_data['Fighter2_Significant_Strikes'] = f2_sig
+
             # Column 6: Takedowns
             f1_td, f2_td = get_fighter_stats(totals_row, 6)
             fight_data['Fighter1_Takedowns'] = f1_td
@@ -194,15 +203,10 @@ def parse_fight_details(html: str) -> dict:
             fight_data['Fighter1_Control_Time'] = f1_ctrl
             fight_data['Fighter2_Control_Time'] = f2_ctrl
 
-        # Extract from significant strikes table
+        # Extract from significant strikes breakdown table
         sig_strikes_rows = significant_strikes_table.select('tr')
         if sig_strikes_rows:
             sig_row = sig_strikes_rows[0]
-
-            # Column 2: Significant Strikes
-            f1_sig, f2_sig = get_fighter_stats(sig_row, 2)
-            fight_data['Fighter1_Significant_Strikes'] = f1_sig
-            fight_data['Fighter2_Significant_Strikes'] = f2_sig
 
             # Column 4: Head Strikes
             f1_head, f2_head = get_fighter_stats(sig_row, 4)
@@ -247,7 +251,7 @@ def parse_fighter_profile(html: str) -> dict:
     Returns:
         Dictionary with DOB, Height, Reach, Stance
     """
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, 'html.parser')
     profile = {}
 
     # Find all list items in the profile
@@ -289,7 +293,7 @@ def parse_upcoming_event(html: str) -> dict:
     Returns:
         Dictionary with event details and list of upcoming fights
     """
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, 'html.parser')
 
     # Extract event name
     name_elem = soup.select_one('.b-content__title-highlight')

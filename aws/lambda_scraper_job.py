@@ -91,7 +91,17 @@ def lambda_handler(event, context):
     try:
         # Download scraper code from S3
         print(f"Downloading scraper code from s3://{s3_bucket}/{code_s3_key}")
-        download_code_from_s3(s3_bucket, code_s3_key)
+        code_dir = download_code_from_s3(s3_bucket, code_s3_key)
+
+        # Ensure Lambda dependencies are accessible to scraper code
+        # /var/task contains the Lambda deployment package with all dependencies
+        if '/var/task' not in sys.path:
+            sys.path.insert(0, '/var/task')
+            print("Added /var/task to sys.path for dependencies")
+
+        # Change working directory to extracted code (so relative paths work)
+        os.chdir(code_dir)
+        print(f"Changed working directory to: {os.getcwd()}")
 
         # Import and run scraper
         print("Importing scraper module...")
@@ -136,13 +146,16 @@ def lambda_handler(event, context):
         cleanup_temp_files()
 
 
-def download_code_from_s3(bucket: str, key: str) -> None:
+def download_code_from_s3(bucket: str, key: str) -> Path:
     """
     Download and extract scraper code from S3.
 
     Args:
         bucket: S3 bucket name
         key: S3 object key for the code tar.gz file
+
+    Returns:
+        Path to extracted code directory
     """
     s3_client = boto3.client('s3')
 
@@ -163,6 +176,8 @@ def download_code_from_s3(bucket: str, key: str) -> None:
     # Add to Python path so we can import
     sys.path.insert(0, str(temp_dir))
     print(f"Added {temp_dir} to Python path")
+
+    return temp_dir
 
 
 def cleanup_temp_files() -> None:
