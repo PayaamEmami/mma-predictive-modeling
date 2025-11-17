@@ -1,4 +1,13 @@
+# Common dependencies (all Lambda functions)
 boto3
 botocore
+
+# GitHub integration (lambda_github_pull_request.py)
 PyGithub==1.59.1
 cryptography>=39.0.1
+
+# Scraper dependencies (lambda_scraper_job.py)
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.3.0
+python-dotenv==1.0.0

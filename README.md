@@ -6,6 +6,10 @@ MPM features a fully automated end-to-end pipeline that scrapes the latest fight
 
 MMA fight prediction is impossible to perfect because real outcomes depend on unpredictable human behavior, hidden factors like injuries or mindset, and inherent randomness, including lucky shots and judging errors. The sport is chaotic and the data is incomplete, so no model can guarantee perfect accuracy.
 
+## Results
+
+Learning curves, past results, future predictions, and model comparisons can be viewed here: [**payaam.dev/projects/mma-predictive-modeling**](https://payaam.dev/projects/mma-predictive-modeling)
+
 ## Project Overview
 
 ### 🧠 **Machine Learning Models**
@@ -44,9 +48,9 @@ This project features a complete end-to-end automated machine learning pipeline 
 Automatically collects the latest MMA fight data:
 
 1. **EventBridge Rule** triggers scheduled scraping tasks
-2. **ECS Task** runs containerized web scraper in Docker
-3. Historical fight results and upcoming matchups are extracted
-4. Data is uploaded to **S3** (CSV for historical, JSON for upcoming)
+2. **ECS Task** runs containerized scraper (`scraper/` package)
+3. Historical fight results and upcoming matchups are extracted from data sources
+4. Data is uploaded to **S3** (CSV for historical data, JSON for upcoming fights)
 5. **S3 upload events** trigger downstream training or inference pipelines
 
 ### 🔄 **Training Pipeline**
@@ -67,6 +71,22 @@ Generates predictions for upcoming MMA fights:
 3. Predictions with confidence scores are saved to **S3**
 4. Results are automatically displayed on the project website
 
-## Results
+## Data Scraper
 
-Learning curves, past results, future predictions, and model comparisons can be viewed here: [**payaam.dev/projects/mma-predictive-modeling**](https://payaam.dev/projects/mma-predictive-modeling)
+The project includes a data scraper that automatically collects fight data from public sources.
+
+### ✨ **Features**
+
+- **Historical Data Mode:** Scrapes all completed MMA events with comprehensive fight statistics
+- **Upcoming Fights Mode:** Extracts matchup information for future events to generate predictions
+- **S3 Integration:** Downloads existing data, updates it, and uploads back to cloud storage
+- **Incremental Updates:** Only processes new events that haven't been scraped yet
+
+### 📋 **Data Collected**
+
+Each fight record includes 39 fields:
+- **Event details:** Name, date, location
+- **Fighter profiles:** Name, DOB, height, reach, stance, profile URL
+- **Fight statistics:** Knockdowns, takedowns, submissions, reversals, control time
+- **Strike statistics:** Significant strikes, head/body/leg strikes, distance/clinch/ground strikes
+- **Fight outcome:** Method, round, time, winner
