@@ -11,7 +11,7 @@ Triggered by:
 
 Key Features:
 - Extracts event name from prediction JSON content
-- Converts event names to filename-safe format (e.g., "UFC 319" -> "ufc-319")
+- Converts event names to filename-safe format (e.g., "Event 319" -> "event-319")
 - Creates archived copies in archived-predictions/ folder
 - Adds metadata for easy querying and identification
 - Handles special characters and formatting consistently
@@ -92,7 +92,7 @@ def lambda_handler(event, context):
         print(f"Event date: {event_date}")
 
         # Convert event name to filename format
-        # Example: "UFC 319: Du Plessis vs. Chimaev" -> "ufc-319-du-plessis-vs-chimaev"
+        # Example: "Event 319: Fighter A vs. Fighter B" -> "event-319-fighter-a-vs-fighter-b"
         filename = convert_event_name_to_filename(event_name)
 
         # Create the new file path in the archive folder

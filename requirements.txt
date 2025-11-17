@@ -4,3 +4,9 @@ pandas
 torch
 scikit-learn
 boto3
+
+# Scraper dependencies
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+python-dotenv==1.0.0

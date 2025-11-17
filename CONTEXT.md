@@ -18,7 +18,15 @@ This document provides comprehensive context for AI coding assistants working wi
 
 ### Core Components
 
-1. **Machine Learning Pipeline** (`code/`):
+1. **Data Scraper** (`scraper/`):
+
+   - **Functional Design**: Pure functions for parsing, transforming, and storing data
+   - **HTTP-Based**: Direct HTML fetching with BeautifulSoup (no browser automation)
+   - **Dual Modes**: Historical data collection and upcoming fights extraction
+   - **S3 Integration**: Automatic download/upload of fight data
+   - **Incremental Updates**: Tracks processed events to avoid duplicate scraping
+
+2. **Machine Learning Pipeline** (`code/`):
 
    - **9 Algorithms**: KNN, Naive Bayes, Logistic Regression, SVM, Decision Trees, Random Forest, Gradient Boosting, FCNN (PyTorch), Transformer (PyTorch)
    - **Data Processing**: Feature engineering, normalization, preprocessing
@@ -26,7 +34,7 @@ This document provides comprehensive context for AI coding assistants working wi
    - **Evaluation**: Comprehensive metrics, learning curves, performance visualization
    - **Inference**: Multi-model predictions with confidence scoring
 
-2. **AWS Infrastructure** (`aws/`):
+3. **AWS Infrastructure** (`aws/`):
 
    - **Training Pipeline**: Weekly automated retraining (Sundays)
    - **Inference Pipeline**: Weekly prediction generation (Fridays)
@@ -135,9 +143,48 @@ Each Lambda function requires specific IAM permissions. See `.env` file for AWS 
 - **Cache Strategies**: 5 minutes (predictions) to 24 hours (training data)
 - **Error Handling**: Graceful fallbacks and retry mechanisms
 
+## Scraper Architecture
+
+### Package Structure (`scraper/`)
+
+The scraper uses a **functional programming approach** with the following modules:
+
+- **`config.py`**: All configuration constants (URLs, S3 settings, CSV headers)
+- **`http_client.py`**: HTTP request functions with rate limiting
+- **`parsers.py`**: BeautifulSoup-based HTML parsing functions
+- **`data_transforms.py`**: Pure functions for data cleaning and formatting
+- **`csv_operations.py`**: CSV read/write operations
+- **`s3_operations.py`**: AWS S3 upload/download functions
+- **`main.py`**: Orchestration logic and CLI entry point
+
+### Scraper Design Principles
+
+1. **Functional Style**: No classes (except for type hints), only pure functions
+2. **Composability**: Complex operations built from simple, testable functions
+3. **Separation of Concerns**: Each module handles one specific responsibility
+4. **Error Resilience**: Graceful handling of missing data and network failures
+5. **Rate Limiting**: Polite scraping with configurable delays between requests
+
+### Scraper Usage
+
+```bash
+# Historical data mode (default)
+python -m scraper.main
+
+# Upcoming fights mode
+python -m scraper.main --upcoming
+```
+
+### Fighter Swapping Logic
+
+The scraper implements a winner-tracking algorithm to balance the dataset:
+- Tracks the winner indicator ('1' or '2') across fights in an event
+- When consecutive fights have the same winner indicator, swaps Fighter1/Fighter2 data
+- This helps prevent position bias in machine learning models
+
 ## Data Schema
 
-### Historical Fight Data (`fight_events.csv`)
+### Historical Fight Data (`data/fight_events.csv`)
 
 ```
 Columns: EventName, EventDate, Fighter1_Name, Fighter1_Height, Fighter1_Reach,
@@ -146,18 +193,18 @@ Columns: EventName, EventDate, Fighter1_Name, Fighter1_Height, Fighter1_Reach,
          Fighter1_ControlTime, Fighter2_ControlTime, [strike statistics], etc.
 ```
 
-### Upcoming Fights (`upcoming_fights.json`)
+### Upcoming Fights (`data/upcoming_fights.json`)
 
 ```json
 {
-  "EventName": "UFC XXX",
+  "EventName": "Event Name",
   "EventDate": "YYYY-MM-DD",
   "Fights": [
     {
       "Fighter1Name": "Name",
-      "Fighter1Url": "ufcstats.com URL",
+      "Fighter1Url": "https://...",
       "Fighter2Name": "Name",
-      "Fighter2Url": "ufcstats.com URL",
+      "Fighter2Url": "https://...",
       "WeightClass": "Division"
     }
   ]
@@ -199,7 +246,9 @@ Columns: EventName, EventDate, Fighter1_Name, Fighter1_Height, Fighter1_Reach,
 
 ### AWS Integration
 
-- **Environment Variables**: AWS credentials stored in `.env` (not in git). Critical for Lambda configuration.
+- **Environment Variables**: AWS credentials and S3 configuration stored in `.env` file (not tracked in git)
+- **Template File**: `.env.example` provides template for required environment variables
+- **Security**: Sensitive values never committed to repository
 - **S3 Paths**: Consistent naming conventions for data/model storage
 - **Error Handling**: Robust exception handling for cloud operations
 - **Permissions**: Proper IAM roles for SageMaker execution
@@ -219,6 +268,24 @@ Columns: EventName, EventDate, Fighter1_Name, Fighter1_Height, Fighter1_Reach,
 - **Documentation**: Structured format in `experiments/experiments.md` with results, findings, and reproducibility guidelines
 
 ## Common Development Tasks
+
+### Working with the Scraper
+
+1. **Testing the scraper locally:**
+   ```bash
+   python -m scraper.main  # Test historical scraping
+   python -m scraper.main --upcoming  # Test upcoming scraping
+   ```
+
+2. **Modifying scraping logic:**
+   - Update `parsers.py` for HTML structure changes
+   - Modify `data_transforms.py` for data formatting changes
+   - Adjust `config.py` for new URLs or settings
+
+3. **Adding new data fields:**
+   - Update `CSV_HEADERS` in `config.py`
+   - Modify parsing functions in `parsers.py`
+   - Update `initialize_empty_fight_dict()` in `data_transforms.py`
 
 ### Adding New Models
 
