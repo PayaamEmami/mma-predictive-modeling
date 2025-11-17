@@ -121,7 +121,7 @@ def parse_fight_details(html: str) -> dict:
     # Extract weight class
     weight_elem = soup.select_one('div.b-fight-details__fight-head i.b-fight-details__fight-title')
     if weight_elem:
-        fight_data['WeightClass'] = weight_elem.get_text(strip=True)
+        fight_data['WeightClass'] = weight_elem.get_text(strip=True).upper()
 
     # Extract method, round, and time
     fight_content = soup.select('p.b-fight-details__text')
@@ -356,7 +356,7 @@ def parse_upcoming_event(html: str) -> dict:
             'Fighter1Url': fighter1_url,
             'Fighter2Name': fighter2_name,
             'Fighter2Url': fighter2_url,
-            'WeightClass': weight_class
+            'WeightClass': weight_class.upper()
         }
 
         event_data['Fights'].append(fight)
