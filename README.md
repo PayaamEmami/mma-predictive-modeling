@@ -8,7 +8,39 @@ MMA fight prediction is impossible to perfect because real outcomes depend on un
 
 ## Results
 
-Learning curves, past results, future predictions, and model comparisons can be viewed here: [**payaam.dev/projects/mma-predictive-modeling**](https://payaam.dev/projects/mma-predictive-modeling)
+Learning curves, past results, future predictions, and model comparisons can be viewed here: [**payaam.dev/projects/mpm**](https://payaam.dev/projects/mpm)
+
+## Technology Stack
+
+### Core Technologies
+- **Python 3.12** - Primary programming language
+- **PyTorch** - Deep learning framework for neural networks
+- **scikit-learn** - Classical machine learning algorithms
+
+### Machine Learning & Data Science
+- **pandas** - Data manipulation and analysis
+- **numpy** - Numerical computing and array operations
+- **matplotlib** - Data visualization and learning curves
+- **BeautifulSoup4** - HTML parsing for web scraping
+
+### Cloud & Infrastructure (AWS)
+- **AWS SageMaker** - Model training and inference jobs
+- **AWS Lambda** - Serverless function orchestration
+- **AWS S3** - Data storage and model persistence
+- **AWS EventBridge** - Scheduled task automation
+- **AWS ECS (Fargate)** - Containerized scraper execution
+- **AWS CloudWatch** - Monitoring and logging
+- **AWS Parameter Store** - Secrets management
+
+### DevOps & Deployment
+- **Docker** - Containerization for scraper tasks
+- **GitHub Actions** - Automated pull requests for results
+- **pytest** - Unit and integration testing
+
+### Web Scraping
+- **HTTP Client** - Direct HTML fetching with rate limiting
+- **Functional Design** - Pure functions for data extraction
+- **Incremental Updates** - Event tracking to avoid duplicates
 
 ## Project Overview
 
