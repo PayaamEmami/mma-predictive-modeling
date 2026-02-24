@@ -146,6 +146,10 @@ class TestPreprocessing(unittest.TestCase):
                 "Fighter2_Leg_Strikes_Landed": [2],
                 "Fighter1_Clinch_Strikes_Landed": [3],
                 "Fighter2_Clinch_Strikes_Landed": [1],
+                "Fighter1_Ground_Strikes_Landed": [2],
+                "Fighter2_Ground_Strikes_Landed": [0],
+                "Fighter1_Head_Strikes_Landed": [6],
+                "Fighter2_Head_Strikes_Landed": [3],
                 "Fighter1_Significant_Strikes_Landed": [8],
                 "Fighter1_Significant_Strikes_Attempted": [10],
                 "Fighter2_Significant_Strikes_Landed": [4],
@@ -168,6 +172,11 @@ class TestPreprocessing(unittest.TestCase):
         self.assertEqual(result.loc[0, "Fighter1_StrikeAccuracy"], 0)
         self.assertEqual(result.loc[0, "Fighter1_Wins"], 0)
         self.assertEqual(result.loc[0, "Fighter1_Losses"], 0)
+        self.assertEqual(result.loc[0, "Fighter1_WinRate"], 0)
+        self.assertEqual(result.loc[0, "Fighter1_TotalFights"], 0)
+        self.assertEqual(result.loc[0, "Fighter1_TakedownAccuracy"], 0)
+        self.assertEqual(result.loc[0, "Fighter1_AvgGroundStrikes"], 0)
+        self.assertEqual(result.loc[0, "Fighter1_AvgHeadStrikes"], 0)
         self.assertEqual(result.loc[0, "Fighter2_AvgFightTime"], 0)
         self.assertEqual(result.loc[0, "Fighter2_Wins"], 0)
 
@@ -186,6 +195,10 @@ class TestPreprocessing(unittest.TestCase):
                 "Fighter2_Leg_Strikes_Landed": [2, 4],
                 "Fighter1_Clinch_Strikes_Landed": [3, 6],
                 "Fighter2_Clinch_Strikes_Landed": [1, 2],
+                "Fighter1_Ground_Strikes_Landed": [2, 4],
+                "Fighter2_Ground_Strikes_Landed": [0, 1],
+                "Fighter1_Head_Strikes_Landed": [6, 12],
+                "Fighter2_Head_Strikes_Landed": [3, 6],
                 "Fighter1_Significant_Strikes_Landed": [8, 16],
                 "Fighter1_Significant_Strikes_Attempted": [10, 20],
                 "Fighter2_Significant_Strikes_Landed": [4, 8],
@@ -210,12 +223,20 @@ class TestPreprocessing(unittest.TestCase):
             result.loc[idx, "Fighter1_StrikeAccuracy"], 0.8, places=2
         )
         self.assertEqual(result.loc[idx, "Fighter1_Wins"], 1)
+        self.assertEqual(result.loc[idx, "Fighter1_TotalFights"], 1)
+        self.assertAlmostEqual(result.loc[idx, "Fighter1_WinRate"], 1.0, places=2)
+        self.assertEqual(result.loc[idx, "Fighter1_AvgGroundStrikes"], 2.0)
+        self.assertEqual(result.loc[idx, "Fighter1_AvgHeadStrikes"], 6.0)
+        self.assertEqual(result.loc[idx, "Fighter1_TakedownAccuracy"], 0)
         self.assertEqual(result.loc[idx, "Fighter2_Wins"], 0)
         self.assertEqual(result.loc[idx, "Fighter2_Losses"], 1)
+        self.assertEqual(result.loc[idx, "Fighter2_TotalFights"], 1)
+        self.assertAlmostEqual(result.loc[idx, "Fighter2_WinRate"], 0.0, places=2)
         self.assertEqual(result.loc[idx, "Fighter2_AvgFightTime"], 100)
         self.assertAlmostEqual(
             result.loc[idx, "Fighter2_StrikeAccuracy"], 4 / 5, places=2
         )
+        self.assertEqual(result.loc[idx, "Fighter2_TakedownAccuracy"], 0)
 
 
 if __name__ == "__main__":
