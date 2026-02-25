@@ -1,0 +1,12 @@
+{
+  "experiment_name": "Differential Features",
+  "date": "2026-02-24",
+  "hypothesis": "Replacing absolute Fighter1/Fighter2 features with differential (Fighter1 - Fighter2) features plus derived stats (WinRate, TakedownAccuracy, TotalFights) should improve model accuracy by providing the comparison signal directly and reducing feature dimensionality",
+  "changed_hyperparameters": {},
+  "data_changes": {
+    "feature_transformation": "Absolute Fighter1/Fighter2 numerical features replaced with differential (F1 - F2) features",
+    "new_derived_features": ["WinRate", "TotalFights", "TakedownAccuracy", "AvgGroundStrikes", "AvgHeadStrikes"],
+    "removed_features": "All 36 absolute Fighter1_*/Fighter2_* numerical columns replaced by 18 differential + 5 new derived differential columns",
+    "unchanged": "Stance one-hot encoding (categorical, kept as-is)"
+  }
+}

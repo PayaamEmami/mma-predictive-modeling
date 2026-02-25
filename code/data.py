@@ -10,6 +10,40 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 
+DIFF_FEATURE_SUFFIXES = [
+    "Height_cm",
+    "Reach_cm",
+    "Age",
+    "AvgFightTime",
+    "TimeSinceLastFight",
+    "FinishRate",
+    "Wins",
+    "Losses",
+    "WinRate",
+    "TotalFights",
+    "AvgControlTime",
+    "AvgSubmissionAttempts",
+    "AvgLegStrikes",
+    "AvgClinchStrikes",
+    "AvgGroundStrikes",
+    "AvgHeadStrikes",
+    "AvgStrikesLanded",
+    "AvgStrikesAttempted",
+    "StrikeAccuracy",
+    "TakedownAccuracy",
+    "AvgTakedownsLanded",
+    "AvgTakedownsAttempted",
+    "AvgReversals",
+]
+
+
+def compute_differential_features(df):
+    """Compute Fighter1 - Fighter2 differential columns for all paired numerical features."""
+    for suffix in DIFF_FEATURE_SUFFIXES:
+        df[f"{suffix}_Diff"] = df[f"Fighter1_{suffix}"] - df[f"Fighter2_{suffix}"]
+    return df
+
+
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
     print("Uploading results to S3...")
     s3 = boto3.client("s3")
@@ -124,6 +158,9 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         # Compute historical performance stats
         fight_data = compute_historical_stats(fight_data)
 
+        # Compute differential features (Fighter1 - Fighter2)
+        fight_data = compute_differential_features(fight_data)
+
         # Final data cleaning
         fight_data = fight_data.dropna()
         print(f"Records after dropping data: {len(fight_data)}")
@@ -140,45 +177,8 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         print(f"Fighter 1 wins: {fighter1_win_percentage:.2f}%")
         print(f"Fighter 2 wins: {fighter2_win_percentage:.2f}%")
 
-        # Define feature columns for preprocessing
-        numerical_columns = [
-            "Fighter1_Height_cm",
-            "Fighter1_Reach_cm",
-            "Fighter1_Age",
-            "Fighter1_AvgFightTime",
-            "Fighter1_TimeSinceLastFight",
-            "Fighter1_FinishRate",
-            "Fighter1_Wins",
-            "Fighter1_Losses",
-            "Fighter1_AvgControlTime",
-            "Fighter1_AvgSubmissionAttempts",
-            "Fighter1_AvgLegStrikes",
-            "Fighter1_AvgClinchStrikes",
-            "Fighter1_AvgStrikesLanded",
-            "Fighter1_AvgStrikesAttempted",
-            "Fighter1_StrikeAccuracy",
-            "Fighter1_AvgTakedownsLanded",
-            "Fighter1_AvgTakedownsAttempted",
-            "Fighter1_AvgReversals",
-            "Fighter2_Height_cm",
-            "Fighter2_Reach_cm",
-            "Fighter2_Age",
-            "Fighter2_AvgFightTime",
-            "Fighter2_TimeSinceLastFight",
-            "Fighter2_FinishRate",
-            "Fighter2_Wins",
-            "Fighter2_Losses",
-            "Fighter2_AvgControlTime",
-            "Fighter2_AvgSubmissionAttempts",
-            "Fighter2_AvgLegStrikes",
-            "Fighter2_AvgClinchStrikes",
-            "Fighter2_AvgStrikesLanded",
-            "Fighter2_AvgStrikesAttempted",
-            "Fighter2_StrikeAccuracy",
-            "Fighter2_AvgTakedownsLanded",
-            "Fighter2_AvgTakedownsAttempted",
-            "Fighter2_AvgReversals",
-        ]
+        # Use differential features instead of absolute Fighter1/Fighter2 columns
+        numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
 
         categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
         relevant_columns = numerical_columns + categorical_columns
@@ -260,13 +260,18 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
                             "_Losses",
                             "_Draws",
                             "_NoContests",
+                            "_WinRate",
+                            "_TotalFights",
                             "_AvgControlTime",
                             "_AvgSubmissionAttempts",
                             "_AvgLegStrikes",
                             "_AvgClinchStrikes",
+                            "_AvgGroundStrikes",
+                            "_AvgHeadStrikes",
                             "_AvgStrikesLanded",
                             "_AvgStrikesAttempted",
                             "_StrikeAccuracy",
+                            "_TakedownAccuracy",
                             "_AvgTakedownsLanded",
                             "_AvgTakedownsAttempted",
                             "_AvgReversals",
@@ -297,13 +302,18 @@ def get_latest_fighter_stats_by_url(fight_data, fighter_url):
                             "_Losses",
                             "_Draws",
                             "_NoContests",
+                            "_WinRate",
+                            "_TotalFights",
                             "_AvgControlTime",
                             "_AvgSubmissionAttempts",
                             "_AvgLegStrikes",
                             "_AvgClinchStrikes",
+                            "_AvgGroundStrikes",
+                            "_AvgHeadStrikes",
                             "_AvgStrikesLanded",
                             "_AvgStrikesAttempted",
                             "_StrikeAccuracy",
+                            "_TakedownAccuracy",
                             "_AvgTakedownsLanded",
                             "_AvgTakedownsAttempted",
                             "_AvgReversals",
@@ -434,6 +444,8 @@ def compute_historical_stats(fight_data):
             "TotalSubmissionAttempts": 0,
             "TotalLegStrikes": 0,
             "TotalClinchStrikes": 0,
+            "TotalGroundStrikes": 0,
+            "TotalHeadStrikes": 0,
             "TotalStrikesLanded": 0,
             "TotalStrikesAttempted": 0,
             "TotalTakedownsLanded": 0,
@@ -451,13 +463,18 @@ def compute_historical_stats(fight_data):
         fight_data[f"{fighter_num}_Losses"] = 0
         fight_data[f"{fighter_num}_Draws"] = 0
         fight_data[f"{fighter_num}_NoContests"] = 0
+        fight_data[f"{fighter_num}_WinRate"] = 0.0
+        fight_data[f"{fighter_num}_TotalFights"] = 0
         fight_data[f"{fighter_num}_AvgControlTime"] = 0.0
         fight_data[f"{fighter_num}_AvgSubmissionAttempts"] = 0.0
         fight_data[f"{fighter_num}_AvgLegStrikes"] = 0.0
         fight_data[f"{fighter_num}_AvgClinchStrikes"] = 0.0
+        fight_data[f"{fighter_num}_AvgGroundStrikes"] = 0.0
+        fight_data[f"{fighter_num}_AvgHeadStrikes"] = 0.0
         fight_data[f"{fighter_num}_AvgStrikesLanded"] = 0.0
         fight_data[f"{fighter_num}_AvgStrikesAttempted"] = 0.0
         fight_data[f"{fighter_num}_StrikeAccuracy"] = 0.0
+        fight_data[f"{fighter_num}_TakedownAccuracy"] = 0.0
         fight_data[f"{fighter_num}_AvgTakedownsLanded"] = 0.0
         fight_data[f"{fighter_num}_AvgTakedownsAttempted"] = 0.0
         fight_data[f"{fighter_num}_AvgReversals"] = 0.0
@@ -477,37 +494,45 @@ def compute_historical_stats(fight_data):
             stats_before = stats.copy()
 
             if stats_before["NumFights"] > 0:
-                # Average fight time
+                n = stats_before["NumFights"]
                 fight_data.at[idx, f"{fighter_num}_AvgFightTime"] = (
-                    stats_before["TotalFightTime"] / stats_before["NumFights"]
+                    stats_before["TotalFightTime"] / n
                 )
-                # Time since last fight
                 if stats_before["LastFightDate"] is not None:
                     days = (event_date - stats_before["LastFightDate"]).days
                     fight_data.at[idx, f"{fighter_num}_TimeSinceLastFight"] = days
-                # Finish rate
                 if stats_before["Wins"] > 0:
                     fight_data.at[idx, f"{fighter_num}_FinishRate"] = (
                         stats_before["WinsByFinish"] / stats_before["Wins"]
                     )
-                # Average performance metrics
+                total_decided = stats_before["Wins"] + stats_before["Losses"]
+                if total_decided > 0:
+                    fight_data.at[idx, f"{fighter_num}_WinRate"] = (
+                        stats_before["Wins"] / total_decided
+                    )
                 fight_data.at[idx, f"{fighter_num}_AvgControlTime"] = (
-                    stats_before["TotalControlTime"] / stats_before["NumFights"]
+                    stats_before["TotalControlTime"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgSubmissionAttempts"] = (
-                    stats_before["TotalSubmissionAttempts"] / stats_before["NumFights"]
+                    stats_before["TotalSubmissionAttempts"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgLegStrikes"] = (
-                    stats_before["TotalLegStrikes"] / stats_before["NumFights"]
+                    stats_before["TotalLegStrikes"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgClinchStrikes"] = (
-                    stats_before["TotalClinchStrikes"] / stats_before["NumFights"]
+                    stats_before["TotalClinchStrikes"] / n
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgGroundStrikes"] = (
+                    stats_before["TotalGroundStrikes"] / n
+                )
+                fight_data.at[idx, f"{fighter_num}_AvgHeadStrikes"] = (
+                    stats_before["TotalHeadStrikes"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgStrikesLanded"] = (
-                    stats_before["TotalStrikesLanded"] / stats_before["NumFights"]
+                    stats_before["TotalStrikesLanded"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgStrikesAttempted"] = (
-                    stats_before["TotalStrikesAttempted"] / stats_before["NumFights"]
+                    stats_before["TotalStrikesAttempted"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_StrikeAccuracy"] = (
                     stats_before["TotalStrikesLanded"]
@@ -515,20 +540,27 @@ def compute_historical_stats(fight_data):
                     if stats_before["TotalStrikesAttempted"] > 0
                     else 0
                 )
+                fight_data.at[idx, f"{fighter_num}_TakedownAccuracy"] = (
+                    stats_before["TotalTakedownsLanded"]
+                    / stats_before["TotalTakedownsAttempted"]
+                    if stats_before["TotalTakedownsAttempted"] > 0
+                    else 0
+                )
                 fight_data.at[idx, f"{fighter_num}_AvgTakedownsLanded"] = (
-                    stats_before["TotalTakedownsLanded"] / stats_before["NumFights"]
+                    stats_before["TotalTakedownsLanded"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgTakedownsAttempted"] = (
-                    stats_before["TotalTakedownsAttempted"] / stats_before["NumFights"]
+                    stats_before["TotalTakedownsAttempted"] / n
                 )
                 fight_data.at[idx, f"{fighter_num}_AvgReversals"] = (
-                    stats_before["TotalReversals"] / stats_before["NumFights"]
+                    stats_before["TotalReversals"] / n
                 )
-            # Assign win/loss/draw counts before fight
+            # Assign win/loss/draw/experience counts before fight
             fight_data.at[idx, f"{fighter_num}_Wins"] = stats_before["Wins"]
             fight_data.at[idx, f"{fighter_num}_Losses"] = stats_before["Losses"]
             fight_data.at[idx, f"{fighter_num}_Draws"] = stats_before["Draws"]
             fight_data.at[idx, f"{fighter_num}_NoContests"] = stats_before["NoContests"]
+            fight_data.at[idx, f"{fighter_num}_TotalFights"] = stats_before["NumFights"]
 
         # Update cumulative stats after fight
         for fighter_num in ["Fighter1", "Fighter2"]:
@@ -548,6 +580,10 @@ def compute_historical_stats(fight_data):
             stats["TotalLegStrikes"] += leg if not np.isnan(leg) else 0
             clinch = row[f"{fighter_num}_Clinch_Strikes_Landed"]
             stats["TotalClinchStrikes"] += clinch if not np.isnan(clinch) else 0
+            ground = row[f"{fighter_num}_Ground_Strikes_Landed"]
+            stats["TotalGroundStrikes"] += ground if not np.isnan(ground) else 0
+            head = row[f"{fighter_num}_Head_Strikes_Landed"]
+            stats["TotalHeadStrikes"] += head if not np.isnan(head) else 0
             sl = row[f"{fighter_num}_Significant_Strikes_Landed"]
             sa = row[f"{fighter_num}_Significant_Strikes_Attempted"]
             stats["TotalStrikesLanded"] += sl if not np.isnan(sl) else 0
@@ -752,123 +788,32 @@ def preprocess_features(
         fighter1_stance = fighter1_stats.get("Fighter1_Stance", "Orthodox")
         fighter2_stance = fighter2_stats.get("Fighter2_Stance", "Orthodox")
 
-        # Build feature dictionary matching training format
-        fight_features = {
-            # Fighter1 numerical features
-            "Fighter1_Height_cm": fighter1_stats.get("Fighter1_Height_cm", 177),
-            "Fighter1_Reach_cm": fighter1_stats.get("Fighter1_Reach_cm", 183),
-            "Fighter1_Age": fighter1_stats.get("Fighter1_Age", 30),
-            "Fighter1_AvgFightTime": fighter1_stats.get("Fighter1_AvgFightTime", 0),
-            "Fighter1_TimeSinceLastFight": fighter1_stats.get(
-                "Fighter1_TimeSinceLastFight", 0
-            ),
-            "Fighter1_FinishRate": fighter1_stats.get("Fighter1_FinishRate", 0),
-            "Fighter1_Wins": fighter1_stats.get("Fighter1_Wins", 0),
-            "Fighter1_Losses": fighter1_stats.get("Fighter1_Losses", 0),
-            "Fighter1_AvgControlTime": fighter1_stats.get("Fighter1_AvgControlTime", 0),
-            "Fighter1_AvgSubmissionAttempts": fighter1_stats.get(
-                "Fighter1_AvgSubmissionAttempts", 0
-            ),
-            "Fighter1_AvgLegStrikes": fighter1_stats.get("Fighter1_AvgLegStrikes", 0),
-            "Fighter1_AvgClinchStrikes": fighter1_stats.get(
-                "Fighter1_AvgClinchStrikes", 0
-            ),
-            "Fighter1_AvgStrikesLanded": fighter1_stats.get(
-                "Fighter1_AvgStrikesLanded", 0
-            ),
-            "Fighter1_AvgStrikesAttempted": fighter1_stats.get(
-                "Fighter1_AvgStrikesAttempted", 0
-            ),
-            "Fighter1_StrikeAccuracy": fighter1_stats.get("Fighter1_StrikeAccuracy", 0),
-            "Fighter1_AvgTakedownsLanded": fighter1_stats.get(
-                "Fighter1_AvgTakedownsLanded", 0
-            ),
-            "Fighter1_AvgTakedownsAttempted": fighter1_stats.get(
-                "Fighter1_AvgTakedownsAttempted", 0
-            ),
-            "Fighter1_AvgReversals": fighter1_stats.get("Fighter1_AvgReversals", 0),
-            # Fighter2 numerical features
-            "Fighter2_Height_cm": fighter2_stats.get("Fighter2_Height_cm", 177),
-            "Fighter2_Reach_cm": fighter2_stats.get("Fighter2_Reach_cm", 183),
-            "Fighter2_Age": fighter2_stats.get("Fighter2_Age", 30),
-            "Fighter2_AvgFightTime": fighter2_stats.get("Fighter2_AvgFightTime", 0),
-            "Fighter2_TimeSinceLastFight": fighter2_stats.get(
-                "Fighter2_TimeSinceLastFight", 0
-            ),
-            "Fighter2_FinishRate": fighter2_stats.get("Fighter2_FinishRate", 0),
-            "Fighter2_Wins": fighter2_stats.get("Fighter2_Wins", 0),
-            "Fighter2_Losses": fighter2_stats.get("Fighter2_Losses", 0),
-            "Fighter2_AvgControlTime": fighter2_stats.get("Fighter2_AvgControlTime", 0),
-            "Fighter2_AvgSubmissionAttempts": fighter2_stats.get(
-                "Fighter2_AvgSubmissionAttempts", 0
-            ),
-            "Fighter2_AvgLegStrikes": fighter2_stats.get("Fighter2_AvgLegStrikes", 0),
-            "Fighter2_AvgClinchStrikes": fighter2_stats.get(
-                "Fighter2_AvgClinchStrikes", 0
-            ),
-            "Fighter2_AvgStrikesLanded": fighter2_stats.get(
-                "Fighter2_AvgStrikesLanded", 0
-            ),
-            "Fighter2_AvgStrikesAttempted": fighter2_stats.get(
-                "Fighter2_AvgStrikesAttempted", 0
-            ),
-            "Fighter2_StrikeAccuracy": fighter2_stats.get("Fighter2_StrikeAccuracy", 0),
-            "Fighter2_AvgTakedownsLanded": fighter2_stats.get(
-                "Fighter2_AvgTakedownsLanded", 0
-            ),
-            "Fighter2_AvgTakedownsAttempted": fighter2_stats.get(
-                "Fighter2_AvgTakedownsAttempted", 0
-            ),
-            "Fighter2_AvgReversals": fighter2_stats.get("Fighter2_AvgReversals", 0),
-            # Categorical features
-            "Fighter1_Stance": fighter1_stance,
-            "Fighter2_Stance": fighter2_stance,
-        }
+        # Build feature dictionary with absolute values for both fighters
+        fight_features = {}
+        for suffix in DIFF_FEATURE_SUFFIXES:
+            f1_key = f"Fighter1_{suffix}"
+            f2_key = f"Fighter2_{suffix}"
+            default = 0
+            if suffix == "Height_cm":
+                default = 177
+            elif suffix == "Reach_cm":
+                default = 183
+            elif suffix == "Age":
+                default = 30
+            fight_features[f1_key] = fighter1_stats.get(f1_key, default)
+            fight_features[f2_key] = fighter2_stats.get(f2_key, default)
+
+        fight_features["Fighter1_Stance"] = fighter1_stance
+        fight_features["Fighter2_Stance"] = fighter2_stance
 
         processed_features.append(fight_features)
 
-    # Convert to DataFrame matching training format
+    # Convert to DataFrame and compute differential features
     features_df = pd.DataFrame(processed_features)
+    features_df = compute_differential_features(features_df)
 
-    # Define feature columns exactly as in training
-    numerical_columns = [
-        "Fighter1_Height_cm",
-        "Fighter1_Reach_cm",
-        "Fighter1_Age",
-        "Fighter1_AvgFightTime",
-        "Fighter1_TimeSinceLastFight",
-        "Fighter1_FinishRate",
-        "Fighter1_Wins",
-        "Fighter1_Losses",
-        "Fighter1_AvgControlTime",
-        "Fighter1_AvgSubmissionAttempts",
-        "Fighter1_AvgLegStrikes",
-        "Fighter1_AvgClinchStrikes",
-        "Fighter1_AvgStrikesLanded",
-        "Fighter1_AvgStrikesAttempted",
-        "Fighter1_StrikeAccuracy",
-        "Fighter1_AvgTakedownsLanded",
-        "Fighter1_AvgTakedownsAttempted",
-        "Fighter1_AvgReversals",
-        "Fighter2_Height_cm",
-        "Fighter2_Reach_cm",
-        "Fighter2_Age",
-        "Fighter2_AvgFightTime",
-        "Fighter2_TimeSinceLastFight",
-        "Fighter2_FinishRate",
-        "Fighter2_Wins",
-        "Fighter2_Losses",
-        "Fighter2_AvgControlTime",
-        "Fighter2_AvgSubmissionAttempts",
-        "Fighter2_AvgLegStrikes",
-        "Fighter2_AvgClinchStrikes",
-        "Fighter2_AvgStrikesLanded",
-        "Fighter2_AvgStrikesAttempted",
-        "Fighter2_StrikeAccuracy",
-        "Fighter2_AvgTakedownsLanded",
-        "Fighter2_AvgTakedownsAttempted",
-        "Fighter2_AvgReversals",
-    ]
+    # Use differential features matching training format
+    numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
 
     categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
 

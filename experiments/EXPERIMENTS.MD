@@ -59,6 +59,28 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 ---
 
+### 3. [Differential Features](./differential-features/)
+
+**Status:** ❌ Negative Results
+
+**Hypothesis:** Replacing absolute Fighter1/Fighter2 features with differential (Fighter1 - Fighter2) features plus derived stats (WinRate, TakedownAccuracy, TotalFights, AvgGroundStrikes, AvgHeadStrikes) should improve model accuracy by providing the comparison signal directly and reducing feature dimensionality.
+
+**Key Findings:**
+
+- ❌ 7 of 9 models degraded compared to baseline
+- ❌ Gradient Boosting (previously best model at 62.95%) dropped to 59.64% (-3.31%)
+- ❌ Random Forest, SVM, and FNN all declined by ~1-1.5%
+- 🟡 Transformer showed marginal gain to 62.04% (+0.26%), becoming the top model
+- 🟡 Decision Tree marginally improved to 54.61% (+0.58%), though still the weakest model
+- 💡 Removing absolute feature values loses information that models were leveraging
+- 💡 Dimensionality reduction did not compensate for the loss of individual fighter statistics
+
+**Outcome:** Differential feature transformation does not improve prediction accuracy. Models perform better with access to both fighters' raw statistics rather than only the difference between them. The absolute features likely encode useful signals (e.g., overall fighter quality) that are lost when only the differential is kept. Change will not be merged.
+
+[View Full Report →](./differential-features/)
+
+---
+
 <!-- EXPERIMENTS_LIST_END -->
 
 ---
