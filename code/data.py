@@ -44,6 +44,24 @@ def compute_differential_features(df):
     return df
 
 
+def build_preprocessor(X_train_df, numerical_columns, categorical_columns):
+    """Fit preprocessing pipeline on training data only to prevent data leakage."""
+    numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
+    categorical_pipeline = Pipeline(
+        steps=[
+            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+        ]
+    )
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", numerical_pipeline, numerical_columns),
+            ("cat", categorical_pipeline, categorical_columns),
+        ]
+    )
+    preprocessor.fit(X_train_df)
+    return preprocessor
+
+
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
     print("Uploading results to S3...")
     s3 = boto3.client("s3")
@@ -70,15 +88,15 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
     1. Loads fight event data directly from S3
     2. Processes fighter statistics and fight metrics
     3. Calculates historical performance metrics
-    4. Applies feature engineering and preprocessing
-    5. Uploads results to S3
-    6. Returns processed features and encoded labels
+    4. Computes differential features
+    5. Returns unprocessed feature DataFrame for caller to handle preprocessing
 
     Returns:
-        tuple: (X_processed, y, label_encoder)
-            - X_processed: Processed feature matrix
+        tuple: (X_df, y, label_encoder, event_dates)
+            - X_df: Feature DataFrame (before StandardScaler/OneHotEncoder)
             - y: Encoded target labels
             - label_encoder: Fitted label encoder for target classes
+            - event_dates: Series of EventDate values aligned with X_df
     """
     try:
         print("Loading fight event data from S3...")
@@ -184,38 +202,20 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         relevant_columns = numerical_columns + categorical_columns
 
         # Prepare features and target
-        X = fight_data[relevant_columns]
-        y = fight_data["Winner"]
+        X_df = fight_data[relevant_columns].reset_index(drop=True)
+        event_dates = fight_data["EventDate"].reset_index(drop=True)
+        y = fight_data["Winner"].reset_index(drop=True)
 
         # Encode target labels
         le = LabelEncoder()
         y = le.fit_transform(y)
 
-        # Create preprocessing pipelines
-        numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
-        categorical_pipeline = Pipeline(
-            steps=[
-                ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
-            ]
-        )
-
-        # Combine preprocessing steps
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ("num", numerical_pipeline, numerical_columns),
-                ("cat", categorical_pipeline, categorical_columns),
-            ]
-        )
-
-        # Apply preprocessing
-        X_processed = preprocessor.fit_transform(X)
-
         print(f"Fight data: {len(fight_data)} records loaded.")
         print(
-            f"Date range: {fight_data['EventDate'].min()} to {fight_data['EventDate'].max()}"
+            f"Date range: {event_dates.min()} to {event_dates.max()}"
         )
 
-        return X_processed, y, le
+        return X_df, y, le, event_dates
 
     except Exception as e:
         print(f"An error occurred while loading fight event data: {e}")

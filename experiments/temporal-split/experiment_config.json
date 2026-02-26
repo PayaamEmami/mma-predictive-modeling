@@ -1,0 +1,11 @@
+{
+  "experiment_name": "Temporal Split",
+  "date": "2026-02-25",
+  "hypothesis": "Replacing random train/test split with chronological (temporal) split will eliminate data leakage where test fight outcomes leak into training features via compute_historical_stats. Additionally, fitting StandardScaler only on training data and using TimeSeriesSplit for learning curve CV will remove remaining leakage sources. Accuracy numbers are expected to drop, reflecting a more honest evaluation that matches the production prediction scenario.",
+  "changed_hyperparameters": {},
+  "data_changes": {
+    "train_test_split": "Random split replaced with chronological 80/20 split by EventDate",
+    "preprocessing": "StandardScaler and OneHotEncoder now fit on training data only (previously fit on all data)",
+    "cross_validation": "StratifiedKFold(shuffle=True) replaced with TimeSeriesSplit for learning curves"
+  }
+}

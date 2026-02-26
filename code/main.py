@@ -1,10 +1,15 @@
 import argparse
-from sklearn.model_selection import train_test_split
-from data import load_fight_data, upload_results_to_s3
+import numpy as np
+from data import (
+    load_fight_data,
+    build_preprocessor,
+    upload_results_to_s3,
+    DIFF_FEATURE_SUFFIXES,
+)
 from models import initialize_models
 from evaluation import evaluate_models
 from training import train_model, save_models, save_label_encoder
-from config import DEVICE, SEED, set_global_seed
+from config import DEVICE, set_global_seed
 
 
 def main(s3_bucket, s3_data_key, s3_results_prefix):
@@ -13,24 +18,46 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
 
     This function:
     1. Loads and preprocesses the fight data
-    2. Splits data into train and test sets
-    3. Trains and evaluates models
-    4. Generates performance visualizations
+    2. Splits data chronologically into train and test sets
+    3. Fits preprocessing on training data only
+    4. Trains and evaluates models
+    5. Generates performance visualizations
     """
     set_global_seed()
 
     # Load and validate data from S3
-    X_fight, y_fight, label_encoder = load_fight_data(
+    X_df, y, label_encoder, event_dates = load_fight_data(
         s3_bucket, s3_data_key, s3_results_prefix
     )
-    if X_fight is None:
+    if X_df is None:
         print("Failed to load fight event data.")
         exit(1)
 
-    # Split data into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_fight, y_fight, test_size=0.2, random_state=SEED
+    # Temporal split: data is already sorted chronologically by compute_historical_stats
+    split_point = int(len(X_df) * 0.8)
+    sorted_indices = np.argsort(event_dates.values)
+    train_idx = sorted_indices[:split_point]
+    test_idx = sorted_indices[split_point:]
+
+    X_train_df = X_df.iloc[train_idx]
+    X_test_df = X_df.iloc[test_idx]
+    y_train = y[train_idx]
+    y_test = y[test_idx]
+
+    print(f"Temporal split: {len(train_idx)} train, {len(test_idx)} test")
+    print(
+        f"Train period: {event_dates.iloc[train_idx[0]]} to {event_dates.iloc[train_idx[-1]]}"
     )
+    print(
+        f"Test period:  {event_dates.iloc[test_idx[0]]} to {event_dates.iloc[test_idx[-1]]}"
+    )
+
+    # Fit preprocessor on training data only to prevent leakage
+    numerical_columns = [f"{s}_Diff" for s in DIFF_FEATURE_SUFFIXES]
+    categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+    preprocessor = build_preprocessor(X_train_df, numerical_columns, categorical_columns)
+    X_train = preprocessor.transform(X_train_df)
+    X_test = preprocessor.transform(X_test_df)
 
     # Initialize models
     input_size = X_train.shape[1]
