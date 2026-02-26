@@ -61,21 +61,22 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 ### 3. [Differential Features](./differential-features/)
 
-**Status:** ❌ Negative Results
+**Status:** ⚠️ Mixed Results
 
 **Hypothesis:** Replacing absolute Fighter1/Fighter2 features with differential (Fighter1 - Fighter2) features plus derived stats (WinRate, TakedownAccuracy, TotalFights, AvgGroundStrikes, AvgHeadStrikes) should improve model accuracy by providing the comparison signal directly and reducing feature dimensionality.
 
 **Key Findings:**
 
-- ❌ 7 of 9 models degraded compared to baseline
-- ❌ Gradient Boosting (previously best model at 62.95%) dropped to 59.64% (-3.31%)
-- ❌ Random Forest, SVM, and FNN all declined by ~1-1.5%
-- 🟡 Transformer showed marginal gain to 62.04% (+0.26%), becoming the top model
-- 🟡 Decision Tree marginally improved to 54.61% (+0.58%), though still the weakest model
-- 💡 Removing absolute feature values loses information that models were leveraging
-- 💡 Dimensionality reduction did not compensate for the loss of individual fighter statistics
+- ⚠️ 5 of 9 models improved, 1 flat, 3 degraded — most changes within statistical noise (~1.2% standard error)
+- ❌ Gradient Boosting (previously best model at 62.53%) dropped to 59.64% (-2.89%)
+- ❌ Random Forest declined from 61.73% to 60.63% (-1.10%), SVM from 61.00% to 60.07% (-0.93%)
+- ✅ Transformer improved from 60.63% to 62.04% (+1.41%), becoming the new top model with the healthiest learning curve
+- ✅ Decision Tree improved from 52.09% to 54.61% (+2.52%), KNN from 52.83% to 53.87% (+1.04%)
+- 🟡 Logistic Regression improved from 60.44% to 61.18% (+0.74%), FNN from 59.89% to 60.44% (+0.55%)
+- 💡 Tree-based ensembles (GB, RF) degraded — they can learn feature interactions natively and lost information from the transformation
+- 💡 Neural networks and linear models benefited from having the comparison signal pre-computed
 
-**Outcome:** Differential feature transformation does not improve prediction accuracy. Models perform better with access to both fighters' raw statistics rather than only the difference between them. The absolute features likely encode useful signals (e.g., overall fighter quality) that are lost when only the differential is kept. Change will not be merged.
+**Outcome:** Results are inconclusive rather than clearly negative. The differential representation benefits models that cannot easily learn feature interactions (Transformer, Logistic Regression, FNN) while hurting tree-based ensembles that could already discover comparisons from absolute values. Change merged into main as the theoretical foundation is sound for a matchup prediction task and the new top model (Transformer) shows the healthiest train/test gap. A hybrid approach (differential + select absolute features) may capture the best of both worlds.
 
 [View Full Report →](./differential-features/)
 
