@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import boto3
 import os
-from config import HYPERPARAMETERS, RESULTS_PATH, is_experimental
+from config import HYPERPARAMETERS, RESULTS_PATH, SEED, is_experimental
 
 
 def train_model(name, model, X_train, y_train, device, verbose=True):
@@ -81,7 +81,11 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
         y_train_tensor = torch.tensor(y_train.astype(np.longlong)).to(device)
 
         dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        dataloader = DataLoader(dataset, batch_size=params["batch_size"], shuffle=True)
+        generator = torch.Generator()
+        generator.manual_seed(SEED)
+        dataloader = DataLoader(
+            dataset, batch_size=params["batch_size"], shuffle=True, generator=generator
+        )
 
         for epoch in range(params["num_epochs"]):
             model.train()

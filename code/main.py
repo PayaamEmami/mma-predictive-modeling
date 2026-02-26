@@ -4,7 +4,7 @@ from data import load_fight_data, upload_results_to_s3
 from models import initialize_models
 from evaluation import evaluate_models
 from training import train_model, save_models, save_label_encoder
-from config import DEVICE
+from config import DEVICE, SEED, set_global_seed
 
 
 def main(s3_bucket, s3_data_key, s3_results_prefix):
@@ -17,6 +17,7 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
     3. Trains and evaluates models
     4. Generates performance visualizations
     """
+    set_global_seed()
 
     # Load and validate data from S3
     X_fight, y_fight, label_encoder = load_fight_data(
@@ -28,7 +29,7 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
 
     # Split data into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(
-        X_fight, y_fight, test_size=0.2, random_state=42
+        X_fight, y_fight, test_size=0.2, random_state=SEED
     )
 
     # Initialize models

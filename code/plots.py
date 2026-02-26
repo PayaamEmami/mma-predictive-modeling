@@ -7,7 +7,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 from sklearn.model_selection import learning_curve, StratifiedKFold
 import torch
-from config import HYPERPARAMETERS
+from config import HYPERPARAMETERS, SEED
 from training import train_model
 from models import FNN, Transformer
 
@@ -57,7 +57,7 @@ def plot_learning_curve(
     cv=5,
     n_jobs=-1,
     train_sizes=np.linspace(0.1, 1.0, 5),
-    random_state=42,
+    random_state=SEED,
     verbose=False,
 ):
     """

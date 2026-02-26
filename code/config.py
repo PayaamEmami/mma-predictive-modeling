@@ -1,4 +1,6 @@
 import os
+import random
+import numpy as np
 import torch
 
 # Path for local results before uploading to S3
@@ -8,6 +10,19 @@ os.makedirs(RESULTS_PATH, exist_ok=True)
 # Device configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
+
+SEED = 21
+
+
+def set_global_seed(seed=SEED):
+    """Set all random seeds for full reproducibility across runs."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 HYPERPARAMETERS = {
     "Random Forest": {
