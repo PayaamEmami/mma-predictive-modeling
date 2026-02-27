@@ -56,20 +56,22 @@ The system implements the following models for predictive analysis:
 
 The data pipeline transforms raw fight statistics into predictive features:
 
-- **Physical attributes:** Height, reach, age, and fighting stance
+- **Differential features:** Instead of raw Fighter1/Fighter2 stats, the pipeline computes Fighter1 - Fighter2 differences for all numerical features, directly encoding the matchup comparison signal
+- **Physical attributes:** Height, reach, and age differentials between fighters, plus individual fighting stances
 - **Historical performance:** Chronologically computed statistics including win/loss records, finish rates, average fight time, and time since last fight
 - **Fighting metrics:** Strike accuracy, average strikes landed/attempted, takedown rates, control time, submission attempts, and reversals
-- **Preprocessing:** StandardScaler normalization for numerical features and OneHotEncoder for categorical features using scikit-learn pipelines
+- **Preprocessing:** StandardScaler normalization and OneHotEncoder for stances, fit on training data only to prevent data leakage
 
 ### 🎯 **Training & Model Evaluation**
 
 Models are trained and evaluated using a rigorous validation framework:
 
-- **Train/test split:** 80/20 split on historical fight data
-- **Learning curves:** 5-fold cross-validation across training sizes from 20% to 100% of data
+- **Chronological data split:** 70/20/10 training/validation/test split ordered by event date to prevent temporal data leakage
+- **Learning curves:** 5-fold temporal cross-validation (TimeSeriesSplit) across training sizes from 20% to 100%
+- **Early stopping:** FNN and Transformer use patience-based early stopping on validation loss; Gradient Boosting uses sklearn's built-in `n_iter_no_change`
 - **Optimization:** PyTorch models trained with Adam optimizer and CrossEntropyLoss
-- **Metrics:** Train/test accuracy with standard deviations, plus precision, recall, and F1-score via classification reports
-- **Visualization:** Learning curves and accuracy progression plots saved for each model
+- **Metrics:** Training/validation accuracy with standard deviations, plus precision, recall, and F1-score via classification reports. Held-out test set evaluated separately for unbiased final metrics.
+- **Visualization:** Learning curves and model comparison plots saved for each model
 
 ## Automated ML Pipeline
 

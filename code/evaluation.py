@@ -8,16 +8,16 @@ from config import RESULTS_PATH
 from plots import plot_model_comparisons, plot_learning_curve
 
 
-def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, device):
+def evaluate_models(models, X_train, X_val, y_train, y_val, label_encoder, device):
     """
-    Evaluate trained models and generate performance metrics and visualizations.
+    Evaluate trained models on the validation set and generate performance metrics.
 
     Args:
         models: Dictionary of model names and their trained instances
-        X_train: Training features
-        X_test: Test features
-        y_train: Training labels
-        y_test: Test labels
+        X_train: Training features (used for learning curves)
+        X_val: Validation features
+        y_train: Training labels (used for learning curves)
+        y_val: Validation labels
         label_encoder: Label encoder for class names
         device: PyTorch device to use
 
@@ -26,7 +26,6 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     """
     model_performances = {}
 
-    # Prepare a string to collect all printed metrics and reports
     report_lines = []
 
     print("\nGenerating evaluation plots and metrics...")
@@ -34,8 +33,8 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
     for name, model in models.items():
         print(f"\nEvaluating {name}...")
 
-        # Generate learning curves
-        train_scores, test_scores = plot_learning_curve(
+        # Generate learning curves using training data with temporal CV
+        train_scores, val_scores = plot_learning_curve(
             model,
             X_train,
             y_train,
@@ -46,58 +45,51 @@ def evaluate_models(models, X_train, X_test, y_train, y_test, label_encoder, dev
             verbose=False,
         )
 
-        # Calculate performance metrics from learning curves
         final_train_accuracy = train_scores[-1].mean()
         train_std = train_scores[-1].std()
-        val_std = test_scores[-1].std()
+        val_std = val_scores[-1].std()
 
-        # Get predictions for classification report
+        # Get predictions on validation set
         if name in ["FNN", "RNN", "LSTM", "Transformer"]:
             model.eval()
             with torch.no_grad():
-                X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
-                outputs = model(X_test_tensor)
+                X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
+                outputs = model(X_val_tensor)
                 _, y_pred = torch.max(outputs.data, 1)
                 y_pred = y_pred.cpu().numpy()
         else:
-            y_pred = model.predict(X_test)
+            y_pred = model.predict(X_val)
 
-        # Calculate final test accuracy
-        final_test_accuracy = accuracy_score(y_test, y_pred)
+        final_val_accuracy = accuracy_score(y_val, y_pred)
 
-        # Store comprehensive performance metrics using final test accuracy
         model_performances[name] = {
             "Final Train Accuracy": final_train_accuracy,
-            "Final Test Accuracy": final_test_accuracy,
+            "Final Validation Accuracy": final_val_accuracy,
             "Train Std": train_std,
             "Validation Std": val_std,
-            "Learning Rate": (final_test_accuracy - final_train_accuracy)
+            "Learning Rate": (final_val_accuracy - final_train_accuracy)
             / final_train_accuracy,
         }
 
-        # Prepare learning curve metrics string
         learning_curve_str = (
             f"Learning Curve Metrics for {name}:\n"
             f"  Final Training Accuracy: {final_train_accuracy:.4f} (+/- {train_std:.4f})\n"
-            f"  Final Test Accuracy: {final_test_accuracy:.4f} (+/- {val_std:.4f})\n"
+            f"  Final Validation Accuracy: {final_val_accuracy:.4f} (+/- {val_std:.4f})\n"
             f"  Learning Rate: {model_performances[name]['Learning Rate']:.4f}"
         )
         print(learning_curve_str)
 
-        # Prepare classification report string
         class_report_str = (
             f"Classification Report for {name}:\n"
-            + classification_report(y_test, y_pred, target_names=label_encoder.classes_)
+            + classification_report(y_val, y_pred, target_names=label_encoder.classes_)
         )
         print(class_report_str)
 
-        # Add learning curve metrics and classification report to report_lines
         report_lines.append(learning_curve_str + "\n" + class_report_str + "\n")
 
-    # Save and display results using final test accuracy
     performance_df = pd.DataFrame(
         [
-            (name, metrics["Final Test Accuracy"])
+            (name, metrics["Final Validation Accuracy"])
             for name, metrics in model_performances.items()
         ],
         columns=["Model", "Accuracy"],

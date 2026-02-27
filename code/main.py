@@ -1,5 +1,9 @@
 import argparse
+import os
 import numpy as np
+import pandas as pd
+import torch
+from sklearn.metrics import accuracy_score
 from data import (
     load_fight_data,
     build_preprocessor,
@@ -9,7 +13,7 @@ from data import (
 from models import initialize_models
 from evaluation import evaluate_models
 from training import train_model, save_models, save_label_encoder
-from config import DEVICE, set_global_seed
+from config import DEVICE, RESULTS_PATH, set_global_seed
 
 
 def main(s3_bucket, s3_data_key, s3_results_prefix):
@@ -18,10 +22,10 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
 
     This function:
     1. Loads and preprocesses the fight data
-    2. Splits data chronologically into train and test sets
+    2. Splits data chronologically into training/validation/test sets
     3. Fits preprocessing on training data only
-    4. Trains and evaluates models
-    5. Generates performance visualizations
+    4. Trains and evaluates models on validation set
+    5. Reports final unbiased metrics on held-out test set
     """
     set_global_seed()
 
@@ -33,23 +37,30 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
         print("Failed to load fight event data.")
         exit(1)
 
-    # Temporal split: data is already sorted chronologically by compute_historical_stats
-    split_point = int(len(X_df) * 0.8)
+    # Chronological three-way split: 70% training, 20% validation, 10% test
     sorted_indices = np.argsort(event_dates.values)
-    train_idx = sorted_indices[:split_point]
-    test_idx = sorted_indices[split_point:]
+    split_train = int(len(X_df) * 0.7)
+    split_val = int(len(X_df) * 0.9)
+    train_idx = sorted_indices[:split_train]
+    val_idx = sorted_indices[split_train:split_val]
+    test_idx = sorted_indices[split_val:]
 
     X_train_df = X_df.iloc[train_idx]
+    X_val_df = X_df.iloc[val_idx]
     X_test_df = X_df.iloc[test_idx]
     y_train = y[train_idx]
+    y_val = y[val_idx]
     y_test = y[test_idx]
 
-    print(f"Temporal split: {len(train_idx)} train, {len(test_idx)} test")
+    print(f"Temporal split: {len(train_idx)} training, {len(val_idx)} validation, {len(test_idx)} test")
     print(
-        f"Train period: {event_dates.iloc[train_idx[0]]} to {event_dates.iloc[train_idx[-1]]}"
+        f"Training period:   {event_dates.iloc[train_idx[0]]} to {event_dates.iloc[train_idx[-1]]}"
     )
     print(
-        f"Test period:  {event_dates.iloc[test_idx[0]]} to {event_dates.iloc[test_idx[-1]]}"
+        f"Validation period: {event_dates.iloc[val_idx[0]]} to {event_dates.iloc[val_idx[-1]]}"
+    )
+    print(
+        f"Test period:       {event_dates.iloc[test_idx[0]]} to {event_dates.iloc[test_idx[-1]]}"
     )
 
     # Fit preprocessor on training data only to prevent leakage
@@ -57,6 +68,7 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
     categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
     preprocessor = build_preprocessor(X_train_df, numerical_columns, categorical_columns)
     X_train = preprocessor.transform(X_train_df)
+    X_val = preprocessor.transform(X_val_df)
     X_test = preprocessor.transform(X_test_df)
 
     # Initialize models
@@ -69,10 +81,13 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
         trained_model = train_model(name, model, X_train, y_train, DEVICE)
         trained_models[name] = trained_model
 
-    # Generate evaluation metrics and visualizations
+    # Evaluate on validation set (used for experiments and model comparison)
     evaluate_models(
-        trained_models, X_train, X_test, y_train, y_test, label_encoder, DEVICE
+        trained_models, X_train, X_val, y_train, y_val, label_encoder, DEVICE
     )
+
+    # Evaluate on held-out test set (unbiased final metric)
+    evaluate_on_test_set(trained_models, X_test, y_test, label_encoder, DEVICE)
 
     # Save trained models and label encoder to S3
     save_models(trained_models, input_size, s3_bucket)
@@ -80,6 +95,31 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
 
     # Upload results to S3
     upload_results_to_s3("results", s3_bucket, s3_results_prefix)
+
+
+def evaluate_on_test_set(models, X_test, y_test, label_encoder, device):
+    """Evaluate all models on the held-out test set and save results separately."""
+    test_results = []
+    print("\n--- Held-out Test Set Evaluation ---")
+
+    for name, model in models.items():
+        if isinstance(model, torch.nn.Module):
+            model.eval()
+            with torch.no_grad():
+                X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
+                outputs = model(X_test_tensor)
+                _, y_pred = torch.max(outputs.data, 1)
+                y_pred = y_pred.cpu().numpy()
+        else:
+            y_pred = model.predict(X_test)
+
+        acc = accuracy_score(y_test, y_pred)
+        test_results.append((name, acc))
+        print(f"  {name}: {acc:.4f}")
+
+    test_df = pd.DataFrame(test_results, columns=["Model", "Accuracy"])
+    test_df.to_csv(os.path.join(RESULTS_PATH, "test_performances.csv"), index=False)
+    print(f"Test set results saved to {RESULTS_PATH}/test_performances.csv")
 
 
 if __name__ == "__main__":

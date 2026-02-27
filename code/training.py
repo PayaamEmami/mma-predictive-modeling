@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -77,15 +78,29 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
                 weight_decay=params["weight_decay"],
             )
 
-        X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
-        y_train_tensor = torch.tensor(y_train.astype(np.longlong)).to(device)
+        # Hold out last 15% of training data for early stopping monitoring
+        patience = params.get("early_stopping_patience", 20)
+        val_split = int(len(X_train) * 0.85)
+        X_fit = X_train[:val_split]
+        y_fit = y_train[:val_split]
+        X_es_val = X_train[val_split:]
+        y_es_val = y_train[val_split:]
 
-        dataset = TensorDataset(X_train_tensor, y_train_tensor)
+        X_fit_tensor = torch.tensor(X_fit.astype(np.float32)).to(device)
+        y_fit_tensor = torch.tensor(y_fit.astype(np.longlong)).to(device)
+        X_es_val_tensor = torch.tensor(X_es_val.astype(np.float32)).to(device)
+        y_es_val_tensor = torch.tensor(y_es_val.astype(np.longlong)).to(device)
+
+        dataset = TensorDataset(X_fit_tensor, y_fit_tensor)
         generator = torch.Generator()
         generator.manual_seed(SEED)
         dataloader = DataLoader(
             dataset, batch_size=params["batch_size"], shuffle=True, generator=generator
         )
+
+        best_val_loss = float("inf")
+        epochs_without_improvement = 0
+        best_state_dict = None
 
         for epoch in range(params["num_epochs"]):
             model.train()
@@ -98,6 +113,28 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
+
+            # Early stopping: check validation loss
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_es_val_tensor)
+                val_loss = criterion(val_outputs, y_es_val_tensor).item()
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                epochs_without_improvement = 0
+                best_state_dict = copy.deepcopy(model.state_dict())
+            else:
+                epochs_without_improvement += 1
+                if epochs_without_improvement >= patience:
+                    if verbose:
+                        print(f"  Early stopping at epoch {epoch + 1}/{params['num_epochs']}")
+                    model.load_state_dict(best_state_dict)
+                    break
+
+        # Restore best weights if training completed all epochs
+        if best_state_dict is not None and epochs_without_improvement < patience:
+            model.load_state_dict(best_state_dict)
     else:
         model.fit(X_train, y_train)
 

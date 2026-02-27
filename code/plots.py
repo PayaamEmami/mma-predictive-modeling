@@ -37,7 +37,7 @@ def plot_model_comparisons(performance_df, output_path):
 
     plt.figure(figsize=(10, 6))
     plt.barh(performance_df["Model"], performance_df["Accuracy"], color=colors)
-    plt.xlabel("Mean Cross-Validation Accuracy")
+    plt.xlabel("Validation Accuracy")
     plt.title("Model Performance Comparison")
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
@@ -161,7 +161,7 @@ def plot_learning_curve(
         test_scores.mean(axis=1),
         "o-",
         color="C1",
-        label="Cross-Validation Accuracy",
+        label="Temporal CV Accuracy",
     )
     plt.fill_between(
         train_sizes,

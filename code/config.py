@@ -70,8 +70,8 @@ HYPERPARAMETERS = {
         "max_leaf_nodes": None,  # Maximum number of leaf nodes
         "warm_start": False,  # Reuse previous solutions to add trees
         # Early stopping parameters
-        "validation_fraction": 0.1,  # Fraction of training data for validation
-        "n_iter_no_change": None,  # Iterations with no improvement
+        "validation_fraction": 0.15,  # Fraction of training data for validation
+        "n_iter_no_change": 10,  # Stop after 10 rounds with no improvement
         "tol": 1e-4,  # Tolerance for early stopping
         # Regularization
         "ccp_alpha": 0.0,  # Complexity parameter for pruning
@@ -155,8 +155,9 @@ HYPERPARAMETERS = {
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer
         "weight_decay": 0.01,  # Weight decay for regularization
-        "num_epochs": 300,  # Number of training epochs
+        "num_epochs": 300,  # Maximum training epochs (early stopping may end sooner)
         "batch_size": 32,  # Batch size for training
+        "early_stopping_patience": 20,  # Stop after 20 epochs with no val loss improvement
         # SGD parameters
         "momentum": 0.0,  # Momentum factor
         "dampening": 0.0,  # Dampening for momentum
@@ -179,8 +180,9 @@ HYPERPARAMETERS = {
         "optimizer": "Adam",  # Optimization algorithm
         "learning_rate": 0.0005,  # Step size for optimizer
         "weight_decay": 0.01,  # Weight decay for regularization
-        "num_epochs": 300,  # Number of training epochs
+        "num_epochs": 300,  # Maximum training epochs (early stopping may end sooner)
         "batch_size": 32,  # Batch size for training
+        "early_stopping_patience": 20,  # Stop after 20 epochs with no val loss improvement
         # SGD parameters
         "momentum": 0.0,  # Momentum factor
         "dampening": 0.0,  # Dampening for momentum
