@@ -67,7 +67,7 @@ experiments/my-new-experiment/
   experiment_config.json       ← Your input
   baseline_metrics.csv         ← Baseline accuracies
   experiment_report.md         ← 🆕 Auto-generated comparison!
-  model_performances.csv       ← Experiment results
-  model_metrics_report.txt     ← Detailed metrics
+  validation_performances.csv  ← Experiment results
+  validation_metrics_report.txt ← Detailed metrics
   learning_curve_*.png         ← Training plots
 ```

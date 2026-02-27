@@ -212,7 +212,7 @@ def get_plot_image(plot_name):
             or ".." in plot_name
             or "/" in plot_name
             or "\\" in plot_name
-            or plot_name in ["done.json", "report.txt", "model_performances.csv"]
+            or plot_name in ["done.json", "report.txt", "validation_performances.csv"]
         ):
             return {
                 "statusCode": 400,

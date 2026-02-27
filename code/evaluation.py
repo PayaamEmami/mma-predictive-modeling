@@ -95,11 +95,10 @@ def evaluate_models(models, X_train, X_val, y_train, y_val, label_encoder, devic
         columns=["Model", "Accuracy"],
     )
     performance_df.to_csv(
-        os.path.join(RESULTS_PATH, "model_performances.csv"), index=False
+        os.path.join(RESULTS_PATH, "validation_performances.csv"), index=False
     )
 
-    # Save the report to a txt file
-    report_path = os.path.join(RESULTS_PATH, "model_metrics_report.txt")
+    report_path = os.path.join(RESULTS_PATH, "validation_metrics_report.txt")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines))
 
