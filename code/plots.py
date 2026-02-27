@@ -5,9 +5,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
-from sklearn.model_selection import learning_curve, StratifiedKFold
+from sklearn.model_selection import learning_curve, TimeSeriesSplit
 import torch
-from config import HYPERPARAMETERS, SEED
+from config import HYPERPARAMETERS
 from training import train_model
 from models import FNN, Transformer
 
@@ -57,39 +57,40 @@ def plot_learning_curve(
     cv=5,
     n_jobs=-1,
     train_sizes=np.linspace(0.1, 1.0, 5),
-    random_state=SEED,
     verbose=False,
 ):
     """
-    Generate and plot learning curves for a model.
+    Generate and plot learning curves for a model using temporal cross-validation.
+
+    Data must be sorted chronologically before calling this function.
+    Uses TimeSeriesSplit so each fold trains on past data and validates on
+    the next temporal segment, preventing temporal leakage.
 
     Args:
         model: The trained model to evaluate
-        X: Training features
-        y: Training labels
+        X: Training features (must be in chronological order)
+        y: Training labels (must be in chronological order)
         model_name: Name of the model for plot title
         output_path: Path to save the plot
         device: PyTorch device to use
         cv: Number of cross-validation folds
         n_jobs: Number of jobs to run in parallel
         train_sizes: Array of training set sizes to evaluate
-        random_state: Random seed for reproducibility
         verbose: Whether to print training progress
 
     Returns:
         train_scores: Array of training scores for each training size and fold
         test_scores: Array of validation scores for each training size and fold
     """
-    if isinstance(model, torch.nn.Module):
-        kf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+    tscv = TimeSeriesSplit(n_splits=cv)
 
+    if isinstance(model, torch.nn.Module):
         train_scores = np.zeros((len(train_sizes), cv))
         test_scores = np.zeros((len(train_sizes), cv))
 
         for size_idx, size in enumerate(train_sizes):
-            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X, y)):
+            for fold_idx, (train_idx, val_idx) in enumerate(tscv.split(X)):
                 subset_size = int(len(train_idx) * size)
-                # Get subset of training data
                 X_train = X[train_idx[:subset_size]]
                 y_train = y[train_idx[:subset_size]]
                 X_val = X[val_idx]
@@ -117,7 +118,6 @@ def plot_learning_curve(
                 # Evaluate on training and validation sets
                 fresh_model.eval()
                 with torch.no_grad():
-                    # Training score
                     X_train_tensor = torch.tensor(X_train.astype(np.float32)).to(device)
                     outputs = fresh_model(X_train_tensor)
                     _, predicted = torch.max(outputs.data, 1)
@@ -125,7 +125,6 @@ def plot_learning_curve(
                         predicted == torch.tensor(y_train).to(device)
                     ).sum().item() / len(y_train)
 
-                    # Validation score
                     X_val_tensor = torch.tensor(X_val.astype(np.float32)).to(device)
                     outputs = fresh_model(X_val_tensor)
                     _, predicted = torch.max(outputs.data, 1)
@@ -141,11 +140,10 @@ def plot_learning_curve(
             model,
             X,
             y,
-            cv=cv,
+            cv=tscv,
             n_jobs=n_jobs,
             train_sizes=train_sizes,
             scoring="accuracy",
-            random_state=random_state,
         )
 
     # Plot learning curve

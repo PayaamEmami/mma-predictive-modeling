@@ -1,26 +1,6 @@
 # Experiments Index
 
-This file is **automatically updated** when new experiments are completed. Each experiment folder is listed below with a link to its detailed report.
-
-See `QUICKSTART.md` for how to run experiments with automated tracking.
-
----
-
-## Where to View Experiment Reports
-
-**📋 During Development (PR):** Review `experiments/your-experiment-name/experiment_report.md` in the auto-generated PR
-
-**🌐 On Production Website:** Visit [payaam.dev/projects/mma-predictive-modeling](https://payaam.dev/projects/mma-predictive-modeling) after merging
-
-**📚 In This File:** Links to all completed experiments below
-
----
-
-## Completed Experiments
-
-<!-- EXPERIMENTS_LIST_START -->
-
-### 1. [Increased Regularization Across Models](./increased-regularization/experiment_report.md)
+## 1. [Increased Regularization Across Models](./increased-regularization/)
 
 **Status:** ⚠️ Mixed Results
 
@@ -35,11 +15,9 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 **Outcome:** Regularization approach validated but applied too aggressively. Follow-up experiment recommended with moderate settings.
 
-[View Full Report →](./increased-regularization/experiment_report.md)
-
 ---
 
-### 2. [Dropout Regularization for Neural Networks](./dropout-regularization/experiment_report.md)
+## 2. [Dropout Regularization for Neural Networks](./dropout-regularization/)
 
 **Status:** ❌ Negative Results
 
@@ -55,11 +33,9 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 **Outcome:** Dropout provides no benefit for our MMA prediction task. The baseline models with weight decay alone perform better. Change will not be merged. Experiment demonstrates that aggressive regularization is counterproductive when models aren't severely overfitting.
 
-[View Full Report →](./dropout-regularization/experiment_report.md)
-
 ---
 
-### 3. [Differential Features](./differential-features/)
+## 3. [Differential Features](./differential-features/)
 
 **Status:** ⚠️ Mixed Results
 
@@ -78,14 +54,24 @@ See `QUICKSTART.md` for how to run experiments with automated tracking.
 
 **Outcome:** Results are inconclusive rather than clearly negative. The differential representation benefits models that cannot easily learn feature interactions (Transformer, Logistic Regression, FNN) while hurting tree-based ensembles that could already discover comparisons from absolute values. Change merged into main as the theoretical foundation is sound for a matchup prediction task and the new top model (Transformer) shows the healthiest train/test gap. A hybrid approach (differential + select absolute features) may capture the best of both worlds.
 
-[View Full Report →](./differential-features/)
-
 ---
 
-<!-- EXPERIMENTS_LIST_END -->
+## 4. [Temporal Split](./temporal-split/)
+
+**Status:** ✅ Methodology Improvement
+
+**Hypothesis:** Replacing random train/test split with chronological (temporal) split will eliminate data leakage where test fight outcomes leak into training features via `compute_historical_stats`. Additionally, fitting StandardScaler only on training data and using TimeSeriesSplit for learning curve CV will remove remaining leakage sources. Accuracy numbers are expected to drop, reflecting a more honest evaluation that matches the production prediction scenario.
+
+**Key Findings:**
+
+- ✅ Confirmed temporal leakage was inflating results — tree-based ensembles hit hardest: Random Forest -3.68%, SVM -2.58%, Gradient Boosting -2.52%
+- ✅ Logistic Regression became the top model at 61.00% (+0.56%), proving its performance was genuine and not leakage-driven
+- ✅ FNN held steady at 60.44% (+0.55%), also resilient to the leakage fix
+- 🟡 Transformer dropped marginally from 60.63% to 60.44% (-0.19%), essentially flat
+- 🟡 KNN improved from 52.83% to 54.61% (+1.78%), Decision Tree from 52.09% to 53.50% (+1.41%)
+- 💡 Models with high train/test gaps (RF: 91.9%/58.1%, DT: 92.8%/53.5%) reveal severe overfitting now visible without leakage masking it
+- 💡 Simpler models (LR, NB) and well-regularized neural networks (FNN, Transformer) were least affected, confirming they weren't relying on leaked information
+
+**Outcome:** The temporal split produces more honest evaluation metrics that reflect real-world production performance. The 2-4% drop in top models is not a regression — it reveals previously hidden leakage inflation. Change will be merged as the correct evaluation methodology going forward.
 
 ---
-
-## How This Works
-
-When an experiment completes and generates `experiment_report.md`, this file is automatically updated to include a link and summary of that experiment. The list above is maintained between the `<!-- EXPERIMENTS_LIST_START -->` and `<!-- EXPERIMENTS_LIST_END -->` markers.
