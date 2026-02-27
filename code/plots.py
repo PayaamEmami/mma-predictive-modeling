@@ -38,12 +38,12 @@ def plot_model_comparisons(performance_df, output_path):
     plt.figure(figsize=(10, 6))
     plt.barh(performance_df["Model"], performance_df["Accuracy"], color=colors)
     plt.xlabel("Validation Accuracy")
-    plt.title("Model Performance Comparison")
+    plt.title("Validation Accuracy by Model")
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(output_path, "validation_performance_comparison.png"))
+    plt.savefig(os.path.join(output_path, "validation_performances.png"))
     plt.close()
 
 
