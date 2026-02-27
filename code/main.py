@@ -1,9 +1,5 @@
 import argparse
-import os
 import numpy as np
-import pandas as pd
-import torch
-from sklearn.metrics import accuracy_score
 from data import (
     load_fight_data,
     build_preprocessor,
@@ -11,9 +7,9 @@ from data import (
     DIFF_FEATURE_SUFFIXES,
 )
 from models import initialize_models
-from evaluation import evaluate_models
+from evaluation import evaluate_validation, evaluate_test
 from training import train_model, save_models, save_label_encoder
-from config import DEVICE, RESULTS_PATH, set_global_seed
+from config import DEVICE, set_global_seed
 
 
 def main(s3_bucket, s3_data_key, s3_results_prefix):
@@ -82,12 +78,12 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
         trained_models[name] = trained_model
 
     # Evaluate on validation set (used for experiments and model comparison)
-    evaluate_models(
+    evaluate_validation(
         trained_models, X_train, X_val, y_train, y_val, label_encoder, DEVICE
     )
 
     # Evaluate on held-out test set (unbiased final metric)
-    evaluate_on_test_set(trained_models, X_test, y_test, label_encoder, DEVICE)
+    evaluate_test(trained_models, X_test, y_test, label_encoder, DEVICE)
 
     # Save trained models and label encoder to S3
     save_models(trained_models, input_size, s3_bucket)
@@ -95,31 +91,6 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
 
     # Upload results to S3
     upload_results_to_s3("results", s3_bucket, s3_results_prefix)
-
-
-def evaluate_on_test_set(models, X_test, y_test, label_encoder, device):
-    """Evaluate all models on the held-out test set and save results separately."""
-    test_results = []
-    print("\n--- Held-out Test Set Evaluation ---")
-
-    for name, model in models.items():
-        if isinstance(model, torch.nn.Module):
-            model.eval()
-            with torch.no_grad():
-                X_test_tensor = torch.tensor(X_test.astype(np.float32)).to(device)
-                outputs = model(X_test_tensor)
-                _, y_pred = torch.max(outputs.data, 1)
-                y_pred = y_pred.cpu().numpy()
-        else:
-            y_pred = model.predict(X_test)
-
-        acc = accuracy_score(y_test, y_pred)
-        test_results.append((name, acc))
-        print(f"  {name}: {acc:.4f}")
-
-    test_df = pd.DataFrame(test_results, columns=["Model", "Accuracy"])
-    test_df.to_csv(os.path.join(RESULTS_PATH, "test_performances.csv"), index=False)
-    print(f"Test set results saved to {RESULTS_PATH}/test_performances.csv")
 
 
 if __name__ == "__main__":

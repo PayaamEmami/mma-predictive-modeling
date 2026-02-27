@@ -12,13 +12,15 @@ from training import train_model
 from models import FNN, Transformer
 
 
-def plot_model_comparisons(performance_df, output_path):
+def plot_model_comparisons(performance_df, output_path, filename, label):
     """
     Generate and save a bar plot comparing model accuracies.
 
     Args:
         performance_df: DataFrame containing model names and their accuracies
         output_path: Path to save the plot
+        filename: Output filename for the plot (e.g. "validation_performances.png")
+        label: Label prefix for axis and title (e.g. "Validation" or "Test")
 
     Returns:
         None. Saves the plot to output_path.
@@ -37,13 +39,13 @@ def plot_model_comparisons(performance_df, output_path):
 
     plt.figure(figsize=(10, 6))
     plt.barh(performance_df["Model"], performance_df["Accuracy"], color=colors)
-    plt.xlabel("Validation Accuracy")
-    plt.title("Validation Accuracy by Model")
+    plt.xlabel(f"{label} Accuracy")
+    plt.title(f"{label} Accuracy by Model")
     plt.xlim([0, 1])
     plt.grid(True, axis="x", linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(output_path, "validation_performances.png"))
+    plt.savefig(os.path.join(output_path, filename))
     plt.close()
 
 
