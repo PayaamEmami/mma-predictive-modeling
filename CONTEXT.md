@@ -1,6 +1,6 @@
-# MMA Predictive Modeling - AI Assistant Context
+# CONTEXT
 
-This document provides comprehensive context for AI coding assistants working with the MMA Predictive Modeling project. It covers architecture, implementation details, conventions, and important considerations for development.
+This file is a quick orientation guide for AI coding agents working in this repository. It covers architecture, implementation details, conventions, and important considerations for development.
 
 ## Project Overview
 
