@@ -2,11 +2,10 @@
 Data transformation functions.
 
 Pure functions for cleaning, formatting, and transforming scraped data.
-Includes date parsing, measurement formatting, and fighter swapping logic.
+Includes date parsing and measurement formatting helpers.
 """
 
 from datetime import datetime
-from typing import Optional
 
 
 def parse_date(date_str: str, input_format: str = "%B %d, %Y") -> str:
@@ -103,81 +102,6 @@ def clean_strike_stat(stat_str: str) -> str:
     return stat_str.strip() if stat_str else ''
 
 
-def should_swap_fighters(current_winner: str, last_winner: Optional[str]) -> tuple[bool, Optional[str]]:
-    """
-    Determine if fighters should be swapped based on winner pattern.
-
-    This implements the same logic as the .NET version to maintain data consistency.
-    The logic helps balance the dataset by swapping fighter positions when the same
-    winner indicator appears consecutively.
-
-    Args:
-        current_winner: Current fight winner ('1', '2', 'D', 'NC', '0', etc.)
-        last_winner: Previous fight winner or None
-
-    Returns:
-        Tuple of (should_swap: bool, new_last_winner: Optional[str])
-
-    Examples:
-        >>> should_swap_fighters('1', None)
-        (False, '1')
-        >>> should_swap_fighters('1', '1')  # Consecutive same winner
-        (True, '2')
-        >>> should_swap_fighters('2', '1')  # Different winner
-        (False, '2')
-    """
-    # Only track swapping for definitive winners
-    if current_winner not in ('1', '2'):
-        return False, None
-
-    # First fight or no previous winner tracking
-    if last_winner is None:
-        return False, current_winner
-
-    # If current winner matches last winner, swap this fight
-    if last_winner == current_winner:
-        # Consecutive same winner - swap and flip the tracking
-        new_last = '2' if current_winner == '1' else '1'
-        return True, new_last
-    else:
-        # Different winner - no swap needed
-        return False, current_winner
-
-
-def swap_fighter_data(fight_dict: dict) -> dict:
-    """
-    Swap Fighter1 and Fighter2 data in fight dictionary.
-
-    Creates a new dictionary with all Fighter1_ and Fighter2_ fields swapped,
-    including updating the Winner field accordingly.
-
-    Args:
-        fight_dict: Original fight dictionary
-
-    Returns:
-        New dictionary with swapped fighter data
-    """
-    swapped = fight_dict.copy()
-
-    # Get all Fighter1_ field names
-    f1_fields = [k for k in fight_dict.keys() if k.startswith('Fighter1_')]
-
-    # Swap all Fighter1_ <-> Fighter2_ fields
-    for f1_field in f1_fields:
-        f2_field = f1_field.replace('Fighter1_', 'Fighter2_')
-        if f2_field in fight_dict:
-            swapped[f1_field] = fight_dict[f2_field]
-            swapped[f2_field] = fight_dict[f1_field]
-
-    # Swap winner indicator
-    if swapped.get('Winner') == '1':
-        swapped['Winner'] = '2'
-    elif swapped.get('Winner') == '2':
-        swapped['Winner'] = '1'
-
-    return swapped
-
-
 def merge_fight_data(
     fight_details: dict,
     fighter1_profile: dict,
@@ -231,4 +155,3 @@ def initialize_empty_fight_dict() -> dict:
     """
     from . import config
     return {header: '' for header in config.CSV_HEADERS}
-

@@ -158,8 +158,6 @@ def process_single_event(
         print("  ✗ No fights found!")
         return
 
-    # Track winner for swapping logic
-    last_winner = None
     fights_processed = 0
 
     # Process each fight
@@ -171,15 +169,6 @@ def process_single_event(
                 event_date=event_date,
                 event_location=event_location
             )
-
-            # Apply fighter swapping logic
-            should_swap, last_winner = data_transforms.should_swap_fighters(
-                fight['Winner'],
-                last_winner
-            )
-
-            if should_swap:
-                fight = data_transforms.swap_fighter_data(fight)
 
             # Append to CSV
             csv_operations.append_fight_to_csv(fight, csv_path, config.CSV_HEADERS)
@@ -357,4 +346,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

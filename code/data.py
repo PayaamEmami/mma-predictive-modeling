@@ -36,6 +36,15 @@ DIFF_FEATURE_SUFFIXES = [
     "AvgReversals",
 ]
 
+FIGHTER_STAT_SUFFIXES = DIFF_FEATURE_SUFFIXES + ["Stance"]
+
+
+def get_feature_columns():
+    """Return model feature columns in training/inference order."""
+    numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
+    categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+    return numerical_columns, categorical_columns
+
 
 def compute_differential_features(df):
     """Compute Fighter1 - Fighter2 differential columns for all paired numerical features."""
@@ -62,6 +71,48 @@ def build_preprocessor(X_train_df, numerical_columns, categorical_columns):
     return preprocessor
 
 
+def augment_mirrored_matchups(X_df, y, label_encoder=None, group_ids=None):
+    """
+    Duplicate matchup rows with Fighter1/Fighter2 perspective swapped.
+
+    This is applied after temporal splitting so an original fight and its mirror
+    stay in the same train/validation/test split.
+    """
+    X_original = X_df.reset_index(drop=True).copy()
+    X_mirror = X_original.copy()
+
+    for suffix in DIFF_FEATURE_SUFFIXES:
+        diff_col = f"{suffix}_Diff"
+        X_mirror[diff_col] = -X_mirror[diff_col]
+
+    X_mirror["Fighter1_Stance"] = X_original["Fighter2_Stance"].values
+    X_mirror["Fighter2_Stance"] = X_original["Fighter1_Stance"].values
+
+    y_array = np.asarray(y).copy()
+    if label_encoder is not None:
+        fighter1_label = label_encoder.transform(["1"])[0]
+        fighter2_label = label_encoder.transform(["2"])[0]
+    else:
+        fighter1_label = "1"
+        fighter2_label = "2"
+
+    y_mirror = y_array.copy()
+    y_mirror[y_array == fighter1_label] = fighter2_label
+    y_mirror[y_array == fighter2_label] = fighter1_label
+
+    if group_ids is None:
+        group_array = np.arange(len(X_original))
+    else:
+        group_array = np.asarray(group_ids)
+
+    X_augmented = pd.concat([X_original, X_mirror])
+    X_augmented = X_augmented.sort_index(kind="mergesort").reset_index(drop=True)
+    y_augmented = np.column_stack((y_array, y_mirror)).ravel()
+    group_ids_augmented = np.repeat(group_array, 2)
+
+    return X_augmented, y_augmented, group_ids_augmented
+
+
 def upload_results_to_s3(local_dir, bucket, s3_prefix):
     print("Uploading results to S3...")
     s3 = boto3.client("s3")
@@ -78,6 +129,72 @@ def upload_results_to_s3(local_dir, bucket, s3_prefix):
         f.write("")
     s3.upload_file("done.json", bucket, done_key)
     print(f"Results uploaded to s3://{bucket}/{s3_prefix}")
+
+
+def prepare_fight_data(fight_data):
+    """Parse raw fight rows and compute pre-fight historical feature columns."""
+    fight_data = fight_data.copy()
+    fight_data = fight_data.drop(columns=["EventName"], errors="ignore")
+    fight_data["Winner"] = fight_data["Winner"].astype(str)
+    fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
+
+    # Process physical attributes
+    fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(
+        parse_height
+    )
+    fight_data["Fighter2_Height_cm"] = fight_data["Fighter2_Height"].apply(
+        parse_height
+    )
+    fight_data["Fighter1_Reach_cm"] = fight_data["Fighter1_Reach"].apply(parse_reach)
+    fight_data["Fighter2_Reach_cm"] = fight_data["Fighter2_Reach"].apply(parse_reach)
+
+    # Process fight metrics
+    fight_data["Fighter1_Control_Time_sec"] = fight_data[
+        "Fighter1_Control_Time"
+    ].apply(parse_control_time)
+    fight_data["Fighter2_Control_Time_sec"] = fight_data[
+        "Fighter2_Control_Time"
+    ].apply(parse_control_time)
+
+    # Calculate fighter ages
+    fight_data["Fighter1_Age"] = (
+        fight_data["EventDate"] - pd.to_datetime(fight_data["Fighter1_DOB"], errors="coerce")
+    ).dt.days / 365.25
+    fight_data["Fighter1_Age"] = fight_data["Fighter1_Age"].fillna(30)
+    fight_data["Fighter2_Age"] = (
+        fight_data["EventDate"] - pd.to_datetime(fight_data["Fighter2_DOB"], errors="coerce")
+    ).dt.days / 365.25
+    fight_data["Fighter2_Age"] = fight_data["Fighter2_Age"].fillna(30)
+
+    # Process strike statistics
+    strike_columns = [
+        "Fighter1_Significant_Strikes",
+        "Fighter1_Head_Strikes",
+        "Fighter1_Body_Strikes",
+        "Fighter1_Leg_Strikes",
+        "Fighter1_Distance_Strikes",
+        "Fighter1_Clinch_Strikes",
+        "Fighter1_Ground_Strikes",
+        "Fighter1_Takedowns",
+        "Fighter2_Significant_Strikes",
+        "Fighter2_Head_Strikes",
+        "Fighter2_Body_Strikes",
+        "Fighter2_Leg_Strikes",
+        "Fighter2_Distance_Strikes",
+        "Fighter2_Clinch_Strikes",
+        "Fighter2_Ground_Strikes",
+        "Fighter2_Takedowns",
+    ]
+
+    for col in strike_columns:
+        process_landed_attempted(fight_data, col)
+
+    # Calculate fight duration
+    fight_data["Fight_Time_sec"] = fight_data.apply(
+        lambda row: calculate_fight_time(row["Round"], row["Time"]), axis=1
+    )
+
+    return compute_historical_stats(fight_data)
 
 
 def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
@@ -108,73 +225,7 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         )
         print(f"Records before dropping data: {len(fight_data)}")
 
-        fight_data = fight_data.drop(columns=["EventName"])
-        fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
-
-        # Process physical attributes
-        fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(
-            parse_height
-        )
-        fight_data["Fighter2_Height_cm"] = fight_data["Fighter2_Height"].apply(
-            parse_height
-        )
-        fight_data["Fighter1_Reach_cm"] = fight_data["Fighter1_Reach"].apply(
-            parse_reach
-        )
-        fight_data["Fighter2_Reach_cm"] = fight_data["Fighter2_Reach"].apply(
-            parse_reach
-        )
-
-        # Process fight metrics
-        fight_data["Fighter1_Control_Time_sec"] = fight_data[
-            "Fighter1_Control_Time"
-        ].apply(parse_control_time)
-        fight_data["Fighter2_Control_Time_sec"] = fight_data[
-            "Fighter2_Control_Time"
-        ].apply(parse_control_time)
-
-        # Calculate fighter ages
-        fight_data["Fighter1_Age"] = (
-            fight_data["EventDate"]
-            - pd.to_datetime(fight_data["Fighter1_DOB"], errors="coerce")
-        ).dt.days / 365.25
-        fight_data["Fighter1_Age"] = fight_data["Fighter1_Age"].fillna(30)
-        fight_data["Fighter2_Age"] = (
-            fight_data["EventDate"]
-            - pd.to_datetime(fight_data["Fighter2_DOB"], errors="coerce")
-        ).dt.days / 365.25
-        fight_data["Fighter2_Age"] = fight_data["Fighter2_Age"].fillna(30)
-
-        # Process strike statistics
-        strike_columns = [
-            "Fighter1_Significant_Strikes",
-            "Fighter1_Head_Strikes",
-            "Fighter1_Body_Strikes",
-            "Fighter1_Leg_Strikes",
-            "Fighter1_Distance_Strikes",
-            "Fighter1_Clinch_Strikes",
-            "Fighter1_Ground_Strikes",
-            "Fighter1_Takedowns",
-            "Fighter2_Significant_Strikes",
-            "Fighter2_Head_Strikes",
-            "Fighter2_Body_Strikes",
-            "Fighter2_Leg_Strikes",
-            "Fighter2_Distance_Strikes",
-            "Fighter2_Clinch_Strikes",
-            "Fighter2_Ground_Strikes",
-            "Fighter2_Takedowns",
-        ]
-
-        for col in strike_columns:
-            process_landed_attempted(fight_data, col)
-
-        # Calculate fight duration
-        fight_data["Fight_Time_sec"] = fight_data.apply(
-            lambda row: calculate_fight_time(row["Round"], row["Time"]), axis=1
-        )
-
-        # Compute historical performance stats
-        fight_data = compute_historical_stats(fight_data)
+        fight_data = prepare_fight_data(fight_data)
 
         # Compute differential features (Fighter1 - Fighter2)
         fight_data = compute_differential_features(fight_data)
@@ -196,9 +247,7 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         print(f"Fighter 2 wins: {fighter2_win_percentage:.2f}%")
 
         # Use differential features instead of absolute Fighter1/Fighter2 columns
-        numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
-
-        categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+        numerical_columns, categorical_columns = get_feature_columns()
         relevant_columns = numerical_columns + categorical_columns
 
         # Prepare features and target
@@ -222,109 +271,37 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         raise
 
 
-def get_latest_fighter_stats_by_url(fight_data, fighter_url):
+def get_latest_fighter_stats_by_url(fight_data, fighter_url, target_prefix):
     """
-    Get the latest historical statistics for a specific fighter using their URL.
+    Get latest historical statistics for a fighter and retarget them to a slot.
+
     This is more reliable than name matching since URLs are unique identifiers.
 
     Args:
         fight_data: DataFrame with processed historical fight data
         fighter_url: URL of the fighter profile
+        target_prefix: "Fighter1" or "Fighter2" for the upcoming matchup slot
 
     Returns:
-        dict: Latest statistics for the fighter, with proper Fighter1/Fighter2 prefixes
+        dict: Latest statistics for the fighter using the requested prefix
     """
-    # Find all fights involving this fighter by URL (stored in Fighter1_ID/Fighter2_ID)
-    fighter1_fights = fight_data[fight_data["Fighter1_ID"] == fighter_url]
-    fighter2_fights = fight_data[fight_data["Fighter2_ID"] == fighter_url]
+    candidates = []
+    for source_prefix in ["Fighter1", "Fighter2"]:
+        fighter_fights = fight_data[fight_data[f"{source_prefix}_ID"] == fighter_url]
+        if not fighter_fights.empty:
+            idx = fighter_fights["EventDate"].idxmax()
+            candidates.append((fighter_fights.loc[idx], source_prefix))
 
-    # Get the most recent fight data
+    if not candidates:
+        return {}
+
+    latest_row, source_prefix = max(candidates, key=lambda item: item[0]["EventDate"])
     latest_stats = {}
-    most_recent_date = None
-
-    # Check Fighter1 position fights
-    if not fighter1_fights.empty:
-        latest_f1 = fighter1_fights.loc[fighter1_fights["EventDate"].idxmax()]
-        if most_recent_date is None or latest_f1["EventDate"] > most_recent_date:
-            most_recent_date = latest_f1["EventDate"]
-
-            # Get stats with Fighter1_ prefix
-            for col in latest_f1.index:
-                if col.startswith("Fighter1_") and (
-                    col.endswith(
-                        (
-                            "_AvgFightTime",
-                            "_TimeSinceLastFight",
-                            "_FinishRate",
-                            "_Wins",
-                            "_Losses",
-                            "_Draws",
-                            "_NoContests",
-                            "_WinRate",
-                            "_TotalFights",
-                            "_AvgControlTime",
-                            "_AvgSubmissionAttempts",
-                            "_AvgLegStrikes",
-                            "_AvgClinchStrikes",
-                            "_AvgGroundStrikes",
-                            "_AvgHeadStrikes",
-                            "_AvgStrikesLanded",
-                            "_AvgStrikesAttempted",
-                            "_StrikeAccuracy",
-                            "_TakedownAccuracy",
-                            "_AvgTakedownsLanded",
-                            "_AvgTakedownsAttempted",
-                            "_AvgReversals",
-                            "_Height_cm",
-                            "_Reach_cm",
-                            "_Age",
-                            "_Stance",
-                        )
-                    )
-                ):
-                    latest_stats[col] = latest_f1[col]
-
-    # Check Fighter2 position fights
-    if not fighter2_fights.empty:
-        latest_f2 = fighter2_fights.loc[fighter2_fights["EventDate"].idxmax()]
-        if most_recent_date is None or latest_f2["EventDate"] > most_recent_date:
-            most_recent_date = latest_f2["EventDate"]
-
-            # Get stats with Fighter2_ prefix (keep original prefixes)
-            for col in latest_f2.index:
-                if col.startswith("Fighter2_") and (
-                    col.endswith(
-                        (
-                            "_AvgFightTime",
-                            "_TimeSinceLastFight",
-                            "_FinishRate",
-                            "_Wins",
-                            "_Losses",
-                            "_Draws",
-                            "_NoContests",
-                            "_WinRate",
-                            "_TotalFights",
-                            "_AvgControlTime",
-                            "_AvgSubmissionAttempts",
-                            "_AvgLegStrikes",
-                            "_AvgClinchStrikes",
-                            "_AvgGroundStrikes",
-                            "_AvgHeadStrikes",
-                            "_AvgStrikesLanded",
-                            "_AvgStrikesAttempted",
-                            "_StrikeAccuracy",
-                            "_TakedownAccuracy",
-                            "_AvgTakedownsLanded",
-                            "_AvgTakedownsAttempted",
-                            "_AvgReversals",
-                            "_Height_cm",
-                            "_Reach_cm",
-                            "_Age",
-                            "_Stance",
-                        )
-                    )
-                ):
-                    latest_stats[col] = latest_f2[col]
+    for suffix in FIGHTER_STAT_SUFFIXES:
+        source_key = f"{source_prefix}_{suffix}"
+        target_key = f"{target_prefix}_{suffix}"
+        if source_key in latest_row.index:
+            latest_stats[target_key] = latest_row[source_key]
 
     return latest_stats
 
@@ -482,271 +459,161 @@ def compute_historical_stats(fight_data):
     # Sort fights chronologically
     fight_data = fight_data.sort_values("EventDate").reset_index(drop=True)
 
-    # Walk through each fight and update stats
-    for idx, row in fight_data.iterrows():
-        fight_time = row["Fight_Time_sec"]
-        event_date = row["EventDate"]
-
+    # Walk by date so fights on the same event date cannot inform each other.
+    for event_date, event_rows in fight_data.groupby("EventDate", sort=True):
         # Pre-fight stats assignment
-        for fighter_num in ["Fighter1", "Fighter2"]:
-            fighter_id = row[f"{fighter_num}_ID"]
-            stats = fighter_stats[fighter_id]
-            stats_before = stats.copy()
+        for idx, row in event_rows.iterrows():
+            for fighter_num in ["Fighter1", "Fighter2"]:
+                fighter_id = row[f"{fighter_num}_ID"]
+                stats = fighter_stats[fighter_id]
+                stats_before = stats.copy()
 
-            if stats_before["NumFights"] > 0:
-                n = stats_before["NumFights"]
-                fight_data.at[idx, f"{fighter_num}_AvgFightTime"] = (
-                    stats_before["TotalFightTime"] / n
-                )
-                if stats_before["LastFightDate"] is not None:
-                    days = (event_date - stats_before["LastFightDate"]).days
-                    fight_data.at[idx, f"{fighter_num}_TimeSinceLastFight"] = days
-                if stats_before["Wins"] > 0:
-                    fight_data.at[idx, f"{fighter_num}_FinishRate"] = (
-                        stats_before["WinsByFinish"] / stats_before["Wins"]
+                if stats_before["NumFights"] > 0:
+                    n = stats_before["NumFights"]
+                    fight_data.at[idx, f"{fighter_num}_AvgFightTime"] = (
+                        stats_before["TotalFightTime"] / n
                     )
-                total_decided = stats_before["Wins"] + stats_before["Losses"]
-                if total_decided > 0:
-                    fight_data.at[idx, f"{fighter_num}_WinRate"] = (
-                        stats_before["Wins"] / total_decided
+                    if stats_before["LastFightDate"] is not None:
+                        days = (event_date - stats_before["LastFightDate"]).days
+                        fight_data.at[idx, f"{fighter_num}_TimeSinceLastFight"] = days
+                    if stats_before["Wins"] > 0:
+                        fight_data.at[idx, f"{fighter_num}_FinishRate"] = (
+                            stats_before["WinsByFinish"] / stats_before["Wins"]
+                        )
+                    total_decided = stats_before["Wins"] + stats_before["Losses"]
+                    if total_decided > 0:
+                        fight_data.at[idx, f"{fighter_num}_WinRate"] = (
+                            stats_before["Wins"] / total_decided
+                        )
+                    fight_data.at[idx, f"{fighter_num}_AvgControlTime"] = (
+                        stats_before["TotalControlTime"] / n
                     )
-                fight_data.at[idx, f"{fighter_num}_AvgControlTime"] = (
-                    stats_before["TotalControlTime"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgSubmissionAttempts"] = (
-                    stats_before["TotalSubmissionAttempts"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgLegStrikes"] = (
-                    stats_before["TotalLegStrikes"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgClinchStrikes"] = (
-                    stats_before["TotalClinchStrikes"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgGroundStrikes"] = (
-                    stats_before["TotalGroundStrikes"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgHeadStrikes"] = (
-                    stats_before["TotalHeadStrikes"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgStrikesLanded"] = (
-                    stats_before["TotalStrikesLanded"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgStrikesAttempted"] = (
-                    stats_before["TotalStrikesAttempted"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_StrikeAccuracy"] = (
-                    stats_before["TotalStrikesLanded"]
-                    / stats_before["TotalStrikesAttempted"]
-                    if stats_before["TotalStrikesAttempted"] > 0
+                    fight_data.at[idx, f"{fighter_num}_AvgSubmissionAttempts"] = (
+                        stats_before["TotalSubmissionAttempts"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgLegStrikes"] = (
+                        stats_before["TotalLegStrikes"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgClinchStrikes"] = (
+                        stats_before["TotalClinchStrikes"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgGroundStrikes"] = (
+                        stats_before["TotalGroundStrikes"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgHeadStrikes"] = (
+                        stats_before["TotalHeadStrikes"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgStrikesLanded"] = (
+                        stats_before["TotalStrikesLanded"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgStrikesAttempted"] = (
+                        stats_before["TotalStrikesAttempted"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_StrikeAccuracy"] = (
+                        stats_before["TotalStrikesLanded"]
+                        / stats_before["TotalStrikesAttempted"]
+                        if stats_before["TotalStrikesAttempted"] > 0
+                        else 0
+                    )
+                    fight_data.at[idx, f"{fighter_num}_TakedownAccuracy"] = (
+                        stats_before["TotalTakedownsLanded"]
+                        / stats_before["TotalTakedownsAttempted"]
+                        if stats_before["TotalTakedownsAttempted"] > 0
+                        else 0
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgTakedownsLanded"] = (
+                        stats_before["TotalTakedownsLanded"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgTakedownsAttempted"] = (
+                        stats_before["TotalTakedownsAttempted"] / n
+                    )
+                    fight_data.at[idx, f"{fighter_num}_AvgReversals"] = (
+                        stats_before["TotalReversals"] / n
+                    )
+                # Assign win/loss/draw/experience counts before fight
+                fight_data.at[idx, f"{fighter_num}_Wins"] = stats_before["Wins"]
+                fight_data.at[idx, f"{fighter_num}_Losses"] = stats_before["Losses"]
+                fight_data.at[idx, f"{fighter_num}_Draws"] = stats_before["Draws"]
+                fight_data.at[
+                    idx, f"{fighter_num}_NoContests"
+                ] = stats_before["NoContests"]
+                fight_data.at[
+                    idx, f"{fighter_num}_TotalFights"
+                ] = stats_before["NumFights"]
+
+        # Update cumulative stats only after all same-date features are assigned.
+        for _, row in event_rows.iterrows():
+            fight_time = row["Fight_Time_sec"]
+            for fighter_num in ["Fighter1", "Fighter2"]:
+                fighter_id = row[f"{fighter_num}_ID"]
+                stats = fighter_stats[fighter_id]
+                stats["TotalFightTime"] += fight_time if not np.isnan(fight_time) else 0
+                stats["NumFights"] += 1
+                stats["LastFightDate"] = event_date
+                stats["TotalControlTime"] += (
+                    row[f"{fighter_num}_Control_Time_sec"]
+                    if not np.isnan(row[f"{fighter_num}_Control_Time_sec"])
                     else 0
                 )
-                fight_data.at[idx, f"{fighter_num}_TakedownAccuracy"] = (
-                    stats_before["TotalTakedownsLanded"]
-                    / stats_before["TotalTakedownsAttempted"]
-                    if stats_before["TotalTakedownsAttempted"] > 0
-                    else 0
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgTakedownsLanded"] = (
-                    stats_before["TotalTakedownsLanded"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgTakedownsAttempted"] = (
-                    stats_before["TotalTakedownsAttempted"] / n
-                )
-                fight_data.at[idx, f"{fighter_num}_AvgReversals"] = (
-                    stats_before["TotalReversals"] / n
-                )
-            # Assign win/loss/draw/experience counts before fight
-            fight_data.at[idx, f"{fighter_num}_Wins"] = stats_before["Wins"]
-            fight_data.at[idx, f"{fighter_num}_Losses"] = stats_before["Losses"]
-            fight_data.at[idx, f"{fighter_num}_Draws"] = stats_before["Draws"]
-            fight_data.at[idx, f"{fighter_num}_NoContests"] = stats_before["NoContests"]
-            fight_data.at[idx, f"{fighter_num}_TotalFights"] = stats_before["NumFights"]
+                sub = float(row[f"{fighter_num}_Submission_Attempts"])
+                stats["TotalSubmissionAttempts"] += sub if not np.isnan(sub) else 0
+                leg = row[f"{fighter_num}_Leg_Strikes_Landed"]
+                stats["TotalLegStrikes"] += leg if not np.isnan(leg) else 0
+                clinch = row[f"{fighter_num}_Clinch_Strikes_Landed"]
+                stats["TotalClinchStrikes"] += clinch if not np.isnan(clinch) else 0
+                ground = row[f"{fighter_num}_Ground_Strikes_Landed"]
+                stats["TotalGroundStrikes"] += ground if not np.isnan(ground) else 0
+                head = row[f"{fighter_num}_Head_Strikes_Landed"]
+                stats["TotalHeadStrikes"] += head if not np.isnan(head) else 0
+                sl = row[f"{fighter_num}_Significant_Strikes_Landed"]
+                sa = row[f"{fighter_num}_Significant_Strikes_Attempted"]
+                stats["TotalStrikesLanded"] += sl if not np.isnan(sl) else 0
+                stats["TotalStrikesAttempted"] += sa if not np.isnan(sa) else 0
+                td_l = row.get(f"{fighter_num}_Takedowns_Landed", 0)
+                td_a = row.get(f"{fighter_num}_Takedowns_Attempted", 0)
+                stats["TotalTakedownsLanded"] += td_l if not np.isnan(td_l) else 0
+                stats["TotalTakedownsAttempted"] += td_a if not np.isnan(td_a) else 0
+                rev = float(row[f"{fighter_num}_Reversals"])
+                stats["TotalReversals"] += rev if not np.isnan(rev) else 0
 
-        # Update cumulative stats after fight
-        for fighter_num in ["Fighter1", "Fighter2"]:
-            fighter_id = row[f"{fighter_num}_ID"]
-            stats = fighter_stats[fighter_id]
-            stats["TotalFightTime"] += fight_time if not np.isnan(fight_time) else 0
-            stats["NumFights"] += 1
-            stats["LastFightDate"] = event_date
-            stats["TotalControlTime"] += (
-                row[f"{fighter_num}_Control_Time_sec"]
-                if not np.isnan(row[f"{fighter_num}_Control_Time_sec"])
-                else 0
-            )
-            sub = float(row[f"{fighter_num}_Submission_Attempts"])
-            stats["TotalSubmissionAttempts"] += sub if not np.isnan(sub) else 0
-            leg = row[f"{fighter_num}_Leg_Strikes_Landed"]
-            stats["TotalLegStrikes"] += leg if not np.isnan(leg) else 0
-            clinch = row[f"{fighter_num}_Clinch_Strikes_Landed"]
-            stats["TotalClinchStrikes"] += clinch if not np.isnan(clinch) else 0
-            ground = row[f"{fighter_num}_Ground_Strikes_Landed"]
-            stats["TotalGroundStrikes"] += ground if not np.isnan(ground) else 0
-            head = row[f"{fighter_num}_Head_Strikes_Landed"]
-            stats["TotalHeadStrikes"] += head if not np.isnan(head) else 0
-            sl = row[f"{fighter_num}_Significant_Strikes_Landed"]
-            sa = row[f"{fighter_num}_Significant_Strikes_Attempted"]
-            stats["TotalStrikesLanded"] += sl if not np.isnan(sl) else 0
-            stats["TotalStrikesAttempted"] += sa if not np.isnan(sa) else 0
-            td_l = row.get(f"{fighter_num}_Takedowns_Landed", 0)
-            td_a = row.get(f"{fighter_num}_Takedowns_Attempted", 0)
-            stats["TotalTakedownsLanded"] += td_l if not np.isnan(td_l) else 0
-            stats["TotalTakedownsAttempted"] += td_a if not np.isnan(td_a) else 0
-            rev = float(row[f"{fighter_num}_Reversals"])
-            stats["TotalReversals"] += rev if not np.isnan(rev) else 0
-
-        # Update outcome stats
-        win = str(row["Winner"])
-        method = str(row["Method"])
-        s1 = fighter_stats[row["Fighter1_ID"]]
-        s2 = fighter_stats[row["Fighter2_ID"]]
-        if win == "1":
-            s1["Wins"] += 1
-            s2["Losses"] += 1
-            if is_finish(method):
-                s1["WinsByFinish"] += 1
-        elif win == "2":
-            s1["Losses"] += 1
-            s2["Wins"] += 1
-            if is_finish(method):
-                s2["WinsByFinish"] += 1
-        elif win == "D":
-            s1["Draws"] += 1
-            s2["Draws"] += 1
-        elif win == "NC":
-            s1["NoContests"] += 1
-            s2["NoContests"] += 1
+            # Update outcome stats
+            win = str(row["Winner"])
+            method = str(row["Method"])
+            s1 = fighter_stats[row["Fighter1_ID"]]
+            s2 = fighter_stats[row["Fighter2_ID"]]
+            if win == "1":
+                s1["Wins"] += 1
+                s2["Losses"] += 1
+                if is_finish(method):
+                    s1["WinsByFinish"] += 1
+            elif win == "2":
+                s1["Losses"] += 1
+                s2["Wins"] += 1
+                if is_finish(method):
+                    s2["WinsByFinish"] += 1
+            elif win == "D":
+                s1["Draws"] += 1
+                s2["Draws"] += 1
+            elif win == "NC":
+                s1["NoContests"] += 1
+                s2["NoContests"] += 1
     return fight_data
 
 
-def preprocess_features(
-    upcoming_fights_data,
-    historical_fight_data_path="data/fight_events.csv",
-    s3_bucket=None,
-):
-    """
-    Preprocess features for inference by computing historical statistics.
-
-    This function replicates the same preprocessing pipeline used in training:
-    1. Loads historical fight data
-    2. Processes fighter statistics and fight metrics
-    3. Calculates historical performance metrics up to current date
-    4. Extracts features for upcoming fights
-    5. Applies the same feature engineering as training
-
-    Args:
-        upcoming_fights_data: DataFrame or dict with upcoming fight matchups
-        historical_fight_data_path: Path to historical fight data
-
-    Returns:
-        numpy.array: Processed feature matrix ready for model prediction
-    """
-
-    # Load historical fight data from S3
-    s3 = boto3.client("s3")
-
-    # Get bucket name from parameter or environment variable
-    if s3_bucket is None:
-        bucket = os.environ.get("S3_BUCKET")
-        if bucket is None:
-            raise ValueError(
-                "S3 bucket must be provided either as parameter or S3_BUCKET environment variable"
-            )
-    else:
-        bucket = s3_bucket
-
-    # Download and load historical fight data
-    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp_file:
-        try:
-            s3.download_file(bucket, historical_fight_data_path, tmp_file.name)
-            fight_data = pd.read_csv(
-                tmp_file.name, quotechar='"', parse_dates=["EventDate"]
-            )
-        finally:
-            os.unlink(tmp_file.name)
-
-    print(f"Loaded {len(fight_data)} historical fights for feature computation")
-
-    # Apply the same preprocessing as training pipeline
-    # Remove non-contests and draws
-    fight_data = fight_data.drop(columns=["EventName"], errors="ignore")
-    fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
-
-    # Process physical attributes
-    fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(parse_height)
-    fight_data["Fighter2_Height_cm"] = fight_data["Fighter2_Height"].apply(parse_height)
-    fight_data["Fighter1_Reach_cm"] = fight_data["Fighter1_Reach"].apply(parse_reach)
-    fight_data["Fighter2_Reach_cm"] = fight_data["Fighter2_Reach"].apply(parse_reach)
-
-    # Process fight metrics
-    fight_data["Fighter1_Control_Time_sec"] = fight_data["Fighter1_Control_Time"].apply(
-        parse_control_time
-    )
-    fight_data["Fighter2_Control_Time_sec"] = fight_data["Fighter2_Control_Time"].apply(
-        parse_control_time
-    )
-
-    # Calculate fighter ages
-    fight_data["Fighter1_Age"] = (
-        fight_data["EventDate"]
-        - pd.to_datetime(fight_data["Fighter1_DOB"], errors="coerce")
-    ).dt.days / 365.25
-    fight_data["Fighter1_Age"] = fight_data["Fighter1_Age"].fillna(30)
-    fight_data["Fighter2_Age"] = (
-        fight_data["EventDate"]
-        - pd.to_datetime(fight_data["Fighter2_DOB"], errors="coerce")
-    ).dt.days / 365.25
-    fight_data["Fighter2_Age"] = fight_data["Fighter2_Age"].fillna(30)
-
-    # Process strike statistics
-    strike_columns = [
-        "Fighter1_Significant_Strikes",
-        "Fighter1_Head_Strikes",
-        "Fighter1_Body_Strikes",
-        "Fighter1_Leg_Strikes",
-        "Fighter1_Distance_Strikes",
-        "Fighter1_Clinch_Strikes",
-        "Fighter1_Ground_Strikes",
-        "Fighter1_Takedowns",
-        "Fighter2_Significant_Strikes",
-        "Fighter2_Head_Strikes",
-        "Fighter2_Body_Strikes",
-        "Fighter2_Leg_Strikes",
-        "Fighter2_Distance_Strikes",
-        "Fighter2_Clinch_Strikes",
-        "Fighter2_Ground_Strikes",
-        "Fighter2_Takedowns",
-    ]
-
-    for col in strike_columns:
-        process_landed_attempted(fight_data, col)
-
-    # Calculate fight duration
-    fight_data["Fight_Time_sec"] = fight_data.apply(
-        lambda row: calculate_fight_time(row["Round"], row["Time"]), axis=1
-    )
-
-    # Compute historical performance stats (this is the key step!)
-    fight_data = compute_historical_stats(fight_data)
-
-    # Clean the data
-    fight_data = fight_data.dropna()
-
-    # Now extract features for upcoming fights
-    # Handle different input formats for upcoming fights data
+def get_upcoming_fights_list(upcoming_fights_data):
+    """Normalize supported upcoming-fight payloads to a list of fight dictionaries."""
     if isinstance(upcoming_fights_data, dict):
-        # If it's a JSON with event structure like {"EventName": "...", "Fights": [...]}
         if "Fights" in upcoming_fights_data:
-            fights_list = upcoming_fights_data["Fights"]
-        else:
-            # Single fight as dict
-            fights_list = [upcoming_fights_data]
-    elif isinstance(upcoming_fights_data, list):
-        # List of fights
-        fights_list = upcoming_fights_data
-    else:
-        # DataFrame
-        fights_list = upcoming_fights_data.to_dict("records")
+            return upcoming_fights_data["Fights"]
+        return [upcoming_fights_data]
+    if isinstance(upcoming_fights_data, list):
+        return upcoming_fights_data
+    return upcoming_fights_data.to_dict("records")
+
+
+def build_inference_feature_frame(upcoming_fights_data, fight_data):
+    """Build unscaled inference features matching the training feature schema."""
+    fights_list = get_upcoming_fights_list(upcoming_fights_data)
 
     # For each upcoming fight, get the latest historical stats for each fighter
     processed_features = []
@@ -764,24 +631,22 @@ def preprocess_features(
 
         print(f"Processing fight: {fighter1_name} vs {fighter2_name}")
 
-        # Try URL-based matching first (more reliable), fallback to name matching
-        fighter1_stats = {}
-        fighter2_stats = {}
-
-        # Get fighter stats using URL only (no name fallback)
-        fighter1_stats = {}
-        fighter2_stats = {}
-
         if fighter1_url:
-            fighter1_stats = get_latest_fighter_stats_by_url(fight_data, fighter1_url)
+            fighter1_stats = get_latest_fighter_stats_by_url(
+                fight_data, fighter1_url, "Fighter1"
+            )
             print(f"Found {len(fighter1_stats)} stats for {fighter1_name} via URL")
         else:
+            fighter1_stats = {}
             print(f"No URL provided for Fighter1: {fighter1_name} - skipping stats")
 
         if fighter2_url:
-            fighter2_stats = get_latest_fighter_stats_by_url(fight_data, fighter2_url)
+            fighter2_stats = get_latest_fighter_stats_by_url(
+                fight_data, fighter2_url, "Fighter2"
+            )
             print(f"Found {len(fighter2_stats)} stats for {fighter2_name} via URL")
         else:
+            fighter2_stats = {}
             print(f"No URL provided for Fighter2: {fighter2_name} - skipping stats")
 
         # Extract stance information (defaulting to Orthodox if not available)
@@ -808,42 +673,80 @@ def preprocess_features(
 
         processed_features.append(fight_features)
 
-    # Convert to DataFrame and compute differential features
     features_df = pd.DataFrame(processed_features)
     features_df = compute_differential_features(features_df)
+    numerical_columns, categorical_columns = get_feature_columns()
+    return features_df[numerical_columns + categorical_columns]
 
-    # Use differential features matching training format
-    numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
 
-    categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+def preprocess_features(
+    upcoming_fights_data,
+    historical_fight_data_path="data/fight_events.csv",
+    s3_bucket=None,
+    preprocessor=None,
+):
+    """
+    Preprocess features for inference by computing historical statistics.
 
-    # All possible stance categories to ensure consistent one-hot encoding
-    stance_categories = ["Orthodox", "Southpaw", "Switch", "Open Stance"]
+    This function replicates the same preprocessing pipeline used in training:
+    1. Loads historical fight data
+    2. Processes fighter statistics and fight metrics
+    3. Calculates historical performance metrics up to current date
+    4. Extracts features for upcoming fights
+    5. Applies the same feature engineering as training
 
-    # Create preprocessing pipelines exactly as in training
-    numerical_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
-    categorical_pipeline = Pipeline(
-        steps=[
-            (
-                "onehot",
-                OneHotEncoder(
-                    categories=[stance_categories, stance_categories],
-                    handle_unknown="ignore",
-                    sparse_output=False,
-                ),
+    Args:
+        upcoming_fights_data: DataFrame or dict with upcoming fight matchups
+        historical_fight_data_path: Path to historical fight data
+
+    Returns:
+        numpy.array: Processed feature matrix ready for model prediction
+    """
+    if preprocessor is None:
+        raise ValueError("A fitted training preprocessor is required for inference")
+
+    # Load historical fight data from S3
+    s3 = boto3.client("s3")
+
+    # Get bucket name from parameter or environment variable
+    if s3_bucket is None:
+        bucket = os.environ.get("S3_BUCKET")
+        if bucket is None:
+            raise ValueError(
+                "S3 bucket must be provided either as parameter or S3_BUCKET environment variable"
             )
-        ]
-    )
+    else:
+        bucket = s3_bucket
 
-    # Combine preprocessing steps
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numerical_pipeline, numerical_columns),
-            ("cat", categorical_pipeline, categorical_columns),
-        ]
-    )
+    # Download and load historical fight data
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp_file:
+        try:
+            s3.download_file(bucket, historical_fight_data_path, tmp_file.name)
+            fight_data = pd.read_csv(
+                tmp_file.name, quotechar='"', parse_dates=["EventDate"]
+            )
+        finally:
+            os.unlink(tmp_file.name)
 
-    # Apply the same preprocessing as training
-    features_processed = preprocessor.fit_transform(features_df)
+    print(f"Loaded {len(fight_data)} historical fights for feature computation")
+
+    event_date = None
+    if isinstance(upcoming_fights_data, dict):
+        event_date = pd.to_datetime(
+            upcoming_fights_data.get("EventDate"), errors="coerce"
+        )
+    if event_date is not None and not pd.isna(event_date):
+        fight_data = fight_data[fight_data["EventDate"] < event_date]
+        print(
+            f"Filtered historical fights to {len(fight_data)} rows before {event_date.date()}"
+        )
+
+    fight_data = prepare_fight_data(fight_data)
+
+    # Clean the data
+    fight_data = fight_data.dropna()
+
+    features_df = build_inference_feature_frame(upcoming_fights_data, fight_data)
+    features_processed = preprocessor.transform(features_df)
 
     return features_processed

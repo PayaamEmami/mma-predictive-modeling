@@ -1,7 +1,10 @@
 import unittest
 import pandas as pd
 import numpy as np
+import pickle
+from sklearn.preprocessing import LabelEncoder
 from code.data import (
+    DIFF_FEATURE_SUFFIXES,
     parse_height,
     parse_reach,
     parse_strike,
@@ -11,6 +14,10 @@ from code.data import (
     process_landed_attempted,
     is_finish,
     compute_historical_stats,
+    augment_mirrored_matchups,
+    build_inference_feature_frame,
+    build_preprocessor,
+    get_feature_columns,
 )
 
 
@@ -237,6 +244,116 @@ class TestPreprocessing(unittest.TestCase):
             result.loc[idx, "Fighter2_StrikeAccuracy"], 4 / 5, places=2
         )
         self.assertEqual(result.loc[idx, "Fighter2_TakedownAccuracy"], 0)
+
+    def test_same_date_fights_do_not_inform_each_other(self):
+        df = pd.DataFrame(
+            {
+                "EventDate": ["2020-01-01", "2020-01-01"],
+                "Fight_Time_sec": [100, 200],
+                "Fighter1_ID": ["A", "A"],
+                "Fighter2_ID": ["B", "C"],
+                "Fighter1_Control_Time_sec": [30, 50],
+                "Fighter2_Control_Time_sec": [20, 40],
+                "Fighter1_Submission_Attempts": [1, 2],
+                "Fighter2_Submission_Attempts": [0, 1],
+                "Fighter1_Leg_Strikes_Landed": [5, 10],
+                "Fighter2_Leg_Strikes_Landed": [2, 4],
+                "Fighter1_Clinch_Strikes_Landed": [3, 6],
+                "Fighter2_Clinch_Strikes_Landed": [1, 2],
+                "Fighter1_Ground_Strikes_Landed": [2, 4],
+                "Fighter2_Ground_Strikes_Landed": [0, 1],
+                "Fighter1_Head_Strikes_Landed": [6, 12],
+                "Fighter2_Head_Strikes_Landed": [3, 6],
+                "Fighter1_Significant_Strikes_Landed": [8, 16],
+                "Fighter1_Significant_Strikes_Attempted": [10, 20],
+                "Fighter2_Significant_Strikes_Landed": [4, 8],
+                "Fighter2_Significant_Strikes_Attempted": [5, 10],
+                "Fighter1_Takedowns_Landed": [0, 1],
+                "Fighter1_Takedowns_Attempted": [0, 2],
+                "Fighter2_Takedowns_Landed": [0, 0],
+                "Fighter2_Takedowns_Attempted": [0, 0],
+                "Fighter1_Reversals": [0, 1],
+                "Fighter2_Reversals": [0, 0],
+                "Winner": ["1", "2"],
+                "Method": ["KO/TKO", "Decision - Unanimous"],
+            }
+        )
+        df["EventDate"] = pd.to_datetime(df["EventDate"])
+        result = compute_historical_stats(df.copy())
+        self.assertEqual(result.loc[0, "Fighter1_TotalFights"], 0)
+        self.assertEqual(result.loc[1, "Fighter1_TotalFights"], 0)
+        self.assertEqual(result.loc[1, "Fighter1_Wins"], 0)
+
+    def test_augment_mirrored_matchups_flips_features_and_labels(self):
+        numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
+        X_df = pd.DataFrame(
+            {
+                **{col: [float(i + 1)] for i, col in enumerate(numerical_columns)},
+                "Fighter1_Stance": ["Orthodox"],
+                "Fighter2_Stance": ["Southpaw"],
+            }
+        )
+        label_encoder = LabelEncoder().fit(["1", "2"])
+        y = label_encoder.transform(["1"])
+
+        X_aug, y_aug, group_ids = augment_mirrored_matchups(
+            X_df, y, label_encoder=label_encoder, group_ids=[42]
+        )
+
+        self.assertEqual(len(X_aug), 2)
+        for col in numerical_columns:
+            self.assertEqual(X_aug.loc[1, col], -X_aug.loc[0, col])
+        self.assertEqual(X_aug.loc[1, "Fighter1_Stance"], "Southpaw")
+        self.assertEqual(X_aug.loc[1, "Fighter2_Stance"], "Orthodox")
+        self.assertEqual(label_encoder.inverse_transform(y_aug).tolist(), ["1", "2"])
+        self.assertEqual(group_ids.tolist(), [42, 42])
+
+    def test_inference_feature_lookup_retargets_historical_slot(self):
+        fight_data = pd.DataFrame(
+            {
+                "EventDate": pd.to_datetime(["2020-01-01"]),
+                "Fighter1_ID": ["B"],
+                "Fighter2_ID": ["A"],
+                "Fighter2_Height_cm": [190.0],
+                "Fighter2_Reach_cm": [195.0],
+                "Fighter2_Age": [28.0],
+                "Fighter2_Stance": ["Switch"],
+            }
+        )
+        for suffix in DIFF_FEATURE_SUFFIXES:
+            if f"Fighter2_{suffix}" not in fight_data:
+                fight_data[f"Fighter2_{suffix}"] = 1.0
+
+        features_df = build_inference_feature_frame(
+            {
+                "Fights": [
+                    {
+                        "Fighter1Name": "A",
+                        "Fighter1Url": "A",
+                        "Fighter2Name": "Unknown",
+                        "Fighter2Url": "",
+                    }
+                ]
+            },
+            fight_data,
+        )
+
+        self.assertEqual(features_df.loc[0, "Fighter1_Stance"], "Switch")
+        self.assertEqual(features_df.loc[0, "Height_cm_Diff"], 190.0 - 177)
+
+    def test_training_preprocessor_round_trip_uses_augmented_training_schema(self):
+        numerical_columns, categorical_columns = get_feature_columns()
+        X_df = pd.DataFrame(
+            {
+                **{col: [1.0, -1.0] for col in numerical_columns},
+                "Fighter1_Stance": ["Orthodox", "Southpaw"],
+                "Fighter2_Stance": ["Southpaw", "Orthodox"],
+            }
+        )
+        preprocessor = build_preprocessor(X_df, numerical_columns, categorical_columns)
+        loaded = pickle.loads(pickle.dumps(preprocessor))
+        transformed = loaded.transform(X_df)
+        self.assertEqual(transformed.shape[0], 2)
 
 
 if __name__ == "__main__":

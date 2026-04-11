@@ -3,12 +3,13 @@ import numpy as np
 from data import (
     load_fight_data,
     build_preprocessor,
+    augment_mirrored_matchups,
     upload_results_to_s3,
-    DIFF_FEATURE_SUFFIXES,
+    get_feature_columns,
 )
 from models import initialize_models
 from evaluation import evaluate_validation, evaluate_test
-from training import train_model, save_models, save_label_encoder
+from training import train_model, save_models, save_label_encoder, save_preprocessor
 from config import DEVICE, set_global_seed
 
 
@@ -59,9 +60,23 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
         f"Test period:       {event_dates.iloc[test_idx[0]]} to {event_dates.iloc[test_idx[-1]]}"
     )
 
+    # Mirror each matchup within its split only, preventing original/mirror pairs
+    # from crossing train/validation/test boundaries.
+    X_train_df, y_train, train_groups = augment_mirrored_matchups(
+        X_train_df, y_train, label_encoder, group_ids=train_idx
+    )
+    X_val_df, y_val, _ = augment_mirrored_matchups(
+        X_val_df, y_val, label_encoder, group_ids=val_idx
+    )
+    X_test_df, y_test, _ = augment_mirrored_matchups(
+        X_test_df, y_test, label_encoder, group_ids=test_idx
+    )
+    print(
+        f"Mirrored augmentation: {len(X_train_df)} training, {len(X_val_df)} validation, {len(X_test_df)} test"
+    )
+
     # Fit preprocessor on training data only to prevent leakage
-    numerical_columns = [f"{s}_Diff" for s in DIFF_FEATURE_SUFFIXES]
-    categorical_columns = ["Fighter1_Stance", "Fighter2_Stance"]
+    numerical_columns, categorical_columns = get_feature_columns()
     preprocessor = build_preprocessor(X_train_df, numerical_columns, categorical_columns)
     X_train = preprocessor.transform(X_train_df)
     X_val = preprocessor.transform(X_val_df)
@@ -74,7 +89,9 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
     # Train models
     trained_models = {}
     for name, model in models.items():
-        trained_model = train_model(name, model, X_train, y_train, DEVICE)
+        trained_model = train_model(
+            name, model, X_train, y_train, DEVICE, group_ids=train_groups
+        )
         trained_models[name] = trained_model
 
     # Evaluate on validation set (used for experiments and model comparison)
@@ -88,6 +105,7 @@ def main(s3_bucket, s3_data_key, s3_results_prefix):
     # Save trained models and label encoder to S3
     save_models(trained_models, input_size, s3_bucket)
     save_label_encoder(label_encoder, s3_bucket)
+    save_preprocessor(preprocessor, s3_bucket)
 
     # Upload results to S3
     upload_results_to_s3("results", s3_bucket, s3_results_prefix)

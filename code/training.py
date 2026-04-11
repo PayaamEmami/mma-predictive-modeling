@@ -9,7 +9,7 @@ import os
 from config import HYPERPARAMETERS, RESULTS_PATH, SEED, is_experimental
 
 
-def train_model(name, model, X_train, y_train, device, verbose=True):
+def train_model(name, model, X_train, y_train, device, verbose=True, group_ids=None):
     """
     Train a model.
 
@@ -20,6 +20,7 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
         y_train: Training labels
         device: PyTorch device to use
         verbose: Whether to print training progress
+        group_ids: Optional fight-level group ids to keep mirrored rows together
 
     Returns:
         The trained model
@@ -80,11 +81,32 @@ def train_model(name, model, X_train, y_train, device, verbose=True):
 
         # Hold out last 15% of training data for early stopping monitoring
         patience = params.get("early_stopping_patience", 20)
-        val_split = int(len(X_train) * 0.85)
-        X_fit = X_train[:val_split]
-        y_fit = y_train[:val_split]
-        X_es_val = X_train[val_split:]
-        y_es_val = y_train[val_split:]
+        if group_ids is not None:
+            group_ids = np.asarray(group_ids)
+            unique_groups = list(dict.fromkeys(group_ids.tolist()))
+            if len(unique_groups) >= 2:
+                group_split = min(
+                    len(unique_groups) - 1, max(1, int(len(unique_groups) * 0.85))
+                )
+                fit_groups = set(unique_groups[:group_split])
+                fit_mask = np.array([group in fit_groups for group in group_ids])
+                val_mask = ~fit_mask
+                X_fit = X_train[fit_mask]
+                y_fit = y_train[fit_mask]
+                X_es_val = X_train[val_mask]
+                y_es_val = y_train[val_mask]
+            else:
+                val_split = int(len(X_train) * 0.85)
+                X_fit = X_train[:val_split]
+                y_fit = y_train[:val_split]
+                X_es_val = X_train[val_split:]
+                y_es_val = y_train[val_split:]
+        else:
+            val_split = int(len(X_train) * 0.85)
+            X_fit = X_train[:val_split]
+            y_fit = y_train[:val_split]
+            X_es_val = X_train[val_split:]
+            y_es_val = y_train[val_split:]
 
         X_fit_tensor = torch.tensor(X_fit.astype(np.float32)).to(device)
         y_fit_tensor = torch.tensor(y_fit.astype(np.longlong)).to(device)
@@ -250,3 +272,33 @@ def save_label_encoder(label_encoder, s3_bucket, models_prefix="models/"):
 
     except Exception as e:
         print(f"Failed to save label encoder: {e}")
+
+
+def save_preprocessor(preprocessor, s3_bucket, models_prefix="models/"):
+    """
+    Save fitted preprocessing pipeline to S3.
+    Skips upload for experimental runs to avoid overwriting production artifacts.
+
+    Args:
+        preprocessor: Fitted sklearn preprocessing pipeline
+        s3_bucket: S3 bucket name
+        models_prefix: S3 prefix for model files
+    """
+    if is_experimental():
+        print("Experimental run detected - skipping preprocessor upload to S3")
+        return
+
+    try:
+        s3_client = boto3.client("s3")
+        preprocessor_filename = "preprocessor.pkl"
+        with open(preprocessor_filename, "wb") as f:
+            pickle.dump(preprocessor, f)
+
+        s3_key = f"{models_prefix}{preprocessor_filename}"
+        s3_client.upload_file(preprocessor_filename, s3_bucket, s3_key)
+        os.remove(preprocessor_filename)
+
+        print(f"Saved preprocessor to s3://{s3_bucket}/{s3_key}")
+
+    except Exception as e:
+        print(f"Failed to save preprocessor: {e}")

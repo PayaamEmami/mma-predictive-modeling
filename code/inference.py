@@ -21,6 +21,7 @@ class ModelInference:
         self.s3_client = boto3.client("s3")
         self.models = {}
         self.label_encoder = None
+        self.preprocessor = None
 
     def load_models(self) -> bool:
         """Load all trained models from S3."""
@@ -87,10 +88,25 @@ class ModelInference:
                 self.label_encoder = pickle.loads(obj["Body"].read())
                 print("Loaded label encoder")
             except Exception as e:
-                print(f"Failed to load label encoder: {e}")
+                raise RuntimeError(f"Failed to load required label encoder: {e}")
+
+            # Load fitted training preprocessor
+            try:
+                preprocessor_key = f"{self.models_prefix}preprocessor.pkl"
+                obj = self.s3_client.get_object(
+                    Bucket=self.s3_bucket, Key=preprocessor_key
+                )
+                self.preprocessor = pickle.loads(obj["Body"].read())
+                print("Loaded preprocessor")
+            except Exception as e:
+                raise RuntimeError(f"Failed to load required preprocessor: {e}")
 
             print(f"Successfully loaded {len(self.models)} models")
-            return len(self.models) > 0
+            return (
+                len(self.models) > 0
+                and self.label_encoder is not None
+                and self.preprocessor is not None
+            )
 
         except Exception as e:
             print(f"Error loading models: {e}")
@@ -121,10 +137,15 @@ class ModelInference:
                             0.6  # Default confidence for models without predict_proba
                         )
 
+                winner_label = self.label_encoder.inverse_transform(
+                    [int(prediction)]
+                )[0]
+
                 predictions[model_name] = {
                     "prediction": int(prediction),
+                    "winner_label": str(winner_label),
                     "confidence": confidence,
-                    "winner": "Fighter 1" if prediction == 1 else "Fighter 2",
+                    "winner": "Fighter 1" if str(winner_label) == "1" else "Fighter 2",
                 }
 
             except Exception as e:
@@ -178,7 +199,10 @@ def main(
     try:
         print("Preprocessing features using training pipeline...")
         processed_features = preprocess_features(
-            upcoming_fights_data, historical_data_key, s3_bucket
+            upcoming_fights_data,
+            historical_data_key,
+            s3_bucket,
+            preprocessor=inference.preprocessor,
         )
         print(f"Generated features with shape: {processed_features.shape}")
     except Exception as e:
@@ -218,12 +242,12 @@ def main(
             fighter1_votes = sum(
                 1
                 for pred in fight_predictions.values()
-                if isinstance(pred, dict) and pred.get("prediction") == 1
+                if isinstance(pred, dict) and pred.get("winner_label") == "1"
             )
             fighter2_votes = sum(
                 1
                 for pred in fight_predictions.values()
-                if isinstance(pred, dict) and pred.get("prediction") == 0
+                if isinstance(pred, dict) and pred.get("winner_label") == "2"
             )
             total_models = len(
                 [pred for pred in fight_predictions.values() if isinstance(pred, dict)]

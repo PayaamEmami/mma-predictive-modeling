@@ -175,12 +175,13 @@ python -m scraper.main
 python -m scraper.main --upcoming
 ```
 
-### Fighter Swapping Logic
+### Fighter Orientation and Balancing
 
-The scraper implements a winner-tracking algorithm to balance the dataset:
-- Tracks the winner indicator ('1' or '2') across fights in an event
-- When consecutive fights have the same winner indicator, swaps Fighter1/Fighter2 data
-- This helps prevent position bias in machine learning models
+The scraper preserves raw Fighter1/Fighter2 ordering from the source website.
+Training handles position bias with split-safe mirrored matchup augmentation:
+- Chronological train/validation/test splits are created from raw rows first
+- Each split is then augmented with a Fighter1/Fighter2 mirror row
+- Mirrored rows flip the winner label and stay in the same split as the original fight
 
 ## Data Schema
 

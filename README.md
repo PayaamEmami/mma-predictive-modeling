@@ -57,6 +57,7 @@ The system implements the following models for predictive analysis:
 The data pipeline transforms raw fight statistics into predictive features:
 
 - **Differential features:** Instead of raw Fighter1/Fighter2 stats, the pipeline computes Fighter1 - Fighter2 differences for all numerical features, directly encoding the matchup comparison signal
+- **Mirrored matchup augmentation:** Raw scraper fighter ordering is preserved, then each chronological split is augmented with swapped Fighter1/Fighter2 examples and flipped labels to reduce position bias without leaking fights across splits
 - **Physical attributes:** Height, reach, and age differentials between fighters, plus individual fighting stances
 - **Historical performance:** Chronologically computed statistics including win/loss records, finish rates, average fight time, and time since last fight
 - **Fighting metrics:** Strike accuracy, average strikes landed/attempted, takedown rates, control time, submission attempts, and reversals
