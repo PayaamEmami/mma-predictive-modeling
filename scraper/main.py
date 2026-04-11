@@ -85,6 +85,9 @@ def scrape_historical_data() -> None:
 
         events_to_process.append((event_url, event_name, event_date))
 
+    # Process fresh historical scrapes chronologically for easier inspection.
+    events_to_process.sort(key=lambda event: event[2])
+
     print(f"Will process {len(events_to_process)} new events")
 
     if not events_to_process:
@@ -170,6 +173,10 @@ def process_single_event(
                 event_location=event_location
             )
 
+            if not is_valid_historical_fight(fight):
+                print(f"    - Skipping incomplete fight: {fight_url}")
+                continue
+
             # Append to CSV
             csv_operations.append_fight_to_csv(fight, csv_path, config.CSV_HEADERS)
             print(f"    ✓ {fight['Fighter1_Name']} vs {fight['Fighter2_Name']}")
@@ -180,6 +187,23 @@ def process_single_event(
             continue
 
     print(f"  Processed: {fights_processed}/{len(fight_urls)} fights")
+
+
+def is_valid_historical_fight(fight: dict) -> bool:
+    """Return whether a scraped fight has enough identity/outcome data to keep."""
+    required_fields = [
+        'Fighter1_ID',
+        'Fighter1_Name',
+        'Fighter2_ID',
+        'Fighter2_Name',
+    ]
+    if any(not str(fight.get(field, '')).strip() for field in required_fields):
+        return False
+
+    if fight.get('Fighter1_ID') == fight.get('Fighter2_ID'):
+        return False
+
+    return str(fight.get('Winner', '')).strip() in {'1', '2', 'D', 'NC'}
 
 
 def process_single_fight(

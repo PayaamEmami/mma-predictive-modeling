@@ -136,6 +136,18 @@ def prepare_fight_data(fight_data):
     fight_data = fight_data.copy()
     fight_data = fight_data.drop(columns=["EventName"], errors="ignore")
     fight_data["Winner"] = fight_data["Winner"].astype(str)
+    identity_columns = [
+        "Fighter1_ID",
+        "Fighter1_Name",
+        "Fighter2_ID",
+        "Fighter2_Name",
+    ]
+    for column in identity_columns:
+        fight_data[column] = fight_data[column].astype(str).str.strip()
+    fight_data = fight_data[
+        fight_data[identity_columns].ne("").all(axis=1)
+        & (fight_data["Fighter1_ID"] != fight_data["Fighter2_ID"])
+    ]
     fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
 
     # Process physical attributes
