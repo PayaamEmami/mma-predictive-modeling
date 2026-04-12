@@ -18,6 +18,11 @@ from . import csv_operations
 from . import s3_operations
 
 
+def has_s3_csv_config() -> bool:
+    """Return whether historical scraper S3 sync is configured."""
+    return bool(config.S3_BUCKET and config.S3_CSV_KEY)
+
+
 def scrape_historical_data() -> None:
     """
     Main function to scrape all historical MMA events.
@@ -38,16 +43,19 @@ def scrape_historical_data() -> None:
     csv_operations.ensure_csv_exists(config.CSV_FILE_PATH, config.CSV_HEADERS)
 
     # Step 2: Download existing CSV from S3
-    print("\nDownloading existing data from S3...")
-    try:
-        s3_operations.download_from_s3(
-            bucket=config.S3_BUCKET,
-            s3_key=config.S3_CSV_KEY,
-            local_path=config.CSV_FILE_PATH,
-            region=config.S3_REGION
-        )
-    except Exception as e:
-        print(f"Note: Could not download from S3 (will start fresh): {e}")
+    if has_s3_csv_config():
+        print("\nDownloading existing data from S3...")
+        try:
+            s3_operations.download_from_s3(
+                bucket=config.S3_BUCKET,
+                s3_key=config.S3_CSV_KEY,
+                local_path=config.CSV_FILE_PATH,
+                region=config.S3_REGION
+            )
+        except Exception as e:
+            print(f"Note: Could not download from S3 (using local CSV): {e}")
+    else:
+        print("\nS3 CSV sync disabled; using local CSV only.")
 
     # Step 3: Load already processed events
     print("\nLoading processed events...")
@@ -109,16 +117,19 @@ def scrape_historical_data() -> None:
 
     # Step 7: Upload updated CSV to S3
     print("\n" + "=" * 80)
-    print("Uploading updated data to S3...")
-    try:
-        s3_operations.upload_to_s3(
-            local_path=config.CSV_FILE_PATH,
-            bucket=config.S3_BUCKET,
-            s3_key=config.S3_CSV_KEY,
-            region=config.S3_REGION
-        )
-    except Exception as e:
-        print(f"Error uploading to S3: {e}")
+    if has_s3_csv_config():
+        print("Uploading updated data to S3...")
+        try:
+            s3_operations.upload_to_s3(
+                local_path=config.CSV_FILE_PATH,
+                bucket=config.S3_BUCKET,
+                s3_key=config.S3_CSV_KEY,
+                region=config.S3_REGION
+            )
+        except Exception as e:
+            print(f"Error uploading to S3: {e}")
+    else:
+        print("S3 CSV sync disabled; skipping upload.")
 
     # Summary
     print("\n" + "=" * 80)

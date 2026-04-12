@@ -14,6 +14,7 @@ from code.data import (
     process_landed_attempted,
     is_finish,
     compute_historical_stats,
+    prepare_fight_data,
     augment_mirrored_matchups,
     build_inference_feature_frame,
     build_preprocessor,
@@ -283,6 +284,62 @@ class TestPreprocessing(unittest.TestCase):
         self.assertEqual(result.loc[0, "Fighter1_TotalFights"], 0)
         self.assertEqual(result.loc[1, "Fighter1_TotalFights"], 0)
         self.assertEqual(result.loc[1, "Fighter1_Wins"], 0)
+
+    def test_prepare_fight_data_keeps_rows_with_missing_optional_profile_data(self):
+        df = pd.DataFrame(
+            {
+                "EventName": ["Old Event"],
+                "EventDate": pd.to_datetime(["1995-12-16"]),
+                "Fighter1_ID": ["A"],
+                "Fighter1_Name": ["Fighter A"],
+                "Fighter1_DOB": [""],
+                "Fighter1_Height": [""],
+                "Fighter1_Reach": ["--"],
+                "Fighter1_Stance": [""],
+                "Fighter2_ID": ["B"],
+                "Fighter2_Name": ["Fighter B"],
+                "Fighter2_DOB": [np.nan],
+                "Fighter2_Height": ["--"],
+                "Fighter2_Reach": [np.nan],
+                "Fighter2_Stance": ["--"],
+                "Fighter1_Control_Time": ["--"],
+                "Fighter2_Control_Time": ["--"],
+                "Fighter1_Significant_Strikes": ["1 of 1"],
+                "Fighter1_Head_Strikes": ["1 of 1"],
+                "Fighter1_Body_Strikes": ["0 of 0"],
+                "Fighter1_Leg_Strikes": ["0 of 0"],
+                "Fighter1_Distance_Strikes": ["1 of 1"],
+                "Fighter1_Clinch_Strikes": ["0 of 0"],
+                "Fighter1_Ground_Strikes": ["0 of 0"],
+                "Fighter1_Takedowns": ["0 of 0"],
+                "Fighter1_Submission_Attempts": ["1"],
+                "Fighter1_Reversals": ["0"],
+                "Fighter2_Significant_Strikes": ["0 of 1"],
+                "Fighter2_Head_Strikes": ["0 of 1"],
+                "Fighter2_Body_Strikes": ["0 of 0"],
+                "Fighter2_Leg_Strikes": ["0 of 0"],
+                "Fighter2_Distance_Strikes": ["0 of 1"],
+                "Fighter2_Clinch_Strikes": ["0 of 0"],
+                "Fighter2_Ground_Strikes": ["0 of 0"],
+                "Fighter2_Takedowns": ["0 of 0"],
+                "Fighter2_Submission_Attempts": ["0"],
+                "Fighter2_Reversals": ["0"],
+                "Round": ["1"],
+                "Time": ["1:14"],
+                "Winner": ["1"],
+                "Method": ["Submission"],
+            }
+        )
+
+        result = prepare_fight_data(df)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result.loc[0, "Fighter1_Reach_cm"], 183)
+        self.assertEqual(result.loc[0, "Fighter2_Reach_cm"], 183)
+        self.assertEqual(result.loc[0, "Fighter1_Age"], 30)
+        self.assertEqual(result.loc[0, "Fighter2_Age"], 30)
+        self.assertEqual(result.loc[0, "Fighter1_Stance"], "Unknown")
+        self.assertEqual(result.loc[0, "Fighter2_Stance"], "Unknown")
 
     def test_augment_mirrored_matchups_flips_features_and_labels(self):
         numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]

@@ -135,7 +135,7 @@ def prepare_fight_data(fight_data):
     """Parse raw fight rows and compute pre-fight historical feature columns."""
     fight_data = fight_data.copy()
     fight_data = fight_data.drop(columns=["EventName"], errors="ignore")
-    fight_data["Winner"] = fight_data["Winner"].astype(str)
+    fight_data["Winner"] = fight_data["Winner"].fillna("").astype(str).str.strip()
     identity_columns = [
         "Fighter1_ID",
         "Fighter1_Name",
@@ -143,12 +143,29 @@ def prepare_fight_data(fight_data):
         "Fighter2_Name",
     ]
     for column in identity_columns:
-        fight_data[column] = fight_data[column].astype(str).str.strip()
+        fight_data[column] = fight_data[column].fillna("").astype(str).str.strip()
     fight_data = fight_data[
-        fight_data[identity_columns].ne("").all(axis=1)
+        ~fight_data[identity_columns].isin(["", "--", "nan"]).any(axis=1)
         & (fight_data["Fighter1_ID"] != fight_data["Fighter2_ID"])
     ]
-    fight_data = fight_data[~fight_data["Winner"].isin(["NC", "D"])]
+    fight_data = fight_data[fight_data["Winner"].isin(["1", "2"])]
+
+    optional_profile_defaults = {
+        "DOB": "",
+        "Height": "",
+        "Reach": "",
+        "Stance": "Unknown",
+    }
+    for fighter_num in ["Fighter1", "Fighter2"]:
+        for suffix, default in optional_profile_defaults.items():
+            column = f"{fighter_num}_{suffix}"
+            fight_data[column] = (
+                fight_data[column]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .replace({"": default, "--": default, "nan": default})
+            )
 
     # Process physical attributes
     fight_data["Fighter1_Height_cm"] = fight_data["Fighter1_Height"].apply(
@@ -242,8 +259,14 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
         # Compute differential features (Fighter1 - Fighter2)
         fight_data = compute_differential_features(fight_data)
 
-        # Final data cleaning
-        fight_data = fight_data.dropna()
+        # Use differential features instead of absolute Fighter1/Fighter2 columns
+        numerical_columns, categorical_columns = get_feature_columns()
+        relevant_columns = numerical_columns + categorical_columns
+
+        # Final data cleaning only requires fields that are actually modeled.
+        fight_data = fight_data.dropna(
+            subset=relevant_columns + ["Winner", "EventDate"]
+        )
         print(f"Records after dropping data: {len(fight_data)}")
 
         # Analyze class distribution
@@ -257,10 +280,6 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
 
         print(f"Fighter 1 wins: {fighter1_win_percentage:.2f}%")
         print(f"Fighter 2 wins: {fighter2_win_percentage:.2f}%")
-
-        # Use differential features instead of absolute Fighter1/Fighter2 columns
-        numerical_columns, categorical_columns = get_feature_columns()
-        relevant_columns = numerical_columns + categorical_columns
 
         # Prepare features and target
         X_df = fight_data[relevant_columns].reset_index(drop=True)
@@ -661,9 +680,9 @@ def build_inference_feature_frame(upcoming_fights_data, fight_data):
             fighter2_stats = {}
             print(f"No URL provided for Fighter2: {fighter2_name} - skipping stats")
 
-        # Extract stance information (defaulting to Orthodox if not available)
-        fighter1_stance = fighter1_stats.get("Fighter1_Stance", "Orthodox")
-        fighter2_stance = fighter2_stats.get("Fighter2_Stance", "Orthodox")
+        # Extract stance information (defaulting to Unknown if not available)
+        fighter1_stance = fighter1_stats.get("Fighter1_Stance", "Unknown")
+        fighter2_stance = fighter2_stats.get("Fighter2_Stance", "Unknown")
 
         # Build feature dictionary with absolute values for both fighters
         fight_features = {}
@@ -754,9 +773,6 @@ def preprocess_features(
         )
 
     fight_data = prepare_fight_data(fight_data)
-
-    # Clean the data
-    fight_data = fight_data.dropna()
 
     features_df = build_inference_feature_frame(upcoming_fights_data, fight_data)
     features_processed = preprocessor.transform(features_df)
