@@ -44,6 +44,10 @@ This file is a quick orientation guide for AI coding agents working in this repo
 
 ## AWS Infrastructure Details
 
+### AWS CLI Access
+
+The AWS CLI is available in the local environment and can be used directly to interact with AWS resources. Credentials are configured via the default profile; no extra setup is needed.
+
 ### Lambda Functions
 
 **Training Trigger** (`lambda_training_job.py`):
