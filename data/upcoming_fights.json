@@ -1,0 +1,92 @@
+{
+  "EventName": "UFC Fight Night: Muhammad vs. Bonfim",
+  "EventLocation": "Las Vegas, Nevada, USA",
+  "Fights": [
+    {
+      "Fighter1Name": "Belal Muhammad",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/b1b0729d27936f2f",
+      "Fighter2Name": "Gabriel Bonfim",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/01641ba5df0c69b0",
+      "WeightClass": "WELTERWEIGHT"
+    },
+    {
+      "Fighter1Name": "Brendan Allen",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/2f181c0467965b98",
+      "Fighter2Name": "Edmen Shahbazyan",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/4144798612ef96e5",
+      "WeightClass": "MIDDLEWEIGHT"
+    },
+    {
+      "Fighter1Name": "Fares Ziam",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/1e4f273069fb9e85",
+      "Fighter2Name": "Tom Nolan",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/6c3b2525436cf5d4",
+      "WeightClass": "LIGHTWEIGHT"
+    },
+    {
+      "Fighter1Name": "Bryce Mitchell",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/d9c6f19f958643e9",
+      "Fighter2Name": "Santiago Luna",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/faf317c665546a36",
+      "WeightClass": "BANTAMWEIGHT"
+    },
+    {
+      "Fighter1Name": "Iwo Baraniewski",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/1c23ec2f1b71be40",
+      "Fighter2Name": "Junior Tafa",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/c15fa95b9a12fde4",
+      "WeightClass": "LIGHT HEAVYWEIGHT"
+    },
+    {
+      "Fighter1Name": "Matt Schnell",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/67c1d46f4ed16f9e",
+      "Fighter2Name": "Alessandro Costa",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/3fa97913cfd205d3",
+      "WeightClass": "CATCH WEIGHT"
+    },
+    {
+      "Fighter1Name": "Marcus McGhee",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/c0ac37a4a1133da9",
+      "Fighter2Name": "John Yannis",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/450bcab0968562c4",
+      "WeightClass": "BANTAMWEIGHT"
+    },
+    {
+      "Fighter1Name": "Bruno Silva",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/294aa73dbf37d281",
+      "Fighter2Name": "Edgar Chairez",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/5ef94841c4bc3f86",
+      "WeightClass": "FLYWEIGHT"
+    },
+    {
+      "Fighter1Name": "Priscila Cachoeira",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/b1e5bcaad32a3cac",
+      "Fighter2Name": "Chelsea Chandler",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/af9efbfd63d39734",
+      "WeightClass": "WOMEN'S BANTAMWEIGHT"
+    },
+    {
+      "Fighter1Name": "Jordan Leavitt",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/ac026518a9b4dc0f",
+      "Fighter2Name": "Joanderson Brito",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/791c8437b341fba5",
+      "WeightClass": "FEATHERWEIGHT"
+    },
+    {
+      "Fighter1Name": "Jeisla Chaves",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/8061a3136026a673",
+      "Fighter2Name": "Yuneisy Duben",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/c3d2b9bcb4cead6b",
+      "WeightClass": "WOMEN'S FLYWEIGHT"
+    },
+    {
+      "Fighter1Name": "Ketlen Souza",
+      "Fighter1Url": "http://ufcstats.com/fighter-details/8bd4200561c77a62",
+      "Fighter2Name": "Ariane Carnelossi",
+      "Fighter2Url": "http://ufcstats.com/fighter-details/c0d5c0c95c59050b",
+      "WeightClass": "WOMEN'S STRAWWEIGHT"
+    }
+  ],
+  "EventDate": "2026-06-06",
+  "ScrapedAt": "2026-05-31T15:24:21Z"
+}
