@@ -1,18 +1,10 @@
-# CONTEXT
+# AGENTS.md
 
-This file is a quick orientation guide for AI coding agents working in this repository. It covers architecture, implementation details, conventions, and important considerations for development.
+This file orients AI coding agents and human readers to this repository. It explains what the project is, how it is organized, and the guidance to follow when working here.
 
-## Project Overview
+## Overview
 
-**Purpose**: Machine learning system that predicts Mixed Martial Arts (MMA) fight outcomes using multiple algorithms and automated cloud infrastructure.
-
-**Technology Stack**:
-
-- **Languages**: Python 3.12
-- **ML Frameworks**: PyTorch, scikit-learn
-- **Data Processing**: pandas, numpy
-- **Visualization**: matplotlib
-- **Cloud**: AWS (SageMaker, Lambda, S3, EventBridge, ECS)
+This repository is a machine learning system for predicting MMA fight outcomes using multiple algorithms and automated AWS infrastructure. It combines a Python data scraper, training and inference pipelines, and SageMaker, Lambda, and S3-based cloud orchestration.
 
 ## Architecture
 
