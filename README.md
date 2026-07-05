@@ -44,7 +44,7 @@ Learning curves, past results, future predictions, and model comparisons can be 
 
 ## Project Overview
 
-### 🧠 **Machine Learning Models**
+### Machine Learning Models
 
 The system implements the following models for predictive analysis:
 
@@ -52,7 +52,7 @@ The system implements the following models for predictive analysis:
 - **Neural Networks:** Feedforward Neural Network (FNN), Transformer
 - **Ensemble Methods:** Gradient Boosting, Random Forest
 
-### 📊 **Data Processing & Feature Engineering**
+### Data Processing & Feature Engineering
 
 The data pipeline transforms raw fight statistics into predictive features:
 
@@ -63,7 +63,7 @@ The data pipeline transforms raw fight statistics into predictive features:
 - **Fighting metrics:** Strike accuracy, average strikes landed/attempted, takedown rates, control time, submission attempts, and reversals
 - **Preprocessing:** StandardScaler normalization and OneHotEncoder for stances, fit on training data only to prevent data leakage
 
-### 🎯 **Training & Model Evaluation**
+### Training & Model Evaluation
 
 Models are trained and evaluated using a rigorous validation framework:
 
@@ -78,7 +78,7 @@ Models are trained and evaluated using a rigorous validation framework:
 
 This project features a complete end-to-end automated machine learning pipeline that handles **data ingestion**, **model training**, and **inference** for MMA fight prediction. The system operates on AWS infrastructure with three main automated workflows:
 
-### 📥 **Data Ingestion Pipeline**
+### Data Ingestion Pipeline
 
 Automatically collects the latest MMA fight data:
 
@@ -88,7 +88,7 @@ Automatically collects the latest MMA fight data:
 4. Data is uploaded to **S3** (CSV for historical data, JSON for upcoming fights)
 5. **S3 upload events** trigger downstream training or inference pipelines
 
-### 🔄 **Training Pipeline**
+### Training Pipeline
 
 Maintains and updates the machine learning models with the latest fight data:
 
@@ -97,7 +97,7 @@ Maintains and updates the machine learning models with the latest fight data:
 3. Model metrics, learning curves, and updated models are saved to **S3**
 4. **Lambda function** creates a **GitHub Pull Request** with new results
 
-### 🎯 **Inference Pipeline**
+### Inference Pipeline
 
 Generates predictions for upcoming MMA fights:
 
@@ -110,14 +110,14 @@ Generates predictions for upcoming MMA fights:
 
 The project includes a data scraper that automatically collects fight data from public sources.
 
-### ✨ **Features**
+### Features
 
 - **Historical Data Mode:** Scrapes all completed MMA events with comprehensive fight statistics
 - **Upcoming Fights Mode:** Extracts matchup information for future events to generate predictions
 - **S3 Integration:** Downloads existing data, updates it, and uploads back to cloud storage
 - **Incremental Updates:** Only processes new events that haven't been scraped yet
 
-### 📋 **Data Collected**
+### Data Collected
 
 Each fight record includes 39 fields:
 - **Event details:** Name, date, location
