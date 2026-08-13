@@ -25,16 +25,15 @@ Learning curves, past results, future predictions, and model comparisons can be 
 
 ### Cloud & Infrastructure (AWS)
 - **AWS SageMaker** - Model training and inference jobs
-- **AWS Lambda** - Serverless function orchestration
+- **AWS Lambda** - Scraper execution, job orchestration, and API handlers
 - **AWS S3** - Data storage and model persistence
 - **AWS EventBridge** - Scheduled task automation
-- **AWS ECS (Fargate)** - Containerized scraper execution
+- **AWS API Gateway** - Public REST endpoints for the project website
 - **AWS CloudWatch** - Monitoring and logging
 - **AWS Parameter Store** - Secrets management
 
 ### DevOps & Deployment
-- **Docker** - Containerization for scraper tasks
-- **GitHub Actions** - Automated pull requests for results
+- **GitHub Actions** - Uploads training/scraper code to S3 on push
 - **pytest** - Unit and integration testing
 
 ### Web Scraping
@@ -74,17 +73,58 @@ Models are trained and evaluated using a rigorous validation framework:
 - **Metrics:** Training/validation accuracy with standard deviations, plus precision, recall, and F1-score via classification reports. Held-out test set evaluated separately for unbiased final metrics.
 - **Visualization:** Learning curves and model comparison plots saved for each model
 
-## Automated ML Pipeline
+## Architecture
 
-This project features a complete end-to-end automated machine learning pipeline that handles **data ingestion**, **model training**, and **inference** for MMA fight prediction. The system operates on AWS infrastructure with three main automated workflows:
+The system is an event-driven pipeline on AWS. **S3 is the hub**: scrapes, training, inference, and the website all read and write there. EventBridge starts scheduled scrapes, S3 object creates kick off SageMaker jobs, and API Gateway serves results to [payaam.dev](https://payaam.dev/projects/mpm).
+
+```mermaid
+flowchart TB
+    Sources["Public MMA fight pages"]
+    Schedule["EventBridge"]
+    Actions["GitHub Actions"]
+    Website["payaam.dev"]
+
+    subgraph aws ["AWS"]
+        Scraper["Scraper Lambda"]
+        S3[("Amazon S3")]
+        TrainL["Training Lambda"]
+        SageTrain["SageMaker training"]
+        PR["GitHub PR Lambda"]
+        InferL["Inference Lambda"]
+        SageInfer["SageMaker inference"]
+        Archive["Prediction Archiver"]
+        APIGW["API Gateway"]
+        APILams["API Lambdas"]
+    end
+
+    Schedule --> Scraper
+    Sources --> Scraper
+    Scraper -->|"historical CSV + upcoming JSON"| S3
+    Actions -->|"code.tar.gz"| S3
+
+    S3 -->|"fight_events.csv"| TrainL
+    TrainL --> SageTrain
+    SageTrain -->|"models + results"| S3
+    S3 -->|"results"| PR
+
+    S3 -->|"upcoming_fights.json"| InferL
+    InferL --> SageInfer
+    SageInfer -->|"latest_predictions.json"| S3
+    S3 --> Archive
+    Archive -->|"archive + leaderboard"| S3
+
+    Website --> APIGW
+    APIGW --> APILams
+    APILams --> S3
+```
 
 ### Data Ingestion Pipeline
 
 Automatically collects the latest MMA fight data:
 
-1. **EventBridge Rule** triggers scheduled scraping tasks
-2. **ECS Task** runs containerized scraper (`scraper/` package)
-3. Historical fight results and upcoming matchups are extracted from data sources
+1. **EventBridge** triggers scheduled scraping tasks
+2. **Scraper Lambda** downloads `code.tar.gz` from S3 and runs the `scraper/` package
+3. Historical fight results and upcoming matchups are extracted from public fight pages
 4. Data is uploaded to **S3** (CSV for historical data, JSON for upcoming fights)
 5. **S3 upload events** trigger downstream training or inference pipelines
 
@@ -92,19 +132,21 @@ Automatically collects the latest MMA fight data:
 
 Maintains and updates the machine learning models with the latest fight data:
 
-1. **S3-triggered Lambda** initiates **SageMaker training job**
+1. **S3-triggered Lambda** initiates a **SageMaker training job**
 2. **SageMaker** loads historical fight data and retrains all models using PyTorch + scikit-learn
 3. Model metrics, learning curves, and updated models are saved to **S3**
-4. **Lambda function** creates a **GitHub Pull Request** with new results
+4. **Lambda** creates a **GitHub Pull Request** with new results
 
 ### Inference Pipeline
 
 Generates predictions for upcoming MMA fights:
 
-1. **S3-triggered Lambda** starts **SageMaker inference job**
+1. **S3-triggered Lambda** starts a **SageMaker inference job**
 2. **SageMaker** loads trained models and generates predictions for upcoming matchups
-3. Predictions with confidence scores are saved to **S3**
-4. Results are automatically displayed on the project website
+3. Predictions with confidence scores are saved to **S3** as `predictions/latest_predictions.json`
+4. **Archiver Lambda** copies that file into an event archive and refreshes the model leaderboard
+5. **API Gateway** serves latest predictions, past results, training plots, and the leaderboard to the project website
+
 
 ## Data Scraper
 
