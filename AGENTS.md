@@ -88,17 +88,22 @@ Each Lambda function requires specific IAM permissions. See `.env` file for AWS 
 
 ### Automated Workflows
 
+**CI / packaging (GitHub Actions):**
+
+- `verify.yml` — unit tests on PRs and pushes to `main` / `experimental` (light deps + CPU torch; no GPU). Uses `PYTHONPATH=code`.
+- `upload-to-s3.yml` — packages `code.tar.gz` to S3 on pushes that touch `code/`, `scraper/`, `aws/`, or `requirements.txt`. Empty archives fail the job (no `|| true`).
+
 **Weekly Training** (Sundays):
 
-1. ECS data scraper updates fight data
+1. EventBridge + scraper Lambda (`aws/lambda_scraper_job.py`) updates fight data
 2. S3 upload triggers Lambda
-3. SageMaker retrains all models
+3. SageMaker retrains all models (`ml.g4dn.xlarge` — largest cost center)
 4. Results uploaded to S3
 5. GitHub PR created with new results
 
 **Weekly Inference** (Fridays):
 
-1. ECS scraper gets upcoming fights
+1. EventBridge + scraper Lambda gets upcoming fights
 2. S3 upload triggers inference Lambda
 3. SageMaker generates predictions
 4. Results published to website
