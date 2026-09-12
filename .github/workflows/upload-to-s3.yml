@@ -5,6 +5,12 @@ on:
     branches:
       - main
       - experimental
+    paths:
+      - "code/**"
+      - "scraper/**"
+      - "aws/**"
+      - "requirements.txt"
+      - ".github/workflows/upload-to-s3.yml"
 
 jobs:
   zip-and-upload:
@@ -15,7 +21,8 @@ jobs:
 
       - name: Create code.tar.gz
         run: |
-          tar --exclude='.git' --exclude='.github' --warning=no-file-changed -czf code.tar.gz . || true
+          tar --exclude='.git' --exclude='.github' --warning=no-file-changed -czf code.tar.gz .
+          test -s code.tar.gz
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
