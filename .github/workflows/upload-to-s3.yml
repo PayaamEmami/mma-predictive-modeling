@@ -21,8 +21,12 @@ jobs:
 
       - name: Create code.tar.gz
         run: |
-          tar --exclude='.git' --exclude='.github' --warning=no-file-changed -czf code.tar.gz .
-          test -s code.tar.gz
+          # Write outside the source tree. `tar -czf code.tar.gz .` otherwise
+          # packs its own output and GNU tar exits 1 ("file changed as we read it").
+          ARCHIVE="${RUNNER_TEMP:-/tmp}/code.tar.gz"
+          tar --exclude='.git' --exclude='.github' -czf "$ARCHIVE" .
+          test -s "$ARCHIVE"
+          mv "$ARCHIVE" code.tar.gz
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
