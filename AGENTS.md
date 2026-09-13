@@ -44,7 +44,8 @@ The AWS CLI is available in the local environment and can be used directly to in
 
 **Training Trigger** (`lambda_training_job.py`):
 
-- Triggered by S3 upload to `data/` or `experiments/`
+- Triggered only by S3 upload of `data/fight_events.csv` or `experiments/fight_events.csv`
+- Other keys under `data/` / `experiments/` (including CI `experiments/code.tar.gz`) are ignored
 - Supports dual-mode: main vs experimental training
 - Configures SageMaker with ml.g4dn.xlarge instances
 - Environment-based configuration management
