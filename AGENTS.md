@@ -91,7 +91,7 @@ Each Lambda function requires specific IAM permissions. See `.env` file for AWS 
 **CI / packaging (GitHub Actions):**
 
 - `verify.yml` — unit tests on PRs and pushes to `main` / `experimental` (light deps + CPU torch; no GPU). Uses `PYTHONPATH=code`.
-- `upload-to-s3.yml` — packages `code.tar.gz` to S3 on pushes that touch `code/`, `scraper/`, `aws/`, or `requirements.txt`. Empty archives fail the job (no `|| true`).
+- `upload-to-s3.yml` — packages `code.tar.gz` to S3 on pushes that touch `code/`, `scraper/`, `aws/`, or `requirements.txt`. The archive is written to a temp path first so GNU tar does not exit 1 from packing its own output. Empty archives fail the job (no `|| true`).
 
 **Weekly Training** (Sundays):
 

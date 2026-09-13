@@ -30,3 +30,10 @@ jobs:
         env:
           PYTHONPATH: code
         run: python -m pytest tests/ -q
+
+      - name: Smoke-test code archive packaging
+        run: |
+          ARCHIVE="${RUNNER_TEMP:-/tmp}/code.tar.gz"
+          tar --exclude='.git' --exclude='.github' -czf "$ARCHIVE" .
+          test -s "$ARCHIVE"
+          tar -tzf "$ARCHIVE" | grep -E -q '^(\./)?code/'
