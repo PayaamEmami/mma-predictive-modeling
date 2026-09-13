@@ -7,11 +7,15 @@ training when new data is uploaded to S3. It supports both main and experimental
 training workflows with separate configurations.
 
 Triggered by:
-- S3 object creation events in data/ folder (main training)
-- S3 object creation events in experiments/ folder (experimental training)
+- S3 object creation for `data/fight_events.csv` (main training)
+- S3 object creation for `experiments/fight_events.csv` (experimental training)
+
+Other uploads under `data/` or `experiments/` (including `experiments/code.tar.gz`
+from CI) are ignored so they cannot accidentally start an ml.g4dn.xlarge job.
 
 Key Features:
 - Dual-mode operation: main vs experimental training
+- Strict S3 key allowlist before creating SageMaker jobs
 - Environment-based configuration management
 - Automatic job naming with timestamps
 - GPU-optimized instance configuration (ml.g4dn.xlarge)
@@ -32,6 +36,16 @@ import boto3
 import datetime
 import os
 from datetime import timezone
+
+# Only these object keys may start a GPU training job.
+# CI uploads `experiments/code.tar.gz`; upcoming fights land at
+# `data/upcoming_fights.json` — neither should retrain models.
+ALLOWED_TRAINING_KEYS = frozenset(
+    {
+        "data/fight_events.csv",
+        "experiments/fight_events.csv",
+    }
+)
 
 
 def get_config_from_env(is_experimental=False):
@@ -66,26 +80,38 @@ def get_config_from_env(is_experimental=False):
     return config
 
 
+def should_start_training(s3_key: str) -> bool:
+    """Return True only for allowlisted fight-events CSV uploads."""
+    return s3_key in ALLOWED_TRAINING_KEYS
+
+
 def lambda_handler(event, context):
     """
     Main handler for SageMaker training job creation.
 
     Process:
-    1. Determine training mode (main vs experimental) from S3 key
-    2. Load appropriate environment configuration
-    3. Generate unique training job name with timestamp
-    4. Configure SageMaker job parameters and hyperparameters
-    5. Submit training job to SageMaker
+    1. Ignore S3 keys that are not allowlisted training datasets
+    2. Determine training mode (main vs experimental) from S3 key
+    3. Load appropriate environment configuration
+    4. Generate unique training job name with timestamp
+    5. Configure SageMaker job parameters and hyperparameters
+    6. Submit training job to SageMaker
 
     Returns:
     - Success: Training job ARN and job details
+    - Ignored: Non-training S3 keys (200, no SageMaker call)
     - Error: Configuration or SageMaker submission errors
     """
+    s3_key = event["Records"][0]["s3"]["object"]["key"]
+    if not should_start_training(s3_key):
+        print(f"Ignoring S3 event for {s3_key}; not an allowlisted training dataset")
+        return {
+            "statusCode": 200,
+            "body": f"Ignored - not an allowlisted training key: {s3_key}",
+        }
+
     sagemaker = boto3.client("sagemaker")
     timestamp = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
-
-    # Determine if this is experimental based on the S3 key
-    s3_key = event["Records"][0]["s3"]["object"]["key"]
     is_experimental = s3_key.startswith("experiments/")
 
     try:
