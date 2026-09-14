@@ -59,8 +59,8 @@ def scrape_historical_data() -> None:
 
     # Step 3: Load already processed events
     print("\nLoading processed events...")
-    processed_dates = csv_operations.load_processed_event_dates(config.CSV_FILE_PATH)
-    print(f"Already processed: {len(processed_dates)} event dates")
+    processed_events = csv_operations.load_processed_events(config.CSV_FILE_PATH)
+    print(f"Already processed: {len(processed_events)} events")
 
     # Step 4: Fetch and parse events listing page
     print("\nFetching events listing...")
@@ -87,8 +87,8 @@ def scrape_historical_data() -> None:
         if event_date > today:
             continue
 
-        # Skip already processed
-        if event_date in processed_dates:
+        # Skip already processed (name + date; same-day events are distinct)
+        if (event_name.strip(), event_date) in processed_events:
             continue
 
         events_to_process.append((event_url, event_name, event_date))

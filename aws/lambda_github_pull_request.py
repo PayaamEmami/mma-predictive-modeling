@@ -73,85 +73,87 @@ def lambda_handler(event, context):
 
     # Download files from S3 to temp dir
     tmp_dir = tempfile.mkdtemp()
-    s3_results_dir = os.path.join(tmp_dir, "s3_results")
-    os.makedirs(s3_results_dir, exist_ok=True)
+    try:
+        s3_results_dir = os.path.join(tmp_dir, "s3_results")
+        os.makedirs(s3_results_dir, exist_ok=True)
 
-    paginator = S3.get_paginator("list_objects_v2")
-    for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
-        for obj in page.get("Contents", []):
-            key = obj["Key"]
-            if key.endswith("/"):
-                continue
-            rel_path = os.path.relpath(key, S3_PREFIX)
-            local_path = os.path.join(s3_results_dir, rel_path)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            S3.download_file(S3_BUCKET, key, local_path)
+        paginator = S3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                if key.endswith("/"):
+                    continue
+                rel_path = os.path.relpath(key, S3_PREFIX)
+                local_path = os.path.join(s3_results_dir, rel_path)
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                S3.download_file(S3_BUCKET, key, local_path)
 
-    # Authenticate with GitHub using single Parameter Store token
-    GITHUB_TOKEN = get_github_token_from_parameter_store("mpm-github-token")
-    GITHUB_REPO = os.environ.get("GITHUB_REPO")
-    gh = Github(GITHUB_TOKEN)
-    repo = gh.get_repo(GITHUB_REPO)
+        # Authenticate with GitHub using single Parameter Store token
+        GITHUB_TOKEN = get_github_token_from_parameter_store("mpm-github-token")
+        GITHUB_REPO = os.environ.get("GITHUB_REPO")
+        gh = Github(GITHUB_TOKEN)
+        repo = gh.get_repo(GITHUB_REPO)
 
-    # Create a new branch from the target branch
-    base = repo.get_branch(github_branch)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    new_branch = f"s3-results-update-{timestamp}"
-    repo.create_git_ref(ref=f"refs/heads/{new_branch}", sha=base.commit.sha)
+        # Create a new branch from the target branch
+        base = repo.get_branch(github_branch)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        new_branch = f"s3-results-update-{timestamp}"
+        repo.create_git_ref(ref=f"refs/heads/{new_branch}", sha=base.commit.sha)
 
-    # Determine target directory in repo based on whether this is experimental
-    if s3_results_prefix.startswith("experiments/"):
-        repo_results_prefix = "experiments/results"
-    else:
-        repo_results_prefix = "results"
+        # Determine target directory in repo based on whether this is experimental
+        if s3_results_prefix.startswith("experiments/"):
+            repo_results_prefix = "experiments/results"
+        else:
+            repo_results_prefix = "results"
 
-    # For each file in s3_results_dir, update or create in appropriate results/ folder in the repo
-    for root, _, files in os.walk(s3_results_dir):
-        for file in files:
-            if file == "done.json":
-                continue
-            local_path = os.path.join(root, file)
-            rel_path = os.path.relpath(local_path, s3_results_dir)
-            repo_path = f"{repo_results_prefix}/{rel_path.replace(os.sep, '/')}"
+        # For each file in s3_results_dir, update or create in appropriate results/ folder in the repo
+        for root, _, files in os.walk(s3_results_dir):
+            for file in files:
+                if file == "done.json":
+                    continue
+                local_path = os.path.join(root, file)
+                rel_path = os.path.relpath(local_path, s3_results_dir)
+                repo_path = f"{repo_results_prefix}/{rel_path.replace(os.sep, '/')}"
 
-            with open(local_path, "rb") as f:
-                content = f.read()
-            try:
-                contents = repo.get_contents(repo_path, ref=new_branch)
-                repo.update_file(
-                    repo_path,
-                    f"Automated update from S3 at {timestamp}",
-                    content,
-                    contents.sha,
-                    branch=new_branch,
-                )
-            except Exception:
-                repo.create_file(
-                    repo_path,
-                    f"Automated update from S3 at {timestamp}",
-                    content,
-                    branch=new_branch,
-                )
+                with open(local_path, "rb") as f:
+                    content = f.read()
+                try:
+                    contents = repo.get_contents(repo_path, ref=new_branch)
+                    repo.update_file(
+                        repo_path,
+                        f"Automated update from S3 at {timestamp}",
+                        content,
+                        contents.sha,
+                        branch=new_branch,
+                    )
+                except Exception:
+                    repo.create_file(
+                        repo_path,
+                        f"Automated update from S3 at {timestamp}",
+                        content,
+                        branch=new_branch,
+                    )
 
-    # Create Pull Request with appropriate title and body
-    if s3_results_prefix.startswith("experiments/"):
-        pr_title = f"Automated experimental results update - {timestamp}"
-        pr_body = "This pull request updates the experiments/results/ folder with new experimental outputs from S3."
-    else:
-        pr_title = f"Automated results update - {timestamp}"
-        pr_body = (
-            "This pull request updates the results/ folder with new outputs from S3."
+        # Create Pull Request with appropriate title and body
+        if s3_results_prefix.startswith("experiments/"):
+            pr_title = f"Automated experimental results update - {timestamp}"
+            pr_body = "This pull request updates the experiments/results/ folder with new experimental outputs from S3."
+        else:
+            pr_title = f"Automated results update - {timestamp}"
+            pr_body = (
+                "This pull request updates the results/ folder with new outputs from S3."
+            )
+
+        pr = repo.create_pull(
+            title=pr_title,
+            body=pr_body,
+            head=new_branch,
+            base=github_branch,
         )
 
-    pr = repo.create_pull(
-        title=pr_title,
-        body=pr_body,
-        head=new_branch,
-        base=github_branch,
-    )
-
-    shutil.rmtree(tmp_dir)
-    return {
-        "statusCode": 200,
-        "body": f"Pull request created for branch: {new_branch}, PR URL: {pr.html_url}",
-    }
+        return {
+            "statusCode": 200,
+            "body": f"Pull request created for branch: {new_branch}, PR URL: {pr.html_url}",
+        }
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)

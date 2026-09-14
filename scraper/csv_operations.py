@@ -34,34 +34,37 @@ def ensure_csv_exists(file_path: str, headers: list[str]) -> None:
         print(f"CSV already exists: {file_path}")
 
 
-def load_processed_event_dates(file_path: str) -> set[str]:
+def load_processed_events(file_path: str) -> set[tuple[str, str]]:
     """
-    Load all event dates that have been processed from the CSV.
-    
-    Args:
-        file_path: Path to the CSV file
-    
-    Returns:
-        Set of event dates in "yyyy-MM-dd" format
+    Load event identities that have already been scraped.
+
+    Dedup key is (EventName, EventDate) so multiple events on the same
+    calendar day (e.g. Fight Night + Contender Series) are not skipped.
     """
     path = Path(file_path)
     if not path.exists():
         return set()
-    
-    dates = set()
-    
+
+    events: set[tuple[str, str]] = set()
+
     try:
         with open(path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                event_name = row.get('EventName', '').strip()
                 event_date = row.get('EventDate', '').strip()
-                if event_date:
-                    dates.add(event_date)
+                if event_name and event_date:
+                    events.add((event_name, event_date))
     except Exception as e:
-        print(f"Warning: Error reading CSV dates: {e}")
+        print(f"Warning: Error reading CSV events: {e}")
         return set()
-    
-    return dates
+
+    return events
+
+
+def load_processed_event_dates(file_path: str) -> set[str]:
+    """Deprecated alias: prefer load_processed_events (name+date)."""
+    return {event_date for _, event_date in load_processed_events(file_path)}
 
 
 def append_fight_to_csv(fight: dict, file_path: str, headers: list[str]) -> None:

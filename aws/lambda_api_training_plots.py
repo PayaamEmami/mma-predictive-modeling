@@ -20,6 +20,7 @@ import boto3
 import logging
 import os
 import base64
+from botocore.exceptions import ClientError
 from datetime import datetime
 
 logger = logging.getLogger()
@@ -64,13 +65,15 @@ def lambda_handler(event, context):
             }
 
         # Get path parameter to determine what to return
-        path_params = event.get("pathParameters", {})
+        # API Gateway may set these to null (not omit them)
+        path_params = event.get("pathParameters") or {}
         resource_type = path_params.get("type", "overview")
 
         if resource_type == "overview":
             return get_training_overview()
         elif resource_type == "plot":
-            plot_name = event.get("queryStringParameters", {}).get("name")
+            query_params = event.get("queryStringParameters") or {}
+            plot_name = query_params.get("name")
             if not plot_name:
                 return {
                     "statusCode": 400,
@@ -227,20 +230,24 @@ def get_plot_image(plot_name):
 
         object_key = f"{RESULTS_PREFIX}{plot_name}"
 
-        # Check if object exists first
+        # Check if object exists first.
+        # head_object reports missing keys as ClientError 404/NotFound, not NoSuchKey.
         try:
             head_response = s3_client.head_object(Bucket=BUCKET_NAME, Key=object_key)
-        except s3_client.exceptions.NoSuchKey:
-            return {
-                "statusCode": 404,
-                "headers": headers_image,
-                "body": json.dumps(
-                    {
-                        "error": "Plot not found",
-                        "message": f"Plot '{plot_name}' does not exist",
-                    }
-                ),
-            }
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code in ("404", "NoSuchKey", "NotFound"):
+                return {
+                    "statusCode": 404,
+                    "headers": headers_image,
+                    "body": json.dumps(
+                        {
+                            "error": "Plot not found",
+                            "message": f"Plot '{plot_name}' does not exist",
+                        }
+                    ),
+                }
+            raise
 
         # Generate a presigned URL for direct access (expires in 1 hour)
         try:
