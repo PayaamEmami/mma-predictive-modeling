@@ -148,7 +148,9 @@ def prepare_fight_data(fight_data):
         ~fight_data[identity_columns].isin(["", "--", "nan"]).any(axis=1)
         & (fight_data["Fighter1_ID"] != fight_data["Fighter2_ID"])
     ]
-    fight_data = fight_data[fight_data["Winner"].isin(["1", "2"])]
+    # Keep draws/no-contests through historical stats so experience, recency,
+    # and D/NC tallies update; training filters to decided fights afterward.
+    fight_data = fight_data[fight_data["Winner"].isin(["1", "2", "D", "NC"])]
 
     optional_profile_defaults = {
         "DOB": "",
@@ -258,6 +260,10 @@ def load_fight_data(s3_bucket, s3_data_key, s3_results_prefix):
 
         # Compute differential features (Fighter1 - Fighter2)
         fight_data = compute_differential_features(fight_data)
+
+        # Training labels are Fighter1/Fighter2 wins only; D/NC rows already
+        # contributed to historical features above.
+        fight_data = fight_data[fight_data["Winner"].isin(["1", "2"])]
 
         # Use differential features instead of absolute Fighter1/Fighter2 columns
         numerical_columns, categorical_columns = get_feature_columns()

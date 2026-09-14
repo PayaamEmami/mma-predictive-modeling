@@ -107,8 +107,13 @@ def handle_list_past_predictions(query_params, headers):
     Query params: page (default 1), limit (default 10)
     """
     try:
-        page = int(query_params.get("page", 1))
-        limit = int(query_params.get("limit", 10))
+        try:
+            page = int(query_params.get("page", 1))
+            limit = int(query_params.get("limit", 10))
+        except (TypeError, ValueError):
+            page, limit = 1, 10
+        page = max(page, 1)
+        limit = min(max(limit, 1), 100)
 
         # List all archived prediction files
         response = s3_client.list_objects_v2(
@@ -457,18 +462,24 @@ def find_fight_result(fight_events, event_name, fighter1_name, fighter2_name):
     Find the actual fight result from the fight_events data.
     Returns result with winner_name and optional result_type for exceptional cases.
     """
+    event_name = (event_name or "").strip()
+    fighter1_name = (fighter1_name or "").strip()
+    fighter2_name = (fighter2_name or "").strip()
+
     for event in fight_events:
-        if event["EventName"] == event_name:
+        if (event.get("EventName") or "").strip() == event_name:
+            event_f1 = (event.get("Fighter1_Name") or "").strip()
+            event_f2 = (event.get("Fighter2_Name") or "").strip()
             # Check if this is the right fight (either fighter order)
             if (
-                event["Fighter1_Name"] == fighter1_name
-                and event["Fighter2_Name"] == fighter2_name
+                event_f1 == fighter1_name
+                and event_f2 == fighter2_name
             ) or (
-                event["Fighter1_Name"] == fighter2_name
-                and event["Fighter2_Name"] == fighter1_name
+                event_f1 == fighter2_name
+                and event_f2 == fighter1_name
             ):
 
-                winner_num = event["Winner"]
+                winner_num = (event.get("Winner") or "").strip()
                 result = {
                     "method": event["Method"],
                     "round": event["Round"],

@@ -341,6 +341,88 @@ class TestPreprocessing(unittest.TestCase):
         self.assertEqual(result.loc[0, "Fighter1_Stance"], "Unknown")
         self.assertEqual(result.loc[0, "Fighter2_Stance"], "Unknown")
 
+    def test_prepare_fight_data_includes_nc_in_historical_stats(self):
+        """NC/D rows must update experience/recency before later decided fights."""
+        base = {
+            "Fighter1_DOB": "1990-01-01",
+            "Fighter1_Height": "5ft 10in",
+            "Fighter1_Reach": "70in",
+            "Fighter1_Stance": "Orthodox",
+            "Fighter2_DOB": "1990-01-01",
+            "Fighter2_Height": "5ft 10in",
+            "Fighter2_Reach": "70in",
+            "Fighter2_Stance": "Orthodox",
+            "Fighter1_Control_Time": "1:00",
+            "Fighter2_Control_Time": "1:00",
+            "Fighter1_Significant_Strikes": "5 of 10",
+            "Fighter1_Head_Strikes": "2 of 4",
+            "Fighter1_Body_Strikes": "2 of 4",
+            "Fighter1_Leg_Strikes": "1 of 2",
+            "Fighter1_Distance_Strikes": "4 of 8",
+            "Fighter1_Clinch_Strikes": "1 of 1",
+            "Fighter1_Ground_Strikes": "0 of 1",
+            "Fighter1_Takedowns": "0 of 1",
+            "Fighter1_Submission_Attempts": "0",
+            "Fighter1_Reversals": "0",
+            "Fighter2_Significant_Strikes": "4 of 10",
+            "Fighter2_Head_Strikes": "2 of 4",
+            "Fighter2_Body_Strikes": "1 of 3",
+            "Fighter2_Leg_Strikes": "1 of 3",
+            "Fighter2_Distance_Strikes": "3 of 8",
+            "Fighter2_Clinch_Strikes": "1 of 1",
+            "Fighter2_Ground_Strikes": "0 of 1",
+            "Fighter2_Takedowns": "0 of 1",
+            "Fighter2_Submission_Attempts": "0",
+            "Fighter2_Reversals": "0",
+            "Round": "3",
+            "Time": "5:00",
+            "Method": "Decision",
+        }
+        df = pd.DataFrame(
+            [
+                {
+                    **base,
+                    "EventName": "Event 1",
+                    "EventDate": "2024-01-01",
+                    "Fighter1_ID": "A",
+                    "Fighter1_Name": "Fighter A",
+                    "Fighter2_ID": "B",
+                    "Fighter2_Name": "Fighter B",
+                    "Winner": "1",
+                },
+                {
+                    **base,
+                    "EventName": "Event 2",
+                    "EventDate": "2024-06-01",
+                    "Fighter1_ID": "A",
+                    "Fighter1_Name": "Fighter A",
+                    "Fighter2_ID": "C",
+                    "Fighter2_Name": "Fighter C",
+                    "Winner": "NC",
+                    "Method": "No Contest",
+                },
+                {
+                    **base,
+                    "EventName": "Event 3",
+                    "EventDate": "2024-12-01",
+                    "Fighter1_ID": "A",
+                    "Fighter1_Name": "Fighter A",
+                    "Fighter2_ID": "D",
+                    "Fighter2_Name": "Fighter D",
+                    "Winner": "1",
+                },
+            ]
+        )
+
+        df["EventDate"] = pd.to_datetime(df["EventDate"])
+        result = prepare_fight_data(df)
+        self.assertEqual(len(result), 3)
+        last = result.iloc[-1]
+        self.assertEqual(last["Fighter1_TotalFights"], 2)
+        self.assertEqual(last["Fighter1_NoContests"], 1)
+        self.assertEqual(last["Fighter1_Wins"], 1)
+        self.assertEqual(last["Fighter1_TimeSinceLastFight"], 183)
+
     def test_augment_mirrored_matchups_flips_features_and_labels(self):
         numerical_columns = [f"{suffix}_Diff" for suffix in DIFF_FEATURE_SUFFIXES]
         X_df = pd.DataFrame(

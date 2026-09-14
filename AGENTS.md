@@ -246,6 +246,11 @@ Columns: EventName, EventDate, Fighter1_Name, Fighter1_Height, Fighter1_Reach,
 - **Categorical Encoding**: Consistent one-hot encoding across train/inference
 - **Temporal Features**: Age calculation, time since last fight
 - **Fighter URLs**: Used for historical stat lookup, handle missing gracefully
+- **NC/Draw rows**: Kept through `prepare_fight_data` / `compute_historical_stats` so experience, recency, and D/NC tallies update; `load_fight_data` filters to Winner `1`/`2` only when building training labels
+
+### Scraper Dedup
+
+- Historical scrape skip key is `(EventName, EventDate)`, not date alone, so same-day cards are not dropped
 
 ### AWS Integration
 
