@@ -1,134 +1,134 @@
 Learning Curve Metrics for Random Forest:
-  Final Training Accuracy: 0.8527 (+/- 0.0000)
-  Final Validation Accuracy: 0.5976 (+/- 0.0060)
-  Learning Rate: -0.2991
+  Final Training Accuracy: 0.8560 (+/- 0.0000)
+  Final Validation Accuracy: 0.5994 (+/- 0.0111)
+  Learning Rate: -0.2998
 Classification Report for Random Forest:
               precision    recall  f1-score   support
 
-           1       0.60      0.59      0.60      1757
-           2       0.60      0.60      0.60      1757
+           1       0.60      0.60      0.60      1760
+           2       0.60      0.60      0.60      1760
 
-    accuracy                           0.60      3514
-   macro avg       0.60      0.60      0.60      3514
-weighted avg       0.60      0.60      0.60      3514
+    accuracy                           0.60      3520
+   macro avg       0.60      0.60      0.60      3520
+weighted avg       0.60      0.60      0.60      3520
 
 
 Learning Curve Metrics for Gradient Boosting:
-  Final Training Accuracy: 0.7644 (+/- 0.0000)
-  Final Validation Accuracy: 0.5987 (+/- 0.0068)
-  Learning Rate: -0.2167
+  Final Training Accuracy: 0.7622 (+/- 0.0000)
+  Final Validation Accuracy: 0.5991 (+/- 0.0055)
+  Learning Rate: -0.2139
 Classification Report for Gradient Boosting:
               precision    recall  f1-score   support
 
-           1       0.60      0.60      0.60      1757
-           2       0.60      0.60      0.60      1757
+           1       0.60      0.61      0.60      1760
+           2       0.60      0.59      0.60      1760
 
-    accuracy                           0.60      3514
-   macro avg       0.60      0.60      0.60      3514
-weighted avg       0.60      0.60      0.60      3514
+    accuracy                           0.60      3520
+   macro avg       0.60      0.60      0.60      3520
+weighted avg       0.60      0.60      0.60      3520
 
 
 Learning Curve Metrics for SVM:
-  Final Training Accuracy: 0.7200 (+/- 0.0000)
-  Final Validation Accuracy: 0.5936 (+/- 0.0101)
-  Learning Rate: -0.1755
+  Final Training Accuracy: 0.7208 (+/- 0.0000)
+  Final Validation Accuracy: 0.5932 (+/- 0.0110)
+  Learning Rate: -0.1771
 Classification Report for SVM:
               precision    recall  f1-score   support
 
-           1       0.59      0.59      0.59      1757
-           2       0.59      0.59      0.59      1757
+           1       0.59      0.59      0.59      1760
+           2       0.59      0.59      0.59      1760
 
-    accuracy                           0.59      3514
-   macro avg       0.59      0.59      0.59      3514
-weighted avg       0.59      0.59      0.59      3514
+    accuracy                           0.59      3520
+   macro avg       0.59      0.59      0.59      3520
+weighted avg       0.59      0.59      0.59      3520
 
 
 Learning Curve Metrics for Logistic Regression:
-  Final Training Accuracy: 0.6907 (+/- 0.0000)
-  Final Validation Accuracy: 0.6067 (+/- 0.0110)
-  Learning Rate: -0.1216
+  Final Training Accuracy: 0.6916 (+/- 0.0000)
+  Final Validation Accuracy: 0.6068 (+/- 0.0119)
+  Learning Rate: -0.1226
 Classification Report for Logistic Regression:
               precision    recall  f1-score   support
 
-           1       0.61      0.61      0.61      1757
-           2       0.61      0.61      0.61      1757
+           1       0.61      0.61      0.61      1760
+           2       0.61      0.61      0.61      1760
 
-    accuracy                           0.61      3514
-   macro avg       0.61      0.61      0.61      3514
-weighted avg       0.61      0.61      0.61      3514
+    accuracy                           0.61      3520
+   macro avg       0.61      0.61      0.61      3520
+weighted avg       0.61      0.61      0.61      3520
 
 
 Learning Curve Metrics for KNN:
-  Final Training Accuracy: 0.7571 (+/- 0.0000)
-  Final Validation Accuracy: 0.5549 (+/- 0.0132)
-  Learning Rate: -0.2670
+  Final Training Accuracy: 0.7568 (+/- 0.0000)
+  Final Validation Accuracy: 0.5523 (+/- 0.0132)
+  Learning Rate: -0.2703
 Classification Report for KNN:
               precision    recall  f1-score   support
 
-           1       0.55      0.55      0.55      1757
-           2       0.55      0.55      0.55      1757
+           1       0.55      0.55      0.55      1760
+           2       0.55      0.55      0.55      1760
 
-    accuracy                           0.55      3514
-   macro avg       0.55      0.55      0.55      3514
-weighted avg       0.55      0.55      0.55      3514
+    accuracy                           0.55      3520
+   macro avg       0.55      0.55      0.55      3520
+weighted avg       0.55      0.55      0.55      3520
 
 
 Learning Curve Metrics for Naive Bayes:
-  Final Training Accuracy: 0.6439 (+/- 0.0000)
-  Final Validation Accuracy: 0.5805 (+/- 0.0151)
-  Learning Rate: -0.0984
+  Final Training Accuracy: 0.6449 (+/- 0.0000)
+  Final Validation Accuracy: 0.5835 (+/- 0.0162)
+  Learning Rate: -0.0952
 Classification Report for Naive Bayes:
               precision    recall  f1-score   support
 
-           1       0.58      0.58      0.58      1757
-           2       0.58      0.58      0.58      1757
+           1       0.58      0.58      0.58      1760
+           2       0.58      0.58      0.58      1760
 
-    accuracy                           0.58      3514
-   macro avg       0.58      0.58      0.58      3514
-weighted avg       0.58      0.58      0.58      3514
+    accuracy                           0.58      3520
+   macro avg       0.58      0.58      0.58      3520
+weighted avg       0.58      0.58      0.58      3520
 
 
 Learning Curve Metrics for Decision Tree:
-  Final Training Accuracy: 0.8868 (+/- 0.0000)
-  Final Validation Accuracy: 0.5174 (+/- 0.0086)
-  Learning Rate: -0.4166
+  Final Training Accuracy: 0.8881 (+/- 0.0000)
+  Final Validation Accuracy: 0.5276 (+/- 0.0141)
+  Learning Rate: -0.4060
 Classification Report for Decision Tree:
               precision    recall  f1-score   support
 
-           1       0.52      0.54      0.53      1757
-           2       0.52      0.49      0.50      1757
+           1       0.53      0.54      0.53      1760
+           2       0.53      0.52      0.52      1760
 
-    accuracy                           0.52      3514
-   macro avg       0.52      0.52      0.52      3514
-weighted avg       0.52      0.52      0.52      3514
+    accuracy                           0.53      3520
+   macro avg       0.53      0.53      0.53      3520
+weighted avg       0.53      0.53      0.53      3520
 
 
 Learning Curve Metrics for FNN:
-  Final Training Accuracy: 0.6293 (+/- 0.0295)
-  Final Validation Accuracy: 0.6093 (+/- 0.0146)
-  Learning Rate: -0.0318
+  Final Training Accuracy: 0.6305 (+/- 0.0314)
+  Final Validation Accuracy: 0.6057 (+/- 0.0169)
+  Learning Rate: -0.0393
 Classification Report for FNN:
               precision    recall  f1-score   support
 
-           1       0.61      0.60      0.60      1757
-           2       0.61      0.62      0.61      1757
+           1       0.61      0.61      0.61      1760
+           2       0.61      0.60      0.61      1760
 
-    accuracy                           0.61      3514
-   macro avg       0.61      0.61      0.61      3514
-weighted avg       0.61      0.61      0.61      3514
+    accuracy                           0.61      3520
+   macro avg       0.61      0.61      0.61      3520
+weighted avg       0.61      0.61      0.61      3520
 
 
 Learning Curve Metrics for Transformer:
-  Final Training Accuracy: 0.6246 (+/- 0.0240)
-  Final Validation Accuracy: 0.6030 (+/- 0.0063)
-  Learning Rate: -0.0345
+  Final Training Accuracy: 0.6272 (+/- 0.0256)
+  Final Validation Accuracy: 0.6014 (+/- 0.0146)
+  Learning Rate: -0.0412
 Classification Report for Transformer:
               precision    recall  f1-score   support
 
-           1       0.60      0.60      0.60      1757
-           2       0.60      0.61      0.61      1757
+           1       0.61      0.58      0.59      1760
+           2       0.60      0.62      0.61      1760
 
-    accuracy                           0.60      3514
-   macro avg       0.60      0.60      0.60      3514
-weighted avg       0.60      0.60      0.60      3514
+    accuracy                           0.60      3520
+   macro avg       0.60      0.60      0.60      3520
+weighted avg       0.60      0.60      0.60      3520
 
